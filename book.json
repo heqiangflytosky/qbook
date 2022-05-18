@@ -11,7 +11,8 @@
         "insert-logo",
         "tbfed-pagefooter",
         "splitter",
-        "back-to-top-button"
+        "back-to-top-button",
+        "code"
     ],
     "pluginsConfig": {
         "hide-element": {

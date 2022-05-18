@@ -1,21 +1,31 @@
 {
     "title": "寒江蓑笠的博客",
     "author": "寒江蓑笠",
+    "description" : "记录工作，记录生活",
     "plugins":[
         "expandable-chapters",
+        "chapter-fold",
         "intopic-toc",
         "hide-element",
         "custom-favicon",
-        "insert-logo"
+        "insert-logo",
+        "tbfed-pagefooter",
+        "splitter",
+        "back-to-top-button"
     ],
     "pluginsConfig": {
         "hide-element": {
             "elements": [".gitbook-link"]
         },
 	"insert-logo": {
-	    "url": "http://www.heqiangfly.com/images/icon.png",
-	    "style": "background: none;max-height:129px"
+	    "url": "https://github.com/heqiangflytosky/heqiangflytosky.github.io/blob/hexo/source/images/icon.png?raw=true",
+	    "style": "background: none; max-height:129px"
 	},
-        "favicon": "images/favicon.ico"
+        "favicon": "https://github.com/heqiangflytosky/qbook/blob/gitbook/images/favicon.ico?raw=true",
+	"tbfed-pagefooter": {
+	    "copyright": "Copyright &copy 寒江蓑笠 2022",
+	    "modify_label": "该文章修订时间：",
+	    "modify_format": "YYYY-MM-DD"
+	}
     }
 }

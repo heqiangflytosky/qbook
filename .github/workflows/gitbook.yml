@@ -25,7 +25,7 @@ jobs:
                 
     - name: generate _book folder
       run: |
-        book sm
+        #book sm
         gitbook build
         #cp SUMMARY.md _book
                 

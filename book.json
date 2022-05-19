@@ -2,6 +2,11 @@
     "title": "寒江蓑笠的博客",
     "author": "寒江蓑笠",
     "description" : "记录工作，记录生活",
+    "links": {
+        "sidebar": {
+            "我的GitHub": "https://github.com/heqiangflytosky"
+        }
+    },
     "plugins":[
         "expandable-chapters",
         "chapter-fold",

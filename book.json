@@ -4,7 +4,7 @@
     "description" : "记录工作，记录生活",
     "links": {
         "sidebar": {
-            "我的GitHub": "https://github.com/heqiangflytosky"
+            "我的CSDN": "https://blog.csdn.net/heqiangflytosky"
         }
     },
     "plugins":[
@@ -12,12 +12,13 @@
         "chapter-fold",
         "intopic-toc",
         "hide-element",
-        "custom-favicon",
+        "favicon",
         "insert-logo",
         "tbfed-pagefooter",
         "splitter",
         "back-to-top-button",
-        "code"
+        "code",
+        "github"
     ],
     "pluginsConfig": {
         "hide-element": {
@@ -27,11 +28,17 @@
 	    "url": "https://github.com/heqiangflytosky/heqiangflytosky.github.io/blob/hexo/source/images/icon.png?raw=true",
 	    "style": "background: none; max-height:129px"
 	},
-        "favicon": "https://github.com/heqiangflytosky/qbook/blob/gitbook/images/favicon.ico?raw=true",
+        "favicon": {
+            "shortcut": "images/favicon.ico",
+            "bookmark": "https://github.com/heqiangflytosky/qbook/blob/gitbook/images/favicon.ico?raw=true"
+        },
 	"tbfed-pagefooter": {
 	    "copyright": "Copyright &copy 寒江蓑笠 2022",
 	    "modify_label": "该文章修订时间：",
 	    "modify_format": "YYYY-MM-DD"
-	}
+	},
+        "github": {
+            "url": "https://github.com/heqiangflytosky"
+        }
     }
 }

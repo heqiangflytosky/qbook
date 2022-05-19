@@ -27,7 +27,7 @@ jobs:
       run: |
         book sm
         gitbook build
-        cp SUMMARY.md _book
+        #cp SUMMARY.md _book
                 
     - name: push _book to branch main 
       env:

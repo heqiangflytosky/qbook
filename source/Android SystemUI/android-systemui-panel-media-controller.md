@@ -24,6 +24,13 @@ packages/SystemUI/src/com/android/systemui/util/Utils.java
 ```
 
 如果不显示在QS上，那么就显示在通知中心里面。
+Android S 设置里面没有找到对 SHOW_MEDIA_ON_QUICK_SETTINGS 的配置，如果我们想看两种配置不同的显示效果，可以通过 `add shell settings put global qs_media_controls 0` 或者 1 来切换。
+
+另外在设置->声音->媒体->固定媒体播放器（通过控制secure字段 qs_media_resumption） 选项可以控制多媒体空间的显示逻辑。
+需要注意的是关闭固定媒体播放器是针对不活跃的媒体来设置的。不活跃媒体的定义为：暂停播放的媒体。
+关闭固定媒体播放器为关闭时，
+1.如果 QS和QQS 播放器都存在，那么超过设定超时时间10分钟后，QS和QQS播放器都会消失。
+2.如果划掉QQS里面的播放器，那么那么再次下拉下拉面板时QS里面的就会隐藏。
 
 在 Android S上面分别有四个位置可以承载媒体控制器，分别时QQS、QS和锁屏，另外还有个动画切换的场景，这四个位置动态添加 MediaScrollView 来实现切换场景时媒体控制器的位置的变换。
 如图：

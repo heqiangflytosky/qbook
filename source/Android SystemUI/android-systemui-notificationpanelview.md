@@ -11,7 +11,7 @@ date: 2021-11-7 10:00:00
 ## 概述
 
 NotificationPanelView 是 PanelView 的子类，它继承自 FrameLayout，提供了一个承载下拉通知面板的容器。NotificationPanelView 主要作用就是用 PanelViewController.TouchHandler 来进行一些事件处理。
-根据名称我们就可以看出来 NotificationPanelView 和 PanelView 的区别，PanelView 只处理和面板相关的，比如面板整体的显示和隐藏。NotificationPanelView 就需要处理面板中和通知中心相关的逻辑了。比如通知中心的滑动滚动，QQS 和 QS 状态的切换。
+根据名称我们就可以看出来 NotificationPanelView 和 PanelView 的区别，PanelView 只处理和面板相关的，比如面板整体的显示和隐藏。NotificationPanelView 就需要处理面板中和通知中心相关的逻辑了。比如通知中心的滑动滚动，QQS 和 QS 状态的切换。  
 关于事件分发流程和下拉交互部分参考前面介绍，本文只介绍一些方法实现的细节。本文基于原生 Android S 代码。
 
 ## NotificationPanelView & PanelView 
@@ -38,37 +38,37 @@ NotificationPanelViewController 和 PanelViewController 都生成了自己的 To
 
 ## NotificationPanelViewController & PanelViewController
 
-PanelViewController主要是进行QS面板的整体操作，比如显示，隐藏和整体滑动等等。 
-NotificationPanelViewController 可以处理通知中心的移动操作，此时 mTracking 为 true。
+PanelViewController主要是进行QS面板的整体操作，比如显示，隐藏和整体滑动等等。  
 
-mOverExpansion:QS可以回弹下拉的高度
-mQsExpanded:QS是否可见，这时QS正在展开或者全部展开，此时展开高度大于 mQsMinExpansionHeight，也就是在只显示QQS到全部显示QS之间的状态变化时为true。它和 mQsFullyExpanded 的区别是从QQS开始过度到QS这个事件点开始，就是 true，包含 mQsFullyExpanded 时，以及收缩QS动画时。
-mQsMinExpansionHeight:QS展开的最小高度：如果是锁屏模式，就是0，全部隐藏了。如果不是就是 QuickStatusBarHeader 的高度。
-mQsMaxExpansionHeight：QS展开的最大高度，通过 getDesiredHeight() 获取，一般是QSContainerImpl 的高度。
-mQsExpansionHeight：QS的当前实时高度，其实就是没有被通知中心覆盖住的QS部分。一般通过 setQsExpansion() 方法设置。一般为初始位置加手势移动的距离。
-mQsFullyExpanded：QS是否完全展开，展开高度等于mQsMaxExpansionHeight。只有在全部展开这个状态才时 true。当收缩一开始就为false。
-mExpanding：面板是否在展开
-mClosing：是否正在关闭面板
-mQsTracking：是否在触摸快捷面板（展开、收起快捷面板部分逻辑）
-mTracking：为true时表示 NotificationPanelViewController 来处理手势移动，此时可能正在做QS和通知中心的收起或者展示动画。false时表示NotificationPanelViewController不处理手势移动，可能交给 PanelViewController处理下面面板整体操作。
-mExpandedHeight:整个下拉面板的高度。为初始位置和手势滑动距离之和。原生用的时渐隐渐现动画。
-mExpandedFraction:下拉面板的幅度,展开高度除于整体高度。
-mQsExpandImmediate：下拉后是QS展开状态，用于下拉后直接展开 QS 的场景（去掉QQS状态），比如双指操作
-mTwoFingerQsExpandPossible：表示当前状态可以用于双指操作
+NotificationPanelViewController 可以处理通知中心的移动操作，此时 mTracking 为 true。  
+mOverExpansion:QS可以回弹下拉的高度  
+mQsExpanded:QS是否可见，这时QS正在展开或者全部展开，此时展开高度大于 mQsMinExpansionHeight，也就是在只显示QQS到全部显示QS之间的状态变化时为true。它和 mQsFullyExpanded 的区别是从QQS开始过度到QS这个事件点开始，就是 true，包含 mQsFullyExpanded 时，以及收缩QS动画时。  
+mQsMinExpansionHeight:QS展开的最小高度：如果是锁屏模式，就是0，全部隐藏了。如果不是就是 QuickStatusBarHeader 的高度。  
+mQsMaxExpansionHeight：QS展开的最大高度，通过 getDesiredHeight() 获取，一般是QSContainerImpl 的高度。  
+mQsExpansionHeight：QS的当前实时高度，其实就是没有被通知中心覆盖住的QS部分。一般通过 setQsExpansion() 方法设置。一般为初始位置加手势移动的距离。  
+mQsFullyExpanded：QS是否完全展开，展开高度等于mQsMaxExpansionHeight。只有在全部展开这个状态才时 true。当收缩一开始就为false。  
+mExpanding：面板是否在展开  
+mClosing：是否正在关闭面板  
+mQsTracking：是否在触摸快捷面板（展开、收起快捷面板部分逻辑）  
+mTracking：为true时表示 NotificationPanelViewController 来处理手势移动，此时可能正在做QS和通知中心的收起或者展示动画。false时表示NotificationPanelViewController不处理手势移动，可能交给 PanelViewController处理下面面板整体操作。  
+mExpandedHeight:整个下拉面板的高度。为初始位置和手势滑动距离之和。原生用的时渐隐渐现动画。  
+mExpandedFraction:下拉面板的幅度,展开高度除于整体高度。  
+mQsExpandImmediate：下拉后是QS展开状态，用于下拉后直接展开 QS 的场景（去掉QQS状态），比如双指操作  
+mTwoFingerQsExpandPossible：表示当前状态可以用于双指操作  
 
-mMaxKeyguardNotifications：在锁屏上允许显示的通知的最大个数，保存在 keyguard_max_notification_count 配置中
-mMaxAllowedKeyguardNotifications：计算当前可以在锁屏上可以显示的通知的最大个数
+mMaxKeyguardNotifications：在锁屏上允许显示的通知的最大个数，保存在 keyguard_max_notification_count 配置中  
+mMaxAllowedKeyguardNotifications：计算当前可以在锁屏上可以显示的通知的最大个数  
 
-getMaxPanelHeight():它的值有两种情况，一个是从只显示QQS到完全显示QS的状态，或者双指从状态栏下拉时，这个时候的值时经过calculatePanelHeightQsExpanded()计算，一般为mQsMaxExpansionHeight加上NotificationShelf的高度，因为它们的最终状态是全部显示QS；其他状态时经过calculatePanelHeightShade()计算，其实时通知面板的高度;
-calculateNotificationsTopPadding()：计算通知中心的最上面的通知距离顶部的距离
-setQSClippingBounds()： 设置QS的绘制区域，下面介绍。
-expand()
-collapse():收起
-positionClockAndNotifications()：计算锁屏上时钟和通知中心的位置
-flingSettings()：做通知中心滑动松手后的动画，开始QS的展开或者收起动画，下面介绍。
-fling():释放手指后的动画。
-flingExpands():计算fling之后最终的状态，看是否时展开或者收起。下面介绍。
-flingToHeight()：下拉面板整体滚动到指定高度，下面介绍。
+getMaxPanelHeight():它的值有两种情况，一个是从只显示QQS到完全显示QS的状态，或者双指从状态栏下拉时，这个时候的值时经过calculatePanelHeightQsExpanded()计算，一般为mQsMaxExpansionHeight加上NotificationShelf的高度，因为它们的最终状态是全部显示QS；其他状态时经过calculatePanelHeightShade()计算，其实时通知面板的高度;  
+calculateNotificationsTopPadding()：计算通知中心的最上面的通知距离顶部的距离  
+setQSClippingBounds()： 设置QS的绘制区域，下面介绍。  
+expand()  
+collapse():收起  
+positionClockAndNotifications()：计算锁屏上时钟和通知中心的位置  
+flingSettings()：做通知中心滑动松手后的动画，开始QS的展开或者收起动画，下面介绍。  
+fling():释放手指后的动画。  
+flingExpands():计算fling之后最终的状态，看是否时展开或者收起。下面介绍。  
+flingToHeight()：下拉面板整体滚动到指定高度，下面介绍。  
 
 ## 方法详解
 
@@ -161,16 +161,16 @@ flingToHeight()：下拉面板整体滚动到指定高度，下面介绍。
     }
 ```
 
-NotificationPanelViewController.closeQs()
-NotificationPanelViewController.collapse()
-NotificationPanelViewController.expand()
-PanelBar.collapsePanel()
+NotificationPanelViewController.closeQs()  
+NotificationPanelViewController.collapse()  
+NotificationPanelViewController.expand()  
+PanelBar.collapsePanel()  
 
 
 ### handleQsTouch()
 
-用来更新 QS 的显示高度以及更新通知中心的位置。
-处理触摸事件，在面板的子view没有处理的事件，都会在这里面进行处理。比如，通知中心的空白区域的滑动，在QS上上划呼出通知中心过程。
+用来更新 QS 的显示高度以及更新通知中心的位置。  
+处理触摸事件，在面板的子view没有处理的事件，都会在这里面进行处理。比如，通知中心的空白区域的滑动，在QS上上划呼出通知中心过程。  
 
 ```
 NotificationPanelViewController.handleQsTouch() // QS处理
@@ -193,12 +193,13 @@ NotificationPanelViewController.handleQsTouch() // QS处理
 ### setQsExpansion()
 
 setQsExpansion() 是一个很关键的方法，用来设置QS高度以及通知中心位置
-1.更新QS和QQS的可见性
-2.设置 QS 的绘制区域
-3.执行QSTile的动画
-4.更新媒体控制器的位置
-5.更新通知中心背景
-6.设置通知中心的位置
+
+ 1. 更新QS和QQS的可见性
+ 2. 设置 QS 的绘制区域
+ 3. 执行QSTile的动画
+ 4. 更新媒体控制器的位置
+ 5. 更新通知中心背景
+ 6. 设置通知中心的位置
 
 ```
 NotificationPanelViewController.setQsExpansion()
@@ -346,7 +347,7 @@ PanelViewController.setExpandedHeightInternal()
 
 ### setQSClippingBounds()
 
-设置QS的绘制区域
+设置QS的绘制区域  
 更新 scrimView QS 区域，
 
 ```

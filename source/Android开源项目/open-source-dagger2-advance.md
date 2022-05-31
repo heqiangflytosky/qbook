@@ -127,12 +127,12 @@ public interface OtherTestComponent {
 
         OtherTestComponent build();
     }
-    
+    // 通过在 Component 中添加方法完成依赖对象的注入
     TestInject4 createTestInject4();
 }
 ```
 
-上面是通过对象的变量来完成依赖注入，我们也添加了一个通过方法来完成注入单例 `TestInject4` 对象的例子。
+上面是通过变量来完成依赖注入，我们也顺便添加了一个通过在 Component 中添加方法来完成注入单例 `TestInject4` 对象的例子。
 
 ```
 @MyScope
@@ -298,42 +298,23 @@ public interface OtherTestComponent {
 
 ### 注解方法
 
-在来看一下注解在方法上的情况。
+在来看一下注解在方法上的情况。和前面将的注解到变量上类似，也生成了一个 XX_MembersInjector 类。   
+它的使用场景是什么呢？比如我们不想破坏变量的封装性等原因，需要为变量添加 private 访问控制符，前面我们讲过，注入的变量不能为 private的，否则注入不成功。这个问题可以通过 `Inject` 方法来实现。    
+我们可以先自定义一个方法，方法名任意，形参为变量对应类型，然后用@Inject标记该方法。例如：   
 
 ```
-class TestInject3 {
+public class Car {
+    private CustomEngine engine;
+
     @Inject
-    public String testInject() {
-        return "test";
+    public void setEngine(CustomEngine engine){
+        this. engine = engine;
     }
-}
-```
-
-和前面将的注解到变量上类似，也生成了一个 XX_MembersInjector 类。
-
-```
-public final class TestInject3_MembersInjector implements MembersInjector<TestInject3> {
-  public TestInject3_MembersInjector() {
-  }
-
-  public static MembersInjector<TestInject3> create() {
-    return new TestInject3_MembersInjector();
-  }
-
-  @Override
-  public void injectMembers(TestInject3 instance) {
-    injectTestInject(instance);
-  }
-
-  public static String injectTestInject(Object instance) {
-    return ((TestInject3) instance).testInject();
-  }
-}
 ```
 
 ## Lazy
 
-有时我们想注入的依赖在使用时再完成初始化，加快加载速度，就可以使用注入 `Lazy<T>`。只有在调用 Lazy 的 get() 方法时才会初始化依赖实例注入依赖。
+有时我们想注入的依赖在使用时再完成初始化，加快加载速度，就可以使用注入 `Lazy<T>`。只有在调用 Lazy 的 get() 方法时才会初始化依赖实例注入依赖。    
 
 ```
 class Car {
@@ -395,7 +376,7 @@ public class ElectricEngine implements Engine{
 
 在 EngineModule 中，我们也提供了两个不同的方法来生成不同类型的 Energy。那么Dagger怎么知道要调用哪个方法来生成该类型的 Engine 呢？    
 而 `@Qualifier` 注解就是用来解决这个问题，使用注解来确定使用哪种 provide 方法。    
-我们可以使用 `@Named` 注解，你也可以用自定义的其他 `Qualifier` 注解。    
+我们可以使用 `@Named` 注解，它是被`Qualifier`修饰的注解。你也可以用自定义的其他 `Qualifier` 注解。    
 
 在 provide 方法上加上 `@Named` 注解，用来区分不同类型的 Energy：
 
@@ -527,7 +508,7 @@ Dagger2 自带的注解其实和我们自定义的 MyScope 是一样的，把上
 ```
 
 从上面代码可以看出使用 `@Reusable` 后，但是这里是用SingleCheck而不是DoubleCheck。    
-我们来看一下 SingleCheck 的实现，发现它不是线程安全的，在多线程情况下可能会生成多个实例：    
+我们来看一下 SingleCheck 的实现，发现它不是线程安全的，在多线程情况下可能会生成多个实例。因此说它提供的复用，不是严格的同步单例，只是一个“尽量复用”逻辑。    
 
 ```
 public final class SingleCheck<T> implements Provider<T> {
@@ -759,7 +740,7 @@ public class Car3 {
 
 ```
 
-使用 dependencies 表示CarComponent3依赖CarComponent2的实现。
+使用 dependencies 表示 CarComponent3 依赖CarComponent2的实现。
 
 ```
 @Component(dependencies = CarComponent2.class)
@@ -767,6 +748,17 @@ public interface CarComponent3 {
     void injectCar(Car3 car);
 }
 ```
+
+那么在 CarComponent2 中我们需要将被依赖的内容显示地提供出来：    
+
+```
+@Component(modules = {EngineModule2.class,AssistModule.class})
+public interface CarComponent2 {
+    CustomEngine provideEngine();
+}
+```
+
+这样，虽然在 CarComponent3 中没有 Module 来提供创建 CustomEngine，但是可以依赖 CarComponent2 中的 Module 提供 CustomEngine 的创建。
 
 这里需要将 carComponent2 实例手动传入到 carComponent3。
 

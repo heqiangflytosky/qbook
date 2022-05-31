@@ -47,7 +47,7 @@ mProviders.put(QSStatusBarController.class, mQSStatusBarController::get);
 mController = Dependency.get(QSStatusBarController.class);
 ```
 
-QSStatusBarController 是何时、如何初始化的呢？它的构造方法参数是如何初始化的呢？    
+在这里我们就可能会有点疑问：QSStatusBarController 是何时、如何初始化的呢？它的构造方法参数是如何初始化的呢？答案留到后面介绍。    
 
 比如 NotificationPanelViewController 的获取：    
 在 NotificationShadeWindowViewController 中用到了 NotificationPanelViewController 实例，直接通过构造方法参数传入。
@@ -76,7 +76,7 @@ public interface StatusBarComponent {
 ```
 
 再比如获取 QSPanel 和 QSContainerImpl 实例：    
-在 QSContainerImplController 有用到 QSContainerImpl 对象，它也是通过 QSContainerImplController 构造方法传入 QSContainerImpl 实例的，其实也是通过 dagger 由 QSFragmentModule 完成依赖注入的。
+在 QSContainerImplController 有用到 QSContainerImpl 对象，它也是通过 QSContainerImplController 构造方法传入 QSContainerImpl 的，其实也是通过 dagger 由 QSFragmentModule 完成依赖注入的。
 
 ```
     @Inject
@@ -108,11 +108,12 @@ public interface QSFragmentModule {
     ......
 ```
 
-上面的方法都会在 DaggerGlobalRootComponent 中生成对应的 `Provider<T>`。   
+上面的方法都会在 DaggerGlobalRootComponent 中生成对应的 `Provider<T>`。 在 XXX__Factory (比如QSContainerImplController_Factory)方法中通过 XXProvider.get()获取对象。    
 SystemUI 中所有的类的注入的依赖的 Provider 都由 DaggerGlobalRootComponent.java 来提供。    
 在 SystemUI 中由 Dagger 生成的文件个数有776个之多。所以 Dagger 在 SystemUI 中扮演了重要的角色。   
 Dagger 相关的代码在 `com/android/systemui/dagger`、`com/android/keyguard/dagger` 以及各个模块的 dagger 目录中，比如：`com/android/systemui/qs/dagger`。    
 Dagger 生成的代码在 `out/soong/.intermediates/frameworks/base/packages/SystemUI/SystemUI-core/android_common/kapt/gen/sources/` 中。   
+
 在 SystemUI 中，只有一个DaggerXXXComponent 类：DaggerGlobalRootComponent，那是因为其他所有的组件都是 GlobalRootComponent 的子组件。   
 
 下面我们举几个具有代表性 的例子来讲述一下他们的注入流程。   

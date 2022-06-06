@@ -1,7 +1,7 @@
 ## 简介
 
 在 SystemUI中，很多对象的使用都是通过依赖注入的方式来实现。    
-比如我们需要使用某些对象，可以通过下面的方式使用：    
+比如我们需要获取某些对象，可以通过下面的方式使用：    
 
 ```
 Dependency.get(NavigationModeController.class)
@@ -330,7 +330,7 @@ GlobalRootComponent
 
 ## 介绍 QSFragmen
 
-先来看看 QSFragmen 的创建流程：
+先来看看 QSFragmen 的创建流程，由于 QSFragment 的构造方法也是被 `@Inject` 修饰的，因此，它是可以通过注入的方式完成对象的创建：
 
 ```
 StatusBar.createAndAddWindows()
@@ -343,7 +343,6 @@ StatusBar.createAndAddWindows()
                             new QSFragment()
 ```
 
-由于 QSFragment 的构造方法也是被 `@Inject` 修饰的，因此，它是可以通过注入的方式完成对象的创建。
 
 ```
 // DaggerGlobalRootComponent.java
@@ -563,8 +562,15 @@ public class ContextComponentResolver implements ContextComponentHelper {
 上面那些存放各种 Provider的Map时什么时候构建的呢？这里也是通过自动注入实现的。
 相关的Module分别是 DefaultActivityBinder，DefaultBroadcastReceiverBinder，DefaultServiceBinder，SystemUIBinder，RecentsModule
 
-
-
+```
+@Module
+public abstract class DefaultServiceBinder {
+    /** */
+    @Binds
+    @IntoMap
+    @ClassKey(DozeService.class)
+    public abstract Service bindDozeService(DozeService service);
+```
 
 DozeService的生成为例：
 DozeServic` @Inject`了构造方法，因此Dagger会生成一个DozeService_Factory工程类用于生成DozeService对象。
@@ -613,111 +619,5 @@ public final class DozeService_Factory implements Factory<DozeService> {
 }
 ```
 
-这里就顺便介绍一下 DozeService 构造函数的参数 DozeComponent.Builder 的创建，DozeComponent 也是一个由 `Subcomponent` 标记的子组件，它是由
-DaggerGlobalRootComponent initialize3 来初始化的。
-它提供了一个 `getDozeMachine()` 方法来提供 DozeMachine 依赖。
-但是它却没有在父 Component 中提供一个获取 DozeComponent.Builder 的方法？？？？？？？？
-
-```
-// 
-      this.dozeComponentBuilderProvider = new Provider<DozeComponent.Builder>() {
-        @Override
-        public DozeComponent.Builder get() {
-          return new DozeComponentFactory();
-        }
-      };
-```
-
-
-
-
-
-
-```
-//DaggerGlobalRootComponent.java
-
-      this.deviceProvisionedControllerImplProvider = DoubleCheck.provider(DeviceProvisionedControllerImpl_Factory.create(DaggerGlobalRootComponent.this.provideMainHandlerProvider, providesBroadcastDispatcherProvider, globalSettingsImplProvider, secureSettingsImplProvider));
-
-```
-
-```
-//DaggerGlobalRootComponent.java
-this.provideMainHandlerProvider = GlobalConcurrencyModule_ProvideMainHandlerFactory.create(GlobalConcurrencyModule_ProvideMainLooperFactory.create());
-```
-
-GlobalConcurrencyModule_ProvideMainHandlerFactory.java中看Handler是如何提供的。
-
-
-```
-GlobalConcurrencyModule_ProvideMainHandlerFactory.java
-
-public final class GlobalConcurrencyModule_ProvideMainHandlerFactory implements Factory<Handler> {
-  private final Provider<Looper> mainLooperProvider;
-
-  public GlobalConcurrencyModule_ProvideMainHandlerFactory(Provider<Looper> mainLooperProvider) {
-    this.mainLooperProvider = mainLooperProvider;
-  }
-
-  @Override
-  public Handler get() {
-    return provideMainHandler(mainLooperProvider.get());
-  }
-
-  public static GlobalConcurrencyModule_ProvideMainHandlerFactory create(
-      Provider<Looper> mainLooperProvider) {
-    return new GlobalConcurrencyModule_ProvideMainHandlerFactory(mainLooperProvider);
-  }
-
-  public static Handler provideMainHandler(Looper mainLooper) {
-    return Preconditions.checkNotNullFromProvides(GlobalConcurrencyModule.provideMainHandler(mainLooper));
-  }
-}
-```
-
-GlobalConcurrencyModule中寻找 Handler的依赖提供者：
-
-```
-@Module
-public abstract class GlobalConcurrencyModule {
-
-    /**
-     * Binds {@link ThreadFactoryImpl} to {@link ThreadFactory}.
-     */
-    @Binds
-    public abstract ThreadFactory bindExecutorFactory(ThreadFactoryImpl impl);
-
-    /** Main Looper */
-    @Provides
-    @Main
-    public static  Looper provideMainLooper() {
-        return Looper.getMainLooper();
-    }
-
-    /**
-     * Main Handler.
-     *
-     * Prefer the Main Executor when possible.
-     */
-    @Provides
-    @Main
-    public static Handler provideMainHandler(@Main Looper mainLooper) {
-        return new Handler(mainLooper);
-    }
-
-    /**
-     * Provide a Main-Thread Executor.
-     */
-    @Provides
-    @Main
-    public static Executor provideMainExecutor(Context context) {
-        return context.getMainExecutor();
-    }
-
-    /** */
-    @Binds
-    @Singleton
-    public abstract Execution provideExecution(ExecutionImpl execution);
-}
-```
 
 

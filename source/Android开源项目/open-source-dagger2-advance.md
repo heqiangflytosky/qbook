@@ -653,6 +653,41 @@ public class ElectricEngine implements Engine{
 }
 ```
 
+## IntoMap 和 IntoSet
+
+可以使用 `@IntoSet` 和 `@IntoMap` 以注入的形式初始化 Set 或者 Map。
+
+```
+@Module
+abstract class TestMapModule {
+
+    @Binds
+    @IntoMap
+    @StringKey("electric")
+    public abstract Engine provideElectricEngine(ElectricEngine engine);
+
+    @Binds
+    @IntoMap
+    @StringKey("petrol")
+    public abstract Engine providePetrolEngine(PetrolEngine engine);
+}
+```
+
+`provideXXEngine` 方法返回了 ElectricEngine 和 PetrolEngine，都放到 map 中，它的 key 是 String 类型。另外key还可以是 `IntKey`、`ClassKey` 等。
+
+```
+public class OtherTest {
+
+    ....
+    @Inject
+    Map<String,Engine> mEngineMap;
+    ....
+
+}
+```
+
+在 OtherTest 类中初始化 mEngineMap。 
+
 ## MultiBinds
 
 Dagger通过多元绑定可以将几个对象放入一个集合中，即使它们是由不同的Module提供。集合的组装由Dagger自己完成，所以往代码中注入时，不需要直接依赖于每个对象。    
@@ -915,13 +950,13 @@ SubComponent 编译时不会生成 DaggerXXComponent，需要通过 parent Compo
 dependencies 和 SubComponent 的对比：
 相同点：
 
- -两者都能复用其他 Component 的依赖
- -有依赖关系和继承关系的 Component 不能有相同的 Scope
+ - 两者都能复用其他 Component 的依赖
+ - 有依赖关系和继承关系的 Component 不能有相同的 Scope
 
 区别：
 
- -依赖关系中被依赖的 Component 必须显式地提供公开依赖实例的接口，而 SubComponent 默认继承 parent Component 的依赖。
- -依赖关系会生成两个独立的 DaggerXXComponent 类，而 SubComponent 子组件是依赖于父组件才能进行工作的，它并不会被独立的编译成注入代码，所以不会生成独立的 DaggerXXComponent 类，而是通过内部类的方式来实现子组件接口。
+ - 依赖关系中被依赖的 Component 必须显式地提供公开依赖实例的接口，而 SubComponent 默认继承 parent Component 的依赖。
+ - 依赖关系会生成两个独立的 DaggerXXComponent 类，而 SubComponent 子组件是依赖于父组件才能进行工作的，它并不会被独立的编译成注入代码，所以不会生成独立的 DaggerXXComponent 类，而是通过内部类的方式来实现子组件接口。
 
 ### Component.Factory
 

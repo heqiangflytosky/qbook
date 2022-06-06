@@ -653,7 +653,12 @@ public class ElectricEngine implements Engine{
 }
 ```
 
-## IntoMap 和 IntoSet
+## MultiBinds
+
+假如我们需要在 Module 里提供了很多相同类型的对象，如果我们不使用 Qualifer，就会导致同一类型重复绑定的错误。但是如果我们确实需要在一个Module里包含这些对象的创建，又不想创建N多的Qualifer，我们就可以使用MultiBind机制来达到我们的目的。    
+MultiBind机制允许我们为这些对象创建一个集合，这个集合必须是Set或者Map，这样在Component中，我们就可以暴露这个集合，通过集合来获取不同的对象。       
+
+### IntoMap 和 IntoSet
 
 可以使用 `@IntoSet` 和 `@IntoMap` 以注入的形式初始化 Set 或者 Map。
 
@@ -688,10 +693,19 @@ public class OtherTest {
 
 在 OtherTest 类中初始化 mEngineMap。 
 
-## MultiBinds
+如果你想把一个集合中的所有对象都添加到 Dagger 所管理的 Set 对象中，那么可以使用 @ElementsIntoSet 注解：
 
-Dagger通过多元绑定可以将几个对象放入一个集合中，即使它们是由不同的Module提供。集合的组装由Dagger自己完成，所以往代码中注入时，不需要直接依赖于每个对象。    
-结合 `@IntoSet` 和 `@IntoMap` 等使用。如果是使用`@IntoMap` 则还要使用 `@StringKey` 或者 `@ClassKey` 来给提供的实例指定Map的键。    
+```
+  @Provides 
+  @ElementsIntoSet
+  static Set<String> provideSomeStrings() {
+    return new HashSet<String>(Arrays.asList("DEF", "GHI"));
+  }
+```
+
+另外 Dagger 并不支持 List 集合，原因在于 List 集合是有序集合，集合里面的对象是有先后顺序的，对于在模块中定义的绑定到集合的函数，Dagger 无法保证他们的添加到集合的顺序。
+
+
 
 ## BindsOptionalOf
 

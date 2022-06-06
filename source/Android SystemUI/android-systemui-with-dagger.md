@@ -75,7 +75,7 @@ public interface StatusBarComponent {
     NotificationPanelViewController getNotificationPanelViewController();
 ```
 
-再比如获取 QSPanel 和 QSContainerImpl 实例：    
+再比如获取 UI 组件 QSPanel 和 QSContainerImpl 实例：    
 在 QSContainerImplController 有用到 QSContainerImpl 对象，它也是通过 QSContainerImplController 构造方法传入 QSContainerImpl 的，其实也是通过 dagger 由 QSFragmentModule 完成依赖注入的。
 
 ```
@@ -209,46 +209,6 @@ SystemUIService.onCreate()
 
 另外还有比如Android 四大组件的注入，这些后面会举例介绍。
 
-## 初始化流程
-
-在 SystemUIFactory 中初始化了 GlobalRootComponent、WMComponent 和 SysUIComponent。   
-
-```
-SystemUIFactory.init(Context context, boolean fromTest)
-    buildGlobalRootComponent()
-        DaggerGlobalRootComponent.builder().context(context).build()
-    GlobalRootComponent.getWMComponentBuilder().build()
-    GlobalRootComponent.getSysUIComponent().build()
-    SysUIComponent.createDependency().start()
-```
-
-我们在构造一些类的时候，它们有很多的参数，那么这些参数是如何被初始化的呢？   
-比如以 NavigationModeController 类来举例：
-
-```
-@SysUISingleton
-public class NavigationModeController implements Dumpable {
-    @Inject
-    public NavigationModeController(Context context,
-            DeviceProvisionedController deviceProvisionedController,
-            ConfigurationController configurationController,
-            @UiBackground Executor uiBgExecutor) {
-```
-
-它也有自己的参数，其实这些参数的初始化和 NavigationModeController 自身初始化是类似的，他们有层层依赖的关系，当这些依赖需要用到时，它们会去检查该对象有没有被初始化。这样就完成了它们自身的初始化。
-
-```
-SystemUIAppComponentFactory.instantiateServiceCompat()
-    ContextComponentResolver.resolveService()
-        ContextComponentResolver.resolve()
-            KeyguardService_Factory.get()
-                KeyguardModule_NewKeyguardViewMediatorFactory.get()
-                    NavigationModeController_Factory.get()
-                        NavigationModeController_Factory.newInstance(c)
-                            NavigationModeController.<init>()
-```
-KeyguardService 构造方法对 KeyguardViewMediator 有依赖，而 KeyguardViewMediator 对 NavigationModeController 又有依赖，这样就层层通过依赖注入创建了对象。
-
 ## 组件关系
 
 WMComponent 和 SysUIComponent 都是 GlobalRootComponent 的子组件。
@@ -327,111 +287,22 @@ GlobalRootComponent
                 QSFlagsModule
 ```
 
+## 初始化流程
 
-## 介绍 QSFragmen
-
-先来看看 QSFragmen 的创建流程，由于 QSFragment 的构造方法也是被 `@Inject` 修饰的，因此，它是可以通过注入的方式完成对象的创建：
-
-```
-StatusBar.createAndAddWindows()
-    StatusBar.makeStatusBarView()
-        StatusBar.createDefaultQSFragment()
-            FragmentHostManager.get(mNotificationShadeWindowView).create(QSFragment.class)
-                ExtensionFragmentManager.instantiateWithInjections()
-                    FragmentService.FragmentCreator.createQSFragment()
-                        DaggerGlobalRootComponent.FragmentCreatorImpl.createQSFragment()
-                            new QSFragment()
-```
-
+在 SystemUIFactory 中初始化了 GlobalRootComponent、WMComponent 和 SysUIComponent。   
 
 ```
-// DaggerGlobalRootComponent.java
-      @Override
-      public QSFragment createQSFragment() {
-        return new QSFragment(SysUIComponentImpl.this.remoteInputQuickSettingsDisablerProvider.get(), SysUIComponentImpl.this.injectionInflationControllerProvider.get(), SysUIComponentImpl.this.qSTileHostProvider.get(), SysUIComponentImpl.this.statusBarStateControllerImplProvider.get(), SysUIComponentImpl.this.provideCommandQueueProvider.get(), SysUIComponentImpl.this.qSDetailDisplayerProvider.get(), SysUIComponentImpl.this.providesQSMediaHostProvider.get(), SysUIComponentImpl.this.providesQuickQSMediaHostProvider.get(), SysUIComponentImpl.this.keyguardBypassControllerProvider.get(), new QSFragmentComponentFactory(), SysUIComponentImpl.this.featureFlagsProvider.get(), SysUIComponentImpl.this.falsingManagerProxyProvider.get(), SysUIComponentImpl.this.dumpManagerProvider.get());
-      }
+SystemUIFactory.init(Context context, boolean fromTest)
+    buildGlobalRootComponent()
+        DaggerGlobalRootComponent.builder().context(context).build()
+    GlobalRootComponent.getWMComponentBuilder().build()
+    GlobalRootComponent.getSysUIComponent().build()
+    SysUIComponent.createDependency().start()
 ```
 
-现在有个疑问，QSFragment 构造方法这么多的参数是如何完成创建的呢？我们就以 StatusBarStateController 为例来介绍一下。  
-StatusBarStateControllerImpl 是实现了 StatusBarStateController接口，被 `@SysUISingleton` 标注，构造方法被 `@Inject` 标注，因此它是以单例模式的形式进行注入的。  
-当实例化 QSFragment 时，StatusBarStateControllerImpl 还没有实例化，就需要创建 StatusBarStateControllerImpl 对象：
-
-```
-    @Inject
-    public StatusBarStateControllerImpl(UiEventLogger uiEventLogger) {
-        mUiEventLogger = uiEventLogger;
-        for (int i = 0; i < HISTORY_SIZE; i++) {
-            mHistoricalRecords[i] = new HistoricalState();
-        }
-    }
-```
-
-而创建 StatusBarStateControllerImpl 对象又需要 UiEventLogger ，那么 UiEventLogger 有是哪里提供的呢？UiEventLogger 是framework中提供的一个类，它是通过创建 Module 的形式在 GlobalModule 中完成注入的，而且它也是单例的。
-
-```
-@Module(includes = {
-        FrameworkServicesModule.class,
-        GlobalConcurrencyModule.class})
-public class GlobalModule {
-
-    ......
-
-    /** Provides an instance of {@link com.android.internal.logging.UiEventLogger} */
-    @Provides
-    @Singleton
-    static UiEventLogger provideUiEventLogger() {
-        return new UiEventLoggerImpl();
-    }
-```
-
-## 介绍 QSContainerImpl
-
-我们再来看一下 QSFragment 中 QSContainerImplController 成员变量是如何生成的。通过它我们来介绍一下 QSContainerImpl （QSFragment的容器布局）是如何完成实例对象的获取的。   
-QSContainerImplController 的构造方法使用 `@Inject` 修饰，在 QSFragmentComponent 中，通过 `getQSContainerImplController` 实现对象的注入。
-
-```
-    @Inject
-    QSContainerImplController(QSContainerImpl view, QSPanelController qsPanelController,
-            QuickStatusBarHeaderController quickStatusBarHeaderController,
-            ConfigurationController configurationController) {
-        super(view);
-        mQsPanelController = qsPanelController;
-        mQuickStatusBarHeaderController = quickStatusBarHeaderController;
-        mConfigurationController = configurationController;
-    }
-
-public interface QSFragmentComponent {
-
-    /** Factory for building a {@link QSFragmentComponent}. */
-    @Subcomponent.Factory
-    interface Factory {
-        QSFragmentComponent create(@BindsInstance QSFragment qsFragment);
-    }
-
-    ......
-
-    /** Construct a {@link QSContainerImplController}. */
-    QSContainerImplController getQSContainerImplController();
-```
-
-现在我们来看一下 QSContainerImpl 参数是如何注入的，它是通过 QSFragmentModule 的 providesQSContainerImpl(View view) 方法来完成实例的获取，而它的参数view又是通过 provideRootView() 方法注入的：
-
-```
-@Module
-public interface QSFragmentModule {
-    // 提供 RootView 类型的 View 参数
-    @Provides
-    @RootView
-    static View provideRootView(QSFragment qsFragment) {
-        return qsFragment.getView();
-    }
-    
-    // 注入 QSContainerImpl
-    @Provides
-    static QSContainerImpl providesQSContainerImpl(@RootView View view) {
-        return view.findViewById(R.id.quick_settings_container);
-    }
-```
+注意看，在构建 DaggerGlobalRootComponent 时，有一个重要的方法 `context(context)`，为什么这里需要 context 参数呢？    
+我们在构造一些类的时候，它们有很多的参数，那么这些参数是如何被初始化的呢？    
+通过下面对几个类的构建过程的介绍，会解开这个谜团。    
 
 ## 介绍 NavigationModeController
 
@@ -493,6 +364,32 @@ public final class NavigationModeController_Factory implements Factory<Navigatio
 }
 ```
 
+来看一下 NavigationModeController 的构造方法：    
+
+```
+@SysUISingleton
+public class NavigationModeController implements Dumpable {
+    @Inject
+    public NavigationModeController(Context context,
+            DeviceProvisionedController deviceProvisionedController,
+            ConfigurationController configurationController,
+            @UiBackground Executor uiBgExecutor) {
+```
+
+它也有自己的参数，其实这些参数的初始化和 NavigationModeController 自身初始化是类似的，他们有层层依赖的关系，当这些依赖需要用到时，它们会去检查该对象有没有被初始化。这样就完成了它们自身的初始化。
+
+```
+SystemUIAppComponentFactory.instantiateServiceCompat()
+    ContextComponentResolver.resolveService()
+        ContextComponentResolver.resolve()
+            KeyguardService_Factory.get()
+                KeyguardModule_NewKeyguardViewMediatorFactory.get()
+                    NavigationModeController_Factory.get()
+                        NavigationModeController_Factory.newInstance(c)
+                            NavigationModeController.<init>()
+```
+KeyguardService 构造方法对 KeyguardViewMediator 有依赖，而 KeyguardViewMediator 对 NavigationModeController 又有依赖，这样就层层通过依赖注入创建了对象。    
+
 这里面有一个非常重要的参数，Context 参数，大部分的类的构造方法都需要这个参数，那么这个参数是怎么注入进来的呢？
 我们以 DeviceProvisionedController 对象的创建来看它如何绑定 context 的。
 
@@ -525,6 +422,138 @@ public interface GlobalRootComponent {
         return DaggerGlobalRootComponent.builder()
                 .context(context)
                 .build();
+    }
+```
+
+## 介绍 QSFragmen
+
+先来看看 QSFragmen 的创建流程，由于 QSFragment 的构造方法也是被 `@Inject` 修饰的，因此，它是可以通过注入的方式完成对象的创建：
+
+```
+StatusBar.createAndAddWindows()
+    StatusBar.makeStatusBarView()
+        StatusBar.createDefaultQSFragment()
+            FragmentHostManager.get(mNotificationShadeWindowView).create(QSFragment.class)
+                ExtensionFragmentManager.instantiateWithInjections()
+                    FragmentService.FragmentCreator.createQSFragment()
+                        DaggerGlobalRootComponent.FragmentCreatorImpl.createQSFragment()
+                            new QSFragment()
+```
+
+在 FragmentService 中注入 QSFragment    
+
+```
+// FragmentService.java
+@SysUISingleton
+public class FragmentService implements Dumpable {
+
+    ......
+    @Subcomponent
+    public interface FragmentCreator {
+        /** Factory for creating a FragmentCreator. */
+        @Subcomponent.Factory
+        interface Factory {
+            FragmentCreator build();
+        }
+        /**
+         * Inject a QSFragment.
+         */
+        QSFragment createQSFragment();
+
+        /** Inject a CollapsedStatusBarFragment. */
+        CollapsedStatusBarFragment createCollapsedStatusBarFragment();
+    }
+```
+
+
+```
+// DaggerGlobalRootComponent.java
+      @Override
+      public QSFragment createQSFragment() {
+        return new QSFragment(SysUIComponentImpl.this.remoteInputQuickSettingsDisablerProvider.get(),......);
+      }
+```
+
+再来介绍一下 QSFragment 构造方法这么多的参数的创建过程，我们就以 StatusBarStateController 为例来介绍一下。  
+StatusBarStateControllerImpl 实现了 StatusBarStateController接口，被 `@SysUISingleton` 标注，构造方法被 `@Inject` 标注，因此它是以单例模式的形式进行注入的。  
+当实例化 QSFragment 时，StatusBarStateControllerImpl 还没有实例化，就需要创建 StatusBarStateControllerImpl 对象：
+
+```
+    @Inject
+    public StatusBarStateControllerImpl(UiEventLogger uiEventLogger) {
+        mUiEventLogger = uiEventLogger;
+        for (int i = 0; i < HISTORY_SIZE; i++) {
+            mHistoricalRecords[i] = new HistoricalState();
+        }
+    }
+```
+
+而创建 StatusBarStateControllerImpl 对象又需要 UiEventLogger ，那么 UiEventLogger 有是哪里提供的呢？UiEventLogger 是framework中提供的一个类，它是通过创建 Module 的形式在 GlobalModule 中完成注入的，而且它也是单例的。
+
+```
+@Module(includes = {
+        FrameworkServicesModule.class,
+        GlobalConcurrencyModule.class})
+public class GlobalModule {
+
+    ......
+
+    /** Provides an instance of {@link com.android.internal.logging.UiEventLogger} */
+    @Provides
+    @Singleton
+    static UiEventLogger provideUiEventLogger() {
+        return new UiEventLoggerImpl();
+    }
+```
+
+也是通过这种层层依赖的过程，通过依赖注入创建了对象。
+
+## 介绍 QSContainerImpl
+
+我们再来看一下 QSFragment 中 QSContainerImplController 成员变量是如何生成的。通过它我们来介绍一下 QSContainerImpl （QSFragment的容器布局）是如何完成实例对象的获取的。   
+QSContainerImplController 的构造方法使用 `@Inject` 修饰，在 QSFragmentComponent 中，通过 `getQSContainerImplController` 实现对象的注入。
+
+```
+    @Inject
+    QSContainerImplController(QSContainerImpl view, QSPanelController qsPanelController,
+            QuickStatusBarHeaderController quickStatusBarHeaderController,
+            ConfigurationController configurationController) {
+        super(view);
+        mQsPanelController = qsPanelController;
+        mQuickStatusBarHeaderController = quickStatusBarHeaderController;
+        mConfigurationController = configurationController;
+    }
+
+public interface QSFragmentComponent {
+
+    /** Factory for building a {@link QSFragmentComponent}. */
+    @Subcomponent.Factory
+    interface Factory {
+        QSFragmentComponent create(@BindsInstance QSFragment qsFragment);
+    }
+
+    ......
+
+    /** Construct a {@link QSContainerImplController}. */
+    QSContainerImplController getQSContainerImplController();
+```
+
+现在我们来看一下 QSContainerImpl 参数是如何注入的，它是通过 QSFragmentModule 的 providesQSContainerImpl(View view) 方法来完成实例的获取，而它的参数view又是通过 provideRootView() 方法注入的：
+
+```
+@Module
+public interface QSFragmentModule {
+    // 提供 RootView 类型的 View 参数
+    @Provides
+    @RootView
+    static View provideRootView(QSFragment qsFragment) {
+        return qsFragment.getView();
+    }
+    
+    // 注入 QSContainerImpl
+    @Provides
+    static QSContainerImpl providesQSContainerImpl(@RootView View view) {
+        return view.findViewById(R.id.quick_settings_container);
     }
 ```
 

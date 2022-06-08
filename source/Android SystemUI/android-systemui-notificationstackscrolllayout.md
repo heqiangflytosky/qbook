@@ -9,50 +9,50 @@ date: 2021-11-8 10:00:00
 
 ## 概述
 
-NotificationStackScrollLayout 继承自 ViewGroup，它提供了一个动态添加和删除通知的可滚动的容器。
-主要处理三种类型的事件：1.单个通知的展开和收缩手势，2.通知中心的滑动和滚动，3.左右滑动删除通知操作。
-关于事件分发流程和下拉交互部分参考前面介绍，本文只介绍一些方法实现的细节。
-本文基于原生Android S代码。
+NotificationStackScrollLayout 继承自 ViewGroup，它提供了一个动态添加和删除通知的可滚动的容器。    
+主要处理三种类型的事件：1.单个通知的展开和收缩手势，2.通知中心的滑动和滚动，3.左右滑动删除通知操作。    
+关于事件分发流程和下拉交互部分参考前面介绍，本文只介绍一些方法实现的细节。    
+本文基于原生Android S代码。    
 
 ## 常用变量和方法
 
-1.NotificationStackScrollLayout
-mIsBeingDragged:是否时拖动通知中心的操作，此时的拖动事件由 NotificationStackScrollLayout 来处理。一旦设置为true，就会调用 requestDisallowInterceptTouchEvent(true)，不允许父组件做事件拦截。
-mQsExpansionFraction：QS展开比例，用来设置通知栏展开比例，如果是0表示全部展开，这时只显示QQS，1表示通知中心全部隐藏。
-mIsExpanded：通知中心是否展开，只要通知中心显示，它就是true。
-mQsExpanded：QS是否展开，此时面板处于QS状态。
-mExpandHelper：处理通知的展开和收缩
-mTopPadding：通知中心的最上面一条通知通知距离顶部的偏移量，显示QQS时就是QQS的高度，不显示QQS时为通知中心距离顶部的实时距离
-mIntrinsicPadding:通知中心本身距离顶部的距离，一般是HeaderView的高度。
-mIntrinsicContentHeight：通知中心各个通知累加的高度
-mContentHeight：mIntrinsicContentHeight 加上 mTopPadding 和 mBottomMargin 的高度。
-mExpandedHeight：PanelViewController.mExpandedHeight
-mOverScrolledTopPixels
-mOverScrolledBottomPixels
-RUBBER_BAND_FACTOR_NORMAL:回弹系数
-RUBBER_BAND_FACTOR_AFTER_EXPAND
-RUBBER_BAND_FACTOR_ON_PANEL_EXPAND
-mScrolledToTopOnFirstDown：它表示Down事件是是否是个滑动事件，如果时在通知满屏时在显示QQS场景到通知中心全部显示之间切换，那么它就是false。
-mExpandedInThisMotion：是否是展开单个通知的事件
-mGoToFullShadeNeedsAnimation：是否以动画样式展开通知中心
-mNeedsAnimation:是否需要动画
-mMaxDisplayedNotifications:当前可以显示的通知的最大数量，一般在锁屏时有限制个数，-1为不限制显示个数
+1.NotificationStackScrollLayout    
+mIsBeingDragged:是否时拖动通知中心的操作，此时的拖动事件由 NotificationStackScrollLayout 来处理。一旦设置为true，就会调用 requestDisallowInterceptTouchEvent(true)，不允许父组件做事件拦截。    
+mQsExpansionFraction：QS展开比例，用来设置通知栏展开比例，如果是0表示全部展开，这时只显示QQS，1表示通知中心全部隐藏。    
+mIsExpanded：通知中心是否展开，只要通知中心显示，它就是true。    
+mQsExpanded：QS是否展开，此时面板处于QS状态。    
+mExpandHelper：处理通知的展开和收缩    
+mTopPadding：通知中心的最上面一条通知通知距离顶部的偏移量，显示QQS时就是QQS的高度，不显示QQS时为通知中心距离顶部的实时距离    
+mIntrinsicPadding:通知中心本身距离顶部的距离，一般是HeaderView的高度。    
+mIntrinsicContentHeight：通知中心各个通知累加的高度    
+mContentHeight：mIntrinsicContentHeight 加上 mTopPadding 和 mBottomMargin 的高度。    
+mExpandedHeight：PanelViewController.mExpandedHeight    
+mOverScrolledTopPixels    
+mOverScrolledBottomPixels    
+RUBBER_BAND_FACTOR_NORMAL:回弹系数    
+RUBBER_BAND_FACTOR_AFTER_EXPAND    
+RUBBER_BAND_FACTOR_ON_PANEL_EXPAND    
+mScrolledToTopOnFirstDown：它表示Down事件是是否是个滑动事件，如果时在通知满屏时在显示QQS场景到通知中心全部显示之间切换，那么它就是false。    
+mExpandedInThisMotion：是否是展开单个通知的事件    
+mGoToFullShadeNeedsAnimation：是否以动画样式展开通知中心    
+mNeedsAnimation:是否需要动画    
+mMaxDisplayedNotifications:当前可以显示的通知的最大数量，一般在锁屏时有限制个数，-1为不限制显示个数    
 
-updateTopPadding():更新偏移量，来设置每条通知的位置。
-updateEmptyShadeView()
-updateFooterView()
-setDismissAllInProgress()
-goToFullShade() 切换到将通知全部展开的状态
-fling()：处理通知中心放手后的惯性滚动，注意：不是回弹效果。
-setQsExpansionFraction():更加QS的展开程度来更新通知中心
+updateTopPadding():更新偏移量，来设置每条通知的位置。    
+updateEmptyShadeView()：更新empty的可见性，没有通知时会显示
+updateFooterView()    
+setDismissAllInProgress()    
+goToFullShade() 切换到将通知全部展开的状态    
+fling()：处理通知中心放手后的惯性滚动，注意：不是回弹效果。    
+setQsExpansionFraction():更加QS的展开程度来更新通知中心    
 
-2.NotificationStackScrollLayoutController
-mSwipeHelper:处理滑动删除通知逻辑
+2.NotificationStackScrollLayoutController    
+mSwipeHelper:处理滑动删除通知逻辑    
 
-3.AmbientState: 为 StackScrollAlgorithm 保存一些全局状态。
-mStackY：通知中心的最上面一条通知通知距离顶部的偏移量
-mTopPadding：NotificationStackScrollLayout.mTopPadding
-有同学可能有这样的疑问，mStackY 和 mTopPadding 有什么区别？我们先来看一下它们时如何设置的？
+3.AmbientState: 为 StackScrollAlgorithm 保存一些全局状态。    
+mStackY：通知中心的最上面一条通知通知距离顶部的偏移量    
+mTopPadding：NotificationStackScrollLayout.mTopPadding    
+有同学可能有这样的疑问，mStackY 和 mTopPadding 有什么区别？我们先来看一下它们时如何设置的？    
 
 ```
 // NotificationStackScrollLayout.java
@@ -71,10 +71,10 @@ mAmbientState.setTopPadding(mTopPadding);
 
 可以发现，在 fraction 为 1 的情况下，mStackY 是等于 mTopPadding 的。
 
-mScrollY:通知栏的滚动位置，通知中心由显示QQS到满屏显示通知场景过渡时来决定通知栏的位置
-mOverScrollTopAmount：通知中心顶部回弹量，向下滑动时设置
-mOverScrollBottomAmount：通知中心底部回弹量，通知中心满屏时向上滚动通知栏时设置
-mExpansionFraction ：通知栏展开的比例，场景2 -> 场景0 过渡时来决定通知的折叠比例，透明度和通知中心的位置。这个折叠指的时通知中心收起时，通知向上收起的一个动画。
+mScrollY:通知栏的滚动位置，通知中心由显示QQS到满屏显示通知场景过渡时来决定通知栏的位置    
+mOverScrollTopAmount：通知中心顶部回弹量，向下滑动时设置    
+mOverScrollBottomAmount：通知中心底部回弹量，通知中心满屏时向上滚动通知栏时设置    
+mExpansionFraction ：通知栏展开的比例，场景2 -> 场景0 过渡时来决定通知的折叠比例，透明度和通知中心的位置。这个折叠指的时通知中心收起时，通知向上收起的一个动画。    
 
 ```
         final float shadeBottom = getHeight() - getEmptyBottomMargin();
@@ -82,8 +82,8 @@ mExpansionFraction ：通知栏展开的比例，场景2 -> 场景0 过渡时来
         mAmbientState.setExpansionFraction(expansionFraction);
 ```
 
-因此，当显示QQS到QS场景过渡时为1，QQS从隐藏到显示过渡时为0->1。
-具体设置通知的折叠位置在 
+因此，当显示QQS到QS场景过渡时为1，QQS从隐藏到显示过渡时为0->1。    
+具体设置通知的折叠位置在     
 
 ```
 private void updateStackPosition(boolean listenerNeedsAnimation) {
@@ -101,28 +101,28 @@ private void updateStackPosition(boolean listenerNeedsAnimation) {
     }
 ```
 
-mStackHeight:所有通知的高度，当通知中心有收缩动画时，会改变这个值。它的设置也在上面的的一段代码中，根据stackEndHeight和fraction来计算。
+mStackHeight:所有通知的高度，当通知中心有收缩动画时，会改变这个值。它的设置也在上面的的一段代码中，根据stackEndHeight和fraction来计算。    
 
-mAppearFraction:
+mAppearFraction:    
 
-3.StackScrollAlgorithm：用来使 NotificationStackScrollLayout可以查询或者更新当前的 StackScrollAlgorithmState 状态。
-mScrollY:AmbientState.mScrollY
+3.StackScrollAlgorithm：用来使 NotificationStackScrollLayout可以查询或者更新当前的 StackScrollAlgorithmState 状态。    
+mScrollY:AmbientState.mScrollY    
 
-4.ViewState：记录了一些View的属性值，translation，alpha，scale，visibility等。
+4.ViewState：记录了一些View的属性值，translation，alpha，scale，visibility等。    
 
-5.ExpandableViewState：ViewState的子类，每个ExpandableView类都有个ExpandableViewState变量，记录该通知的一些属性信息。
-yTranslation 通知的实际位置。
-StackScrollAlgorithmState
-scrollY:AmbientState.mScrollY
-mCurrentYPosition:当前正在计算的通知的位置，累加值，以此计算各个通知的偏移。
+5.ExpandableViewState：ViewState的子类，每个ExpandableView类都有个ExpandableViewState变量，记录该通知的一些属性信息。    
+yTranslation 通知的实际位置。    
+StackScrollAlgorithmState    
+scrollY:AmbientState.mScrollY    
+mCurrentYPosition:当前正在计算的通知的位置，累加值，以此计算各个通知的偏移。    
 
-6.ScrimController
-setNotificationsBounds() 设置通知中心的背景区域
+6.ScrimController    
+setNotificationsBounds() 设置通知中心的背景区域    
 
 ## 通知栏的滑动
 
-这部分主要是在显示 QQS 状态到通知中心完全隐藏状态之间的切换，主要涉及到通知位置的计算和UI更新。
-介绍的仅仅是在通知中心的通知区域的手势操作，比如滑动通知中心的空白处的操作的这部分就是在 `NotificationPanelViewController.handleQsTouch()` 处理中处理了。
+这部分主要是在显示 QQS 状态到通知中心完全隐藏状态之间的切换，主要涉及到通知位置的计算和UI更新。    
+介绍的仅仅是在通知中心的通知区域的手势操作，比如滑动通知中心的空白处的操作的这部分就是在 `NotificationPanelViewController.handleQsTouch()` 处理中处理了。    
 
 ### 事件处理
 

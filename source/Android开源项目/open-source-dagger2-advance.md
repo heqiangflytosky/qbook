@@ -4,7 +4,7 @@
 
 ### 注解构造函数
 
-前面我们学习到了将 `@Inject` 注解在变量上，那么就生成了一个变量的注入器，其实  `@Inject` 还可以注解在构造方法和方法上面。    
+前面我们学习到了将 `@Inject` 注解在变量上，那么就生成了一个变量的注入器，现在来介绍  `@Inject` 注解在构造方法和方法上面。    
 先来看一下注解在构造方法方法上。    
 值得注意的是同一个类中若有多个构造函数，则 `@Inject` 仅能注解其中一个。    
 
@@ -314,7 +314,8 @@ public class Car {
 
 ## Lazy
 
-有时我们想注入的依赖在使用时再完成初始化，加快加载速度，就可以使用注入 `Lazy<T>`。只有在调用 Lazy 的 get() 方法时才会初始化依赖实例注入依赖。    
+相对于前面讲的用 `@Inject` 直接注入对象，有时我们想注入的依赖在使用时再完成初始化，加快加载速度，就可以使用注入 `Lazy<T>`。只有在调用 Lazy 的 get() 方法时才会初始化依赖实例注入依赖。    
+初始化之后会缓存该对象供后续调用 get() 使用。    
 
 ```
 class Car {
@@ -327,9 +328,22 @@ class Car {
 }
 ```
 
+```
+//Car_MembersInjector.java
+
+  private final Provider<SingletonClass> testObjProvider;
+
+  injectTestObj(instance, DoubleCheck.lazy(testObjProvider));
+
+  public static void injectTestObj(OtherTest instance, Lazy<SingletonClass> testObj) {
+    instance.testObj = testObj;
+  }
+```
+
 ## Provider
 
-有时候不仅仅是注入单个实例，我们需要多个实例，这时可以使用注入 `Provider<T>`，每次调用它的 get() 方法都会调用到 `@Inject` 构造函数创建新实例或者 `Module` 的 provide 方法返回实例。   
+Provider 的使用和 Lazy 也有类似的地方，也是可以把对象的创建延迟到调用 get() 函数的时候。不同的是每次调用它的 get() 方法都会调用到 `@Inject` 构造函数创建新实例或者 `Module` 的 provide 方法返回实例。   
+它的使用场景是有时候不仅仅是注入单个实例，我们需要多个实例，这时可以使用注入 `Provider<T>`。    
 
 ```
 class Car {
@@ -340,6 +354,15 @@ class Car {
     }
 }
 ```
+
+```
+Car_MembersInjector.injectProvider(instance, PetrolEngine_Factory.create());
+```
+
+此时为我们注入的其实是生成的 PetrolEngine_Factory 类。    
+其实上面说 get() 方法返回多个实例的说法也是不严谨的，如果用 `Provider<T>` 注入的是一个单例的类，那么每次调用 get() 返回的肯定是同一个对象。
+
+此时注入的是：
 
 ## Qualifier 限定符
 

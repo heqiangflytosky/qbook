@@ -130,13 +130,13 @@ dependencies {
 
 在这个例子中，我们会用到下面几个注解：
 
- - `@Injec`：1.用来标记依赖使用方：标记在需要注入依赖的变量， Dagger2 会帮助我们初始化。2.用来标记依赖的提供方：通过标记构造函数让 Dagger2 使用（Dagger2 通过 @Inject 可以在需要这个类实例的时候来找到这个构造函数并把相关实例 new 出来），从而提供依赖。3.注解方法，后面介绍。
+ - `@Inject`：1.用来标记依赖使用方：标记在需要注入依赖的变量， Dagger2 会帮助我们初始化。2.用来标记依赖的提供方：通过标记构造函数让 Dagger2 使用（Dagger2 通过 @Inject 可以在需要这个类实例的时候来找到这个构造函数并把相关实例 new 出来），从而提供依赖。3.注解方法，后面介绍。
  - `@Moudle`：依赖提供方，负责提供依赖中所需要的对象。
  - `@Provides`：在 Module 中使用，会根据返回值类型在有此注解的方法中寻找应调用的方法，只能使用在方法上面。
  - `@Component`：依赖注入组件，负责将依赖注入到依赖需求方。
 
-注意：我们既可以使用 `@Injec` 构造方法，也可以使用`@Moudle` 和 `@Provides` 来标记依赖的提供方，另外还可以通过 `@BindsInstance` 的方式。三种方法可以三选一。    
-`@Injec` 构造方法适用于我们有依赖提供方的源代码的情况，而使用 `@Moudle` 和 `@Provides` 适用于第三方库，我们无法再需要使用的类上添加 `@Inject`。
+注意：我们既可以使用 `@Injec` 构造方法，也可以使用`@Moudle` 和 `@Provides` 来标记依赖的提供方，另外还可以通过 `@BindsInstance` 的方式。我们可以根据不同的使用场景来选择合适的注入方式。    
+`@Injec` 构造方法适用于我们有依赖提供方的源代码的情况，而使用 `@Moudle` 和 `@Provides` 适用于第三方库，因为我们无法再需要使用的类上添加 `@Inject`。
 
 ### 标注需要注入的依赖
 
@@ -402,18 +402,18 @@ public interface CarComponent2 {
         Log.e("Test",car.getEngine().name());
 ```
 
-## 原理
+## 注入流程
 
 在上面代码中，进行依赖注入是通过 `DaggerMainComponent.create().injectCar(this)` 进行的，那么我们就通过这个方法来看一下 Dagger2 是如果实现依赖注入的。   
 
 ```
-DaggerMainComponent.create().injectCar(this)
-    DaggerMainComponent.create()
-        new Builder().build()
+DaggerCarComponent.create().injectCar(this)
+    DaggerCarComponent.create()
+        new Builder().build()  // Builder 是 DaggerCarComponent 内部类，负责生成 DaggerCarComponent
             new EngineModule()
-            new DaggerMainComponent(engineModule)
-    DaggerMainComponent.injectCar(Car car)
-        DaggerMainComponent.injectCar2(car)
+            new DaggerCarComponent(engineModule)
+    DaggerCarComponent.injectCar(Car car)
+        DaggerCarComponent.injectCar2(car) // injectCar过程中完成GasEnergy初始化并赋值给变量
             EngineModule_ProvideEngineFactory.provideEngine(engineModule)
                 EngineModule.provideEngine()
                     new GasEnergy()

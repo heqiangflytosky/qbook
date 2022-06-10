@@ -302,7 +302,78 @@ SystemUIFactory.init(Context context, boolean fromTest)
 
 注意看，在构建 DaggerGlobalRootComponent 时，有一个重要的方法 `context(context)`，为什么这里需要 context 参数呢？    
 我们在构造一些类的时候，它们有很多的参数，那么这些参数是如何被初始化的呢？    
+这些自动注入的类的参数有什么要求吗？    
 通过下面对几个类的构建过程的介绍，会解开这个谜团。    
+
+另外这里顺便提一个问题，前面介绍 Dagger 基础知识的时候，我们在构建 CarComponent 时代码是这些写的：    
+
+```
+Car car = new Car();
+DaggerCarComponent.create().injectCar(car);
+Log.e("Test",car.getEngine().name());
+```
+
+我们首先创建了一个 Car 对象，然后通过一个 injectCar 方法传递给了 CarComponent。那么在 SystemUI 构建 GlobalRootComponent 时却没有输入任何对象给它，这是为什么呢？    
+首先我们知道 Component 是连接依赖提供方和依赖需求方的桥梁，它就像是给加工厂，来提供依赖对象并绑定到依赖需求方。那么 Car 是依赖需求方，而且 Car 是个普通的类，我们必须要有这样一个对象，Dagger 才会把它需要的依赖对象注入给它。    
+那么现在我们换一种写法，不需要手动生成 Car 对象。   
+
+```
+// 提供一个Inject修饰的构造方法
+public class Car {
+    @Inject
+    @Named("petrol")
+    Engine engine;
+    ....
+
+    @Inject
+    public Car() {
+
+    }
+
+    ....
+}
+```
+
+```
+// 去掉 injectCar 方法，提供一个生产 Car 对象的方法 provideCar()
+@Component(modules = EngineModule.class)
+public interface CarComponent {
+    //void injectCar(Car car);
+    Car provideCar();
+}
+```
+
+```
+// 其实也就是 Dagger 为我们自动生成了 Car 对象
+        CarComponent component = DaggerCarComponent.builder().build();
+
+        Log.e("Test",component.provideCar().getEngine().name());
+        Log.e("Test",component.provideCar().getEngine2().name());
+```
+
+我们来看看Dagger为我们生成了哪些代码：    
+
+```
+//DaggerCarComponent.java
+  @Override
+  public Car provideCar() {
+    return injectCar(Car_Factory.newInstance());
+  }
+
+  private Car injectCar(Car instance) {
+    Car_MembersInjector.injectEngine(instance, EngineModule_ProvideEngineFactory.provideEngine());
+    Car_MembersInjector.injectEngine2(instance, new ElectricEngine());
+    Car_MembersInjector.injectSetAAB(instance, new AAB());
+    return instance;
+  }
+```
+
+```
+//Car_Factory.java
+  public static Car newInstance() {
+    return new Car();
+  }
+```
 
 ## 介绍 NavigationModeController
 

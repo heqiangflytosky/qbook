@@ -16,7 +16,9 @@ NotificationStackScrollLayout 继承自 ViewGroup，它提供了一个动态添�
 
 ## 常用变量和方法
 
-1.NotificationStackScrollLayout    
+
+### NotificationStackScrollLayout    
+
 mIsBeingDragged:是否时拖动通知中心的操作，此时的拖动事件由 NotificationStackScrollLayout 来处理。一旦设置为true，就会调用 requestDisallowInterceptTouchEvent(true)，不允许父组件做事件拦截。    
 mQsExpansionFraction：QS展开比例，用来设置通知栏展开比例，如果是0表示全部展开，这时只显示QQS，1表示通知中心全部隐藏。    
 mIsExpanded：通知中心是否展开，只要通知中心显示，它就是true。    
@@ -46,10 +48,12 @@ goToFullShade() 切换到将通知全部展开的状态
 fling()：处理通知中心放手后的惯性滚动，注意：不是回弹效果。    
 setQsExpansionFraction():更加QS的展开程度来更新通知中心    
 
-2.NotificationStackScrollLayoutController    
+### NotificationStackScrollLayoutController    
+
 mSwipeHelper:处理滑动删除通知逻辑    
 
-3.AmbientState: 为 StackScrollAlgorithm 保存一些全局状态。    
+### AmbientState: 为 StackScrollAlgorithm 保存一些全局状态。   
+ 
 mStackY：通知中心的最上面一条通知通知距离顶部的偏移量    
 mTopPadding：NotificationStackScrollLayout.mTopPadding    
 有同学可能有这样的疑问，mStackY 和 mTopPadding 有什么区别？我们先来看一下它们时如何设置的？    
@@ -105,18 +109,22 @@ mStackHeight:所有通知的高度，当通知中心有收缩动画时，会改�
 
 mAppearFraction:    
 
-3.StackScrollAlgorithm：用来使 NotificationStackScrollLayout可以查询或者更新当前的 StackScrollAlgorithmState 状态。    
+### StackScrollAlgorithm：用来使 NotificationStackScrollLayout可以查询或者更新当前的 StackScrollAlgorithmState 状态。    
+
 mScrollY:AmbientState.mScrollY    
 
-4.ViewState：记录了一些View的属性值，translation，alpha，scale，visibility等。    
+### ViewState
+记录了一些View的属性值：xTranslation，yTranslation，zTranslation，alpha，scale，hide（VISIBLE或者INVISIBLE），gone等。    
 
-5.ExpandableViewState：ViewState的子类，每个ExpandableView类都有个ExpandableViewState变量，记录该通知的一些属性信息。    
+### ExpandableViewState
+
+NotificationViewState的父类，ViewState的子类，每个ExpandableView类都有个ExpandableViewState变量，记录该通知的一些属性信息。    
 yTranslation 通知的实际位置。    
 StackScrollAlgorithmState    
 scrollY:AmbientState.mScrollY    
 mCurrentYPosition:当前正在计算的通知的位置，累加值，以此计算各个通知的偏移。    
 
-6.ScrimController    
+### ScrimController    
 setNotificationsBounds() 设置通知中心的背景区域    
 
 ## 通知栏的滑动

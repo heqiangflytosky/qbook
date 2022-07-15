@@ -1,4 +1,3 @@
-
 ---
 title: Android 图形系统 -- Canvas使用
 categories: Android 图形系统

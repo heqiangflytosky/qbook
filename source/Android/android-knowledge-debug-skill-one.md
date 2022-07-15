@@ -13,7 +13,7 @@ date: 2014-4-10 10:00:00
 有两种方法可以实现：
 
  1. 在设置里面进行设置
-  1. 进入设置-->辅助功能-->开发者选项；如果没有打开开发者模式，在拨号里面输入*#*#6961#*#*；
+  1. 进入设置-->辅助功能-->开发者选项；如果没有打开开发者模式，在设置里面连续点击系统版本号，或者在拨号里面输入*#*#6961#*#*；
   2. 找到选择调试应用，打开选择你要调试的应用；
   3. 再把等待调试器选项打开；
   4. 这样你要选择调试的应用在启动过程中就自动进入了调试模式；
@@ -78,3 +78,9 @@ projectname 为 settings.gradle 里面配置的各个 project，如果没有配�
 
 就可以在Gradle Console窗口里面看到项目的依赖库列表。 
 [参考](http://stackoverflow.com/questions/20989317/multiple-dex-files-define-landroid-support-v4-accessibilityservice-accessibility)
+
+## 打印调用栈
+
+```
+android.os.Debug.getCallers(30)
+```

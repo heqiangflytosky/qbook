@@ -7,31 +7,31 @@ description: 本文介绍 Android JetPack 开发工具套件
 date: 2018-9-2 10:00:00
 ---
 
-相关博客：
-[Android Architecture Components -- Room](http://www.heqiangfly.com/2017/12/02/android-architecture-components-room/)
-[Android Architecture Components -- LifeCycle](http://www.heqiangfly.com/2018/09/10/android-architecture-components-lifecycle/)
-[Android Architecture Components -- LiveData](http://www.heqiangfly.com/2018/09/16/android-architecture-components-livedata/)
-[Android Architecture Components -- ViewModel ](http://www.heqiangfly.com/2018/09/20/android-architecture-components-viewmodel/)
+相关博客：    
+[Android Architecture Components -- Room](http://www.heqiangfly.com/2017/12/02/android-architecture-components-room/)    
+[Android Architecture Components -- LifeCycle](http://www.heqiangfly.com/2018/09/10/android-architecture-components-lifecycle/)    
+[Android Architecture Components -- LiveData](http://www.heqiangfly.com/2018/09/16/android-architecture-components-livedata/)    
+[Android Architecture Components -- ViewModel ](http://www.heqiangfly.com/2018/09/20/android-architecture-components-viewmodel/)    
 
 ## 概述
 
 Google 在 2018 Google I/O 大会上推出了 Android Jetpack，它包含了开发库、工具以及最佳实践指南。
-Jetpack 是背包式飞行器的意思，是一种小巧的个人飞行器。顾名思义，通过使用Android  Jetpack 这套组件，可以帮助开发者更高效、更容易地构建优秀的应用。为此，Android 官方团队也把 Jetpack 的Logo 设计成了一个背着火箭的小机器人。
-除了在 2018 Google I/O 大会上新添加的功能外，它还把以前退出的一些功能囊括其中，比如 Architecture Components 等。并且，Android 团队将继续在Android平台上为 Jetpack 添加新的功能。
-下面来看一下 Jetpack 包含了哪些功能，下图会随着 Jetpack 功能的更新保持同步更新：
+Jetpack 是背包式飞行器的意思，是一种小巧的个人飞行器。顾名思义，通过使用Android  Jetpack 这套组件，可以帮助开发者更高效、更容易地构建优秀的应用。为此，Android 官方团队也把 Jetpack 的Logo 设计成了一个背着火箭的小机器人。    
+除了在 2018 Google I/O 大会上新添加的功能外，它还把以前退出的一些功能囊括其中，比如 Architecture Components 等。并且，Android 团队将继续在Android平台上为 Jetpack 添加新的功能。    
+下面来看一下 Jetpack 包含了哪些功能，下图会随着 Jetpack 功能的更新保持同步更新：    
 
-![效果图](https://raw.githubusercontent.com/googlesamples/android-sunflower/master/screenshots/jetpack_donut.png)
+![效果图](https://raw.githubusercontent.com/googlesamples/android-sunflower/master/screenshots/jetpack_donut.png)    
 
-接下来也会通过一系列的博客来介绍 Jetpack 的使用。
-先来看一下 Jetpack 中的架构组件，这些组件关联使用将更能发挥它的作用，我们将采取循序渐进，由浅入深的方式来逐步介绍这些组件的使用。
-Google 官方Demo源码：
-https://github.com/googlecodelabs/android-lifecycles
-https://github.com/googlesamples/android-architecture-components
-https://github.com/googlesamples/android-sunflower
+接下来也会通过一系列的博客来介绍 Jetpack 的使用。     
+先来看一下 Jetpack 中的架构组件，这些组件关联使用将更能发挥它的作用，我们将采取循序渐进，由浅入深的方式来逐步介绍这些组件的使用。    
+Google 官方Demo源码：    
+https://github.com/googlecodelabs/android-lifecycles    
+https://github.com/googlesamples/android-architecture-components    
+https://github.com/googlesamples/android-sunflower    
 
 ## 关于AndroidX
 
-先来个插曲介绍一下 AndroidX，后面 Android 会把 support 库放到 AndroidX 中，仅仅会改变包名和 Maven 库的名字，类的名字不会改变。
+先来个插曲介绍一下 AndroidX，后面 Android 会把 support 库放到 AndroidX 中，仅仅会改变包名和 Maven 库的名字，类的名字不会改变。    
 
 ## 添加依赖汇总
 

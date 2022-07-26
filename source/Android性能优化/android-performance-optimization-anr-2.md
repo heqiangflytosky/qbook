@@ -11,8 +11,8 @@ date: 2018-01-16 10:00:00
 
 ## 概述
 
-本次分析 ANR 的问题原因是由于通过 Binder 进行数据调用时由于对端被 block 而出现的 anr，涉及到了多个进程。
-现象是进入应用后出现了一段事件的白屏，后面就尝试唤出多任务界面，结果就提示系统界面无响应。
+本次分析 ANR 的问题原因是由于通过 Binder 进行数据调用时由于对端被 block 而出现的 anr，涉及到了多个进程。    
+现象是进入应用后出现了一段事件的白屏，后面就尝试唤出多任务界面，结果就提示系统界面无响应。    
 
 ## 分析
 
@@ -51,10 +51,10 @@ date: 2018-01-16 10:00:00
   at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:937)
 ```
 
-可以看到是是多任务在进行 binder 调用时出现了 anr。
-从调用栈来看，IExternalService 的服务端是 launcher ，我们需要分析 launcher 卡主的原因。
-从抓取的日志文件中，也发现了 launcher 进行的 trace 日志信息。
-发现 launcher 的几个 Binder 的 16 个线程都处于 Blocked 状态，在等待 15 号线程释放锁：
+可以看到是是多任务在进行 binder 调用时出现了 anr。    
+从调用栈来看，IExternalService 的服务端是 launcher ，我们需要分析 launcher 卡主的原因。    
+从抓取的日志文件中，也发现了 launcher 进行的 trace 日志信息。    
+发现 launcher 的几个 Binder 的 16 个线程都处于 Blocked 状态，在等待 15 号线程释放锁：    
 
 ```
 "Binder:6492_1" prio=5 tid=8 Blocked
@@ -127,7 +127,7 @@ date: 2018-01-16 10:00:00
   at android.os.HandlerThread.run(HandlerThread.java:65)
 ```
 
-看到 launcher-loader 在加载数据的时候卡主。
+看到 launcher-loader 在加载数据的时候卡主。    
 再来看一下 event log，在anr时间点附近有一段 am_failed_to_pause 的日志。
 
 ```
@@ -140,7 +140,7 @@ I am_failed_to_pause: [0,326199,com.meizu.flyme.directservice/org.hapjs.Launcher
 01-23 15:57:07.044  1380  1420 W ActivityManager: Activity stop timeout for ActivityRecord{4fa37 u0 com.meizu.flyme.directservice/org.hapjs.LauncherActivity$Launcher0 t119}
 ```
 
-由于发生 anr 之前，我们的应用发生过一段白屏，因此推测，我们的应用启动后在读取桌面数据库的数据，而此时桌面在加载数据库的时候被卡住，此时调起多任务，因为我们应用被卡住，没有正确地pause掉，调起多任务时也需要读取桌面的数据库，会出现前面分析的 binder 现在被 blocked 而出现 anr。
+由于发生 anr 之前，我们的应用发生过一段白屏，因此推测，我们的应用启动后在读取桌面数据库的数据，而此时桌面在加载数据库的时候被卡住，此时调起多任务，因为我们应用被卡住，没有正确地pause掉，调起多任务时也需要读取桌面的数据库，会出现前面分析的 binder 现在被 blocked 而出现 anr。    s
 那么现在就需要分析我们应用白屏的原因，是在启动时哪里读取了桌面数据库。发现果然是在主线程读取了数据库，这个地方倒不是犯了一个在主线程读取数据库的错误，因为这里的逻辑需要必须同步地获取桌面数据。后面在这里加个一个超时等待，解决了这个问题。
 
 完整日志参见注释内容：

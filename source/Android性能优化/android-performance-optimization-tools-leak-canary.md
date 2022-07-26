@@ -9,18 +9,18 @@ date: 2015-10-9 10:00:00
 
 ## 概述
 
-在Android中检测内存泄露，除了我们熟知的MAT分析外，还有另外一种方法公选择：LeakCanary。
-leakcanary是一个由著名的GitHub开源组织Square贡献的开源项目。
-具体可以参考下面文章：
-[Github 地址](https://github.com/square/leakcanary)
-[LeakCanary 中文使用说明](http://www.liaohuqiu.net/cn/posts/leak-canary-read-me/)
-[demo](https://github.com/liaohuqiu/leakcanary-demo)
-LeakCanary 默认只会检测Activity的泄漏，如果需要检测其他类，可以使用LeakCanary.install返回的RefWatcher，调用RefWatcher.watch(obj)就可以观测obj对象是否出现泄漏。
+在Android中检测内存泄露，除了我们熟知的MAT分析外，还有另外一种方法公选择：LeakCanary。    
+leakcanary是一个由著名的GitHub开源组织Square贡献的开源项目。    
+具体可以参考下面文章：    
+[Github 地址](https://github.com/square/leakcanary)    
+[LeakCanary 中文使用说明](http://www.liaohuqiu.net/cn/posts/leak-canary-read-me/)    
+[demo](https://github.com/liaohuqiu/leakcanary-demo)    
+LeakCanary 默认只会检测Activity的泄漏，如果需要检测其他类，可以使用LeakCanary.install返回的RefWatcher，调用RefWatcher.watch(obj)就可以观测obj对象是否出现泄漏。    
 
 ## 接入方法
 
-使用方法比较简单：
-在 build.gradle 中加入
+使用方法比较简单：    
+在 build.gradle 中加入    
 
 ```
  dependencies {
@@ -42,9 +42,9 @@ public class ExampleApplication extends Application {
 }
 ```
 
-这样在debug build 中，如果检测到某个 activity 有内存泄露，LeakCanary 就是自动地显示一个通知。
-使用：
-使用 RefWatcher 监控那些本该被回收的对象。
+这样在debug build 中，如果检测到某个 activity 有内存泄露，LeakCanary 就是自动地显示一个通知。    
+使用：    
+使用 RefWatcher 监控那些本该被回收的对象。    
 
 ```
 RefWatcher refWatcher = {...};
@@ -86,15 +86,15 @@ public abstract class BaseFragment extends Fragment {
 }
 ```
 
-在这个过程中你有可能需要设置 File -> Settings ->Build,Execution,Deployment -> Build Tools -> Gradle, Then uncheck "Offline work" on the right.
+在这个过程中你有可能需要设置 File -> Settings ->Build,Execution,Deployment -> Build Tools -> Gradle, Then uncheck "Offline work" on the right.    
 
 ## 注意问题
 
-AndroidExcludedRefs.java忽略的泄漏列表
-https://github.com/square/leakcanary/blob/04b0b596dc0119d5056f63186d3f972703e8b507/leakcanary-android/src/main/java/com/squareup/leakcanary/AndroidExcludedRefs.java
+AndroidExcludedRefs.java忽略的泄漏列表    
+https://github.com/square/leakcanary/blob/04b0b596dc0119d5056f63186d3f972703e8b507/leakcanary-android/src/main/java/com/squareup/leakcanary/AndroidExcludedRefs.java    
 
-Leakcanary部分泄露警报无需修复
-http://lynn8570.github.io/posts/some%20memory%20leaks%20that%20no%20need%20to%20be%20fixed/
+Leakcanary部分泄露警报无需修复    
+http://lynn8570.github.io/posts/some%20memory%20leaks%20that%20no%20need%20to%20be%20fixed/    
 
  1. InputMethodManager.sInstance泄露
  2. AsyncQueryHandler 没有quit

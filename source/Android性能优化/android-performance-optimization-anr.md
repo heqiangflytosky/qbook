@@ -82,8 +82,8 @@ ANR 问题发生了，我们首先要获取日志，才能接下来进一步分�
  - 将traces文件和CPU使用情况信息保存到dropbox，即data/system/dropbox目录
  - 对用户可感知的进程则弹出ANR对话框告知用户，对用户不可感知的进程发生ANR则直接杀掉
 
-整个ANR信息收集过程比较耗时，其中抓取进程的trace信息，每抓取一个等待200ms，可见persistent越多，等待时间越长。关于抓取trace命令，对于Java进程可通过在adb shell环境下执行kill -3 [pid]可抓取相应pid的调用栈；对于Native进程在adb shell环境下执行debuggerd -b [pid]可抓取相应pid的调用栈。对于ANR问题发生后的蛛丝马迹(trace)在traces.txt和dropbox目录中保存记录。    
-有了现场信息，可以调试分析，先定位发生ANR时间点，然后查看trace信息，接着分析是否有耗时的message、binder调用，锁的竞争，CPU资源的抢占，以及结合具体场景的上下文来分析，调试手段就需要针对前面说到的message、binder、锁等资源从系统角度细化更多debug信息。    
+整个ANR信息收集过程比较耗时，其中抓取进程的trace信息，每抓取一个等待200ms，可见persistent越多，等待时间越长。关于抓取trace命令，对于Java进程可通过在adb shell环境下执行kill -3 [pid]可抓取相应pid的调用栈；对于Native进程在adb shell环境下执行debuggerd -b [pid]可抓取相应pid的调用栈。对于ANR问题发生后的蛛丝马迹(trace)在traces.txt和dropbox目录中保存记录。        
+有了现场信息，可以调试分析，先定位发生ANR时间点，然后查看trace信息，接着分析是否有耗时的message、binder调用，锁的竞争，CPU资源的抢占，以及结合具体场景的上下文来分析，调试手段就需要针对前面说到的message、binder、锁等资源从系统角度细化更多debug信息。     
 
 
 ## 小技巧
@@ -177,13 +177,13 @@ I ActivityManager: addErrorToDropBox com.android.systemui:recents anr
  20:08:58 up  5:52,  0 users,  load average: 1.27, 0.77, 0.76
 ```
 
-Load后面的三个数字的意思分别是1分钟、5分钟、15分钟内系统的平均负荷。当CPU完全空闲的时候，平均负荷为0；当CPU工作量饱和的时候，平均负荷为1，通过Load可以判断系统负荷是否过重。
-经验法则是这样的：
-当系统负荷持续大于0.7，你必须开始调查了，问题出在哪里，防止情况恶化。
-当系统负荷持续大于1.0，你必须动手寻找解决办法，把这个值降下来。
-当系统负荷达到5.0，就表明你的系统有很严重的问题。
+Load后面的三个数字的意思分别是1分钟、5分钟、15分钟内系统的平均负荷。当CPU完全空闲的时候，平均负荷为0；当CPU工作量饱和的时候，平均负荷为1，通过Load可以判断系统负荷是否过重。    
+经验法则是这样的：    
+当系统负荷持续大于0.7，你必须开始调查了，问题出在哪里，防止情况恶化。    
+当系统负荷持续大于1.0，你必须动手寻找解决办法，把这个值降下来。    
+当系统负荷达到5.0，就表明你的系统有很严重的问题。    
 
-更准确的CPU使用信息我们还可以通过 Log Report 目录中 dumpsys/dumpsys_cpuinfo 来查看。
+更准确的CPU使用信息我们还可以通过 Log Report 目录中 dumpsys/dumpsys_cpuinfo 来查看。    
 
 ```
 CPU usage from 0ms to 6626ms later
@@ -203,8 +203,8 @@ CPU usage from 3446ms to -6045ms ago
 44% TOTAL: 21% user + 21% kernel + 0.3% iowait + 1.7% irq + 0.4% softirq
 ```
 
-上面这一段日志可以得到ANR发生的时候，Top进程的Cpu占用情况，user代表是用户空间，kernel是内核空间。对于 CPU 的占用率，在多核中每个核最大占用率都是100%，如果机器是8核的，那么每个进程的CPU最大占用率就是800%，这也就是为什么我们会经常看到某些进程 CPU 占用率会大于100%，其实百分之一百多的CPU占用率不算很高的。
-iowait 系统因为 io 导致的进程 wait，如果这部分数值较高，可能要查一下是不是 io 问题导致的 anr，有可能在主线程中进行了 io 操作。
+上面这一段日志可以得到ANR发生的时候，Top进程的Cpu占用情况，user代表是用户空间，kernel是内核空间。对于 CPU 的占用率，在多核中每个核最大占用率都是100%，如果机器是8核的，那么每个进程的CPU最大占用率就是800%，这也就是为什么我们会经常看到某些进程 CPU 占用率会大于100%，其实百分之一百多的CPU占用率不算很高的。    
+iowait 系统因为 io 导致的进程 wait，如果这部分数值较高，可能要查一下是不是 io 问题导致的 anr，有可能在主线程中进行了 io 操作。    
 分析这一部分，一般的有如下的规律。
 
  - kswapd0 cpu占用率偏高，系统整体运行会缓慢，从而引起各种ANR。把问题转给"内存优化"，请他们进行优化。
@@ -218,8 +218,8 @@ iowait 系统因为 io 导致的进程 wait，如果这部分数值较高，可�
 
 ## trace 分析
 
-要查看应用被阻塞的位置，还是需要分析 trace 文件。
-下面通过一个人为制造的 ANR 事件来讲解一下 traces 的分析技巧。
+要查看应用被阻塞的位置，还是需要分析 trace 文件。    
+下面通过一个人为制造的 ANR 事件来讲解一下 traces 的分析技巧。    
 traces 文件在 /data/anr/traces.txt 可以找到，一般 ANR 发生时，在弹出无响应对话框之前，AMS 会把 ANR 相关的信息保存在这个文件中，因此，这个文件是分析 ANR 的利器。
 
 ```
@@ -428,7 +428,7 @@ enum ThreadState {
  - 优先组属（cgrp=default）
  - 处理函数地址（handle=0x751d25fa98）。
 
-**第四行**：`  | state=S schedstat=( 173407732 13795308 237 ) utm=14 stm=2 core=5 HZ=100`
+**第四行**：`  | state=S schedstat=( 173407732 13795308 237 ) utm=14 stm=2 core=5 HZ=100`    
 主要信息包括当前线程的上下文信息：
 
  - 分别是线程调度状态（state=S）S表示Sleeping，另外还有 "R (running)", "S (sleeping)", "D (disk sleep)", "T (stopped)", "t (tracing stop)", "Z (zombie)", "X (dead)", "x (dead)", "K (wakekill)", "W (waking)",），通常一般的Process 处于的状态都是S (sleeping), 而如果一旦发现处于如D (disk sleep), T (stopped), Z (zombie) 等就要认真审查。
@@ -444,7 +444,7 @@ enum ThreadState {
  - 栈大小（stackSize=8MB）；
 
 
-再后面就是线程的调用栈信息，也是我们分析ANR的关键信息。    
+再后面就是线程的调用栈信息，也是我们分析ANR的关键信息。     
 由于上面的log是在主线程中调用 Thread.sleep 导致的，直接通过调用栈信息就可以定位到问题发生的原因，这里不再介绍。    
 
 ### Memory 信息分析
@@ -477,12 +477,12 @@ Total GC time: 831.277s
 
 ## io 分析
 
-如果 anr 时你发现 iowait 数值很高（在 30% 以上），这时要注意了，需要分析一下是不是由于 io 操作导致了 anr，看主线程中是否有进行 io 操作。
-看看当前的调用堆栈，或者在这段ANR点往前看0~4s，看看当时做的什么文件操作，这种场景有遇到过，常见解决方法是对耗时文件操作采取异步操作。
-假如和有关情况，一般blocked的位置应该是在io文件操作上。
-iowait 就是系统因为 io 导致的进程 wait。这时候系统在做 io ，导致没有进程在干活，cpu 在执行 idle 进程空转，所以说 iowait 的产生要满足两个条件，一是进程在等 io ，二是等 io 时没有进程可运行。
-iowait = (cpu idle time)/(all cpu time)。
-如果想实时查看 IO 读写情况，可以使用 vmstat 命令，此命令还可以查看CPU使用率，内存使用，虚拟内存交换情况等。
+如果 anr 时你发现 iowait 数值很高（在 30% 以上），这时要注意了，需要分析一下是不是由于 io 操作导致了 anr，看主线程中是否有进行 io 操作。    
+看看当前的调用堆栈，或者在这段ANR点往前看0~4s，看看当时做的什么文件操作，这种场景有遇到过，常见解决方法是对耗时文件操作采取异步操作。    
+假如和有关情况，一般blocked的位置应该是在io文件操作上。    
+iowait 就是系统因为 io 导致的进程 wait。这时候系统在做 io ，导致没有进程在干活，cpu 在执行 idle 进程空转，所以说 iowait 的产生要满足两个条件，一是进程在等 io ，二是等 io 时没有进程可运行。    
+iowait = (cpu idle time)/(all cpu time)。    
+如果想实时查看 IO 读写情况，可以使用 vmstat 命令，此命令还可以查看CPU使用率，内存使用，虚拟内存交换情况等。    
 
 ## 分析binder调用
 
@@ -524,15 +524,15 @@ context binder
     transaction complete
 ```
 
-可以看到通信的binder进程号为 19307，线程号为 19320。
-接下来就可以分析一下 19307 进程，看看 19320 线程进行的一些操作。
+可以看到通信的binder进程号为 19307，线程号为 19320。    
+接下来就可以分析一下 19307 进程，看看 19320 线程进行的一些操作。    
 
 `IPCThreadState::talkWithDriver` 一般表示在等待对端进程的响应。
 
 ### binder 线程池占满
 
-另外，如果 Binder 线程池被占满（16个），导致主线程处理不了其他的 binder 请求，从而导致 anr。
-判断Binder是否用完，可以在trace中搜索关键字"binder_f"，如果搜索到则表示已经用完，然后就要找log其他地方看是谁一直在消耗binder或者是有死锁发生。
+另外，如果 Binder 线程池被占满（16个），导致主线程处理不了其他的 binder 请求，从而导致 anr。    
+判断Binder是否用完，可以在trace中搜索关键字"binder_f"，如果搜索到则表示已经用完，然后就要找log其他地方看是谁一直在消耗binder或者是有死锁发生。    
 
 ## 线程状态分析
 
@@ -556,9 +556,9 @@ obj.wait();
 }
 ```
 
-线程的执行中，先用 synchronized 获得了这个对象的 Monitor（对应于 locked <0x0b2886e9> ）。当执行到 obj.wait(), 线程即放弃了 Monitor的所有权，进入 “wait set”队列（对应于 waiting on <0x0b2886e9> ）。
-往往在你的程序中，会出现多个类似的线程，他们都有相似的 DUMP信息。这也可能是正常的。比如，在程序中，有多个服务线程，设计成从一个队列里面读取请求数据。这个队列就是 lock以及 waiting on的对象。当队列为空的时候，这些线程都会在这个队列上等待，直到队列有了数据，这些线程被 Notify，当然只有一个线程获得了 lock，继续执行，而其它线程继续等待。
+线程的执行中，先用 synchronized 获得了这个对象的 Monitor（对应于 locked <0x0b2886e9> ）。当执行到 obj.wait(), 线程即放弃了 Monitor的所有权，进入 “wait set”队列（对应于 waiting on <0x0b2886e9> ）。    
+往往在你的程序中，会出现多个类似的线程，他们都有相似的 DUMP信息。这也可能是正常的。比如，在程序中，有多个服务线程，设计成从一个队列里面读取请求数据。这个队列就是 lock以及 waiting on的对象。当队列为空的时候，这些线程都会在这个队列上等待，直到队列有了数据，这些线程被 Notify，当然只有一个线程获得了 lock，继续执行，而其它线程继续等待。    
 
 ## 一般分析套路
 
-发生ANR时从trace来看主线程却处于空闲状态或者停留在非耗时代码的原因有哪些？可以是抓取trace过于耗时而错过现场，可以是主线程消息队列堆积大量消息而最后抓取快照一刻只是瞬时状态，可以是广播的“queued-work-looper”一直在处理SP操作。    
+发生ANR时从trace来看主线程却处于空闲状态或者停留在非耗时代码的原因有哪些？可以是抓取trace过于耗时而错过现场，可以是主线程消息队列堆积大量消息而最后抓取快照一刻只是瞬时状态，可以是广播的“queued-work-looper”一直在处理SP操作。        

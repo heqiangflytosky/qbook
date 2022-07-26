@@ -9,15 +9,15 @@ date: 2018-8-18 10:00:00
 
 ## 概述
 
-Android 代码检测是我们开发工程中必不可少的步骤，高质量的代码检测可以提前发现问题，有效地避免线上bug的出现，是质量保证的关键。
-Lint 是Android提供的代码检测工具，除了检查 Android 项目源码中潜在的错误，对于代码的正确性、安全性、性能、易用性、便利性和国际化方面也会作出检查。Lint 还可自定义一些检测约束规则。Lint 除了可以使用命令行外，已经集成Android Studio中使用方便。
-另外pmd、阿里开源的代码检测工具p3c和360的检测工具FireLine的使用也较普遍，我们可以把以上工具结合运用到我们的项目中去。
-Lint 侧重进行 Android 项目规范检测，pmd和p3c侧重于Java规范检测。
+Android 代码检测是我们开发工程中必不可少的步骤，高质量的代码检测可以提前发现问题，有效地避免线上bug的出现，是质量保证的关键。    
+Lint 是Android提供的代码检测工具，除了检查 Android 项目源码中潜在的错误，对于代码的正确性、安全性、性能、易用性、便利性和国际化方面也会作出检查。Lint 还可自定义一些检测约束规则。Lint 除了可以使用命令行外，已经集成Android Studio中使用方便。    
+另外pmd、阿里开源的代码检测工具p3c和360的检测工具FireLine的使用也较普遍，我们可以把以上工具结合运用到我们的项目中去。    
+Lint 侧重进行 Android 项目规范检测，pmd和p3c侧重于Java规范检测。    
 对于Android和Java 的开发规范，建议大家看看阿里开源的《阿里巴巴Java开发手册》和《阿里巴巴Android开发手册》。
 
-[Lint Android官方文档](https://developer.android.com/studio/write/lint?hl=zh-CN)
-[p3c Github源码](https://github.com/alibaba/p3c)
-[FireLine](http://magic.360.cn/zh/index.html)
+[Lint Android官方文档](https://developer.android.com/studio/write/lint?hl=zh-CN)    
+[p3c Github源码](https://github.com/alibaba/p3c)    
+[FireLine](http://magic.360.cn/zh/index.html)    
 
 ## Lint 命令行
 
@@ -56,7 +56,7 @@ lint.xml 这个文件是配置 Lint 的一些规则，比如哪些规则（issue
 
 ./gradlew lintRelease
 
-运行结果会生成 html 和 xml 格式的报告。
+运行结果会生成 html 和 xml 格式的报告。    
 相关的任务：
 
  - lint - Runs lint on all variants.
@@ -105,7 +105,7 @@ repositories {
 
 <img src="/images/android-code-optimization-tools-link/dialog.png" width="505" height="271"/>
 
-Inspection profile 可以选择启用哪些检查项。
+Inspection profile 可以选择启用哪些检查项。    
 点击 OK 按钮后开始进行Lint检查，运行完成后显示运行结果：
 
 <img src="/images/android-code-optimization-tools-link/result.png" width="725" height="401"/>
@@ -147,7 +147,7 @@ p3c是阿里巴巴提供的Java代码检测规范，并且提供了Android Studi
 
 ## Analyze 配置
 
-Android 中可以选择同时进行 Lint 和 p3c 检测。
+Android 中可以选择同时进行 Lint 和 p3c 检测。    
 菜单栏：Analyze -> Inspect Code -> 配置 -> 同时选择Ali-Check 和 Android lint。
 
 <img src="/images/android-code-optimization-tools-link/lint-p3c.png" width="582" height="500"/>

@@ -11,19 +11,19 @@ date: 2017-2-21 10:00:00
 
 ## 概述
 
-Android应用开发中不可避免地会发生崩溃，特别是在用户使用过程中，一些特定场景的偶然概率的crash会通常让开发者抓狂。幸运的是 Java 提供了处理这类问题的方法，可以设置一个统一的接口来处理我们代码中没有处理的异常。
-通过这个接口，我们可以做一些事情，比如：
+Android应用开发中不可避免地会发生崩溃，特别是在用户使用过程中，一些特定场景的偶然概率的crash会通常让开发者抓狂。幸运的是 Java 提供了处理这类问题的方法，可以设置一个统一的接口来处理我们代码中没有处理的异常。    
+通过这个接口，我们可以做一些事情，比如：    
 
  - 忽略一些不影响应用运行的异常
  - 可以记录一些崩溃日志并上传服务器，以便开发者迅速定位问题原因。 
  - 可以添加一些友好的交互提示
 
-在 [Java 并发编程 -- 创建和使用线程 ](http://www.heqiangfly.com/2015/07/02/java-thread-how-to-create-thread/) 中介绍了 `Thread` 类的 `setUncaughtExceptionHandler` 和 `setDefaultUncaughtExceptionHandler` 方法，本文提供的解决方案也是基于 `setDefaultUncaughtExceptionHandler` 方法。
-下面分析一下它的一些应用场景。
+在 [Java 并发编程 -- 创建和使用线程 ](http://www.heqiangfly.com/2015/07/02/java-thread-how-to-create-thread/) 中介绍了 `Thread` 类的 `setUncaughtExceptionHandler` 和 `setDefaultUncaughtExceptionHandler` 方法，本文提供的解决方案也是基于 `setDefaultUncaughtExceptionHandler` 方法。    
+下面分析一下它的一些应用场景。    
 
 ## CrashHandler类
 
-实现这个功能我们需要实现 `Thread.UncaughtExceptionHandler` 这个接口。里面只有一个方法 `uncaughtException`。当我们注册一个 `UncaughtExceptionHandler` 之后，当我们的程序 crash 时就会回调 `uncaughtException` 方法，我们就可以再这个方法中添加我们的处理。
+实现这个功能我们需要实现 `Thread.UncaughtExceptionHandler` 这个接口。里面只有一个方法 `uncaughtException`。当我们注册一个 `UncaughtExceptionHandler` 之后，当我们的程序 crash 时就会回调 `uncaughtException` 方法，我们就可以再这个方法中添加我们的处理。    
 
 ```
 public class CrashHandler implements Thread.UncaughtExceptionHandler {
@@ -50,7 +50,7 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
 
 ## 解决 FinalizerWatchdogDaemon 线程的 TimeoutException 问题
 
-关于这个问题的介绍，情况这篇文章[滴滴出行安卓端 finalize time out 的解决方案 ](https://mp.weixin.qq.com/s/uFcFYO2GtWWiblotem2bGg)。
+关于这个问题的介绍，情况这篇文章[滴滴出行安卓端 finalize time out 的解决方案 ](https://mp.weixin.qq.com/s/uFcFYO2GtWWiblotem2bGg)。    
 代码：
 
 ```
@@ -68,12 +68,12 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
     }
 ```
 
-处理方案就是忽略掉这个异常，减少 App 的 Crash。
+处理方案就是忽略掉这个异常，减少 App 的 Crash。    
 
 ## 获取应用的 crash 信息
 
-当应用发生 Crash 时，在` uncaughtException` 方法中就可以获取到异常信息，我们可以选择把异常信息存储到SD卡中，然后在合适的时机上传到服务器。或者我们还可以在crash发生时，弹出一个对话框告诉用户程序crash了，然后再退出，这样会比闪退温和一些。
-下面我们实现了一个捕获OOM的UncaughtExceptionHandler 的类，发生OOM时可以抓取一些日志，然后可以通过MAT分析生成的hprof文件来定位问题。下面来看一下这个类的用法：
+当应用发生 Crash 时，在` uncaughtException` 方法中就可以获取到异常信息，我们可以选择把异常信息存储到SD卡中，然后在合适的时机上传到服务器。或者我们还可以在crash发生时，弹出一个对话框告诉用户程序crash了，然后再退出，这样会比闪退温和一些。    
+下面我们实现了一个捕获OOM的UncaughtExceptionHandler 的类，发生OOM时可以抓取一些日志，然后可以通过MAT分析生成的hprof文件来定位问题。下面来看一下这个类的用法：    
 
 ```
 public class CrashHandler implements Thread.UncaughtExceptionHandler {

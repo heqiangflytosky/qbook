@@ -9,8 +9,8 @@ date: 2016-2-25 10:00:00
 
 ## TraceView简介
 
-工欲善其事，必先利其器。要想分析Android的性能问题，比如卡顿了之类的，那么就必需掌握TraceView工具的使用。
-TraceView 是 Android SDK 中内置的一个工具，它可以加载 trace 文件，用图形的形式展示代码的执行时间、次数及调用栈，便于我们分析，以此来优化 App 运行效率。
+工欲善其事，必先利其器。要想分析Android的性能问题，比如卡顿了之类的，那么就必需掌握TraceView工具的使用。    
+TraceView 是 Android SDK 中内置的一个工具，它可以加载 trace 文件，用图形的形式展示代码的执行时间、次数及调用栈，便于我们分析，以此来优化 App 运行效率。    
 
 ## 生成trace文件
 
@@ -28,8 +28,8 @@ Debug.stopMethodTracing();
 
 ### 使用Android Monitor
 
-使用Android Studio 内置的 Android Monitor 也可以很方便的生成 trace 文件到电脑。
-在 CPU 监控的那栏会有一个类似秒表的按钮，未启动应用时是灰色，不可点击，应用启动后变成可以点击状态，点击之后开始追踪，再次点击结束追踪，并生成后缀为.trace的 tarce 文件。
+使用Android Studio 内置的 Android Monitor 也可以很方便的生成 trace 文件到电脑。    
+在 CPU 监控的那栏会有一个类似秒表的按钮，未启动应用时是灰色，不可点击，应用启动后变成可以点击状态，点击之后开始追踪，再次点击结束追踪，并生成后缀为.trace的 tarce 文件。    
 
 ![图片](/images/development-tool-traceview/android_monitor_start.png)
 
@@ -41,9 +41,9 @@ DDMS 是 Android 调试监控工具，用来分析 trace 文件更为直观，�
 
 Android Studio 3.0之后把 DDMS 从 Tools 里面去掉了，但是我们可以通过命令行打开：android-sdk/tools/monitor。
 
-我们可以用 DDMS 打开前面方法生成的 trace 文件，`File` -> `Open File`，然后选择文件即可。
-或者也可以生成 trace 文件。
-选择需要调试的进程，在上面点击`Start Mothod Profiling`按钮：
+我们可以用 DDMS 打开前面方法生成的 trace 文件，`File` -> `Open File`，然后选择文件即可。    
+或者也可以生成 trace 文件。    
+选择需要调试的进程，在上面点击`Start Mothod Profiling`按钮：    
 
 ![图片](/images/development-tool-traceview/trace_start.png)
 
@@ -66,9 +66,9 @@ DDMS会打开trace文件，此时就可以对trace文件进行分析了。
 
 ![图片](/images/development-tool-traceview/trace_analysis.png)
 
-通过界面图我们可以看到整个界面可以分为上下两个部分，上面是你测试的进程中每个线程的执行情况，每个线程占一行，下面是每个方法执行的各个指标的值。
-上面一部分是测试进程的中每个线程运行的时间线，x轴表示时间，色块区域可放大，每个区域代表每个方法的执行时间，不同的颜色代表不同的方法，颜色长度代表占用时间。y轴表示每一个独立线程。
-下面一部分Name为所选择的颜色区块所代表的性能分析。
+通过界面图我们可以看到整个界面可以分为上下两个部分，上面是你测试的进程中每个线程的执行情况，每个线程占一行，下面是每个方法执行的各个指标的值。    
+上面一部分是测试进程的中每个线程运行的时间线，x轴表示时间，色块区域可放大，每个区域代表每个方法的执行时间，不同的颜色代表不同的方法，颜色长度代表占用时间。y轴表示每一个独立线程。    
+下面一部分Name为所选择的颜色区块所代表的性能分析。    
 
 属性介绍：
 
@@ -85,8 +85,8 @@ DDMS会打开trace文件，此时就可以对trace文件进行分析了。
  - Parents：选中方法的调用处
  - Children：选中方法调用的方法
 
-打开每个方法，会显示Paents和Children(即父方法和子方法)，以及分别所占用时间。
-根据上图，很轻易的就找到了`createBitmp`方法占用了主线程中大量的时间，是可以优化的对象。
+打开每个方法，会显示Paents和Children(即父方法和子方法)，以及分别所占用时间。    
+根据上图，很轻易的就找到了`createBitmp`方法占用了主线程中大量的时间，是可以优化的对象。    
 
 一些分析 trace 文件的方法：
 

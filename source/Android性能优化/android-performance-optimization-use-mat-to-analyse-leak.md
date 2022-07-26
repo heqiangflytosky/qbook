@@ -7,8 +7,8 @@ description: 介绍Android分析内存泄漏工具的使用方法
 date: 2016-2-20 10:00:00
 ---
 
-MAT 是 Memory Analyzer Tool 的简称，它是一款强大的内存分析工具，使用它能帮助开发者快速分析内存泄漏以及优化内存的使用。
-内存泄漏也是我们开发过程中经常碰到的问题，掌握了MAT工具，那么你就不会惧怕内存泄漏，使用它可以让内存泄漏无所遁形。
+MAT 是 Memory Analyzer Tool 的简称，它是一款强大的内存分析工具，使用它能帮助开发者快速分析内存泄漏以及优化内存的使用。    
+内存泄漏也是我们开发过程中经常碰到的问题，掌握了MAT工具，那么你就不会惧怕内存泄漏，使用它可以让内存泄漏无所遁形。    
 
 ## MAT下载
 
@@ -38,11 +38,11 @@ MainActivity.java
     }
 ```
 
-我们知道，在 Java 中，非静态内部类会默认隐性引用外部类对象。而上面的例子中的静态变量`mInnerClassInstance`在第一个`MainActivity`实例创建后便会一直存在，那么它就会一直持有`MainActivity`的一个引用，在`MainActivity`实例销毁后它是无法被回收的，因此便造成了内存泄漏。
+我们知道，在 Java 中，非静态内部类会默认隐性引用外部类对象。而上面的例子中的静态变量`mInnerClassInstance`在第一个`MainActivity`实例创建后便会一直存在，那么它就会一直持有`MainActivity`的一个引用，在`MainActivity`实例销毁后它是无法被回收的，因此便造成了内存泄漏。     
 
 ## 内存泄漏的初步分析
-首先可以用 `adb shell dumpsys meminfo <进程名称或者进程ID>` 先进行初步的分析。
-我们按下手机的后退键回到桌面，这时会调用`MainActivity`的`onDestroy()`，正常情况下`MainActivity`实例会被回收。
+首先可以用 `adb shell dumpsys meminfo <进程名称或者进程ID>` 先进行初步的分析。    
+我们按下手机的后退键回到桌面，这时会调用`MainActivity`的`onDestroy()`，正常情况下`MainActivity`实例会被回收。    
 ```
 $ adb shell dumpsys meminfo com.example.hq.testsomething
 
@@ -118,6 +118,7 @@ Android Studio 中的 Android Monitor 里面有个 Memory 控制台，它提供�
 ## 生成HPROF文件
 
 ### 使用Android Studio
+
 首先我们借助Android Studio生成hprof文件，Tools -> Android -> Android Device Monitor 打开 DDMS：
 
 ![效果图](/images/development-tool-mat-to-analyse-leak/mat_open_device_monitor.png)
@@ -130,8 +131,8 @@ Android Studio 中的 Android Monitor 里面有个 Memory 控制台，它提供�
 
 ![效果图](/images/development-tool-mat-to-analyse-leak/mat_dump_hprof_file.png)
 
-会生成 hprof 文件，会弹框提示我们保存下来。
-然后打开MAT工具，File --> Open Heap Dump...，选择刚刚生成的文件，如果出现下面的错误，用 `hprof-conv` 命令转换一下就可以了。这是因为MAT是用来分析java程序的hprof文件的，与Android导出的hprof有一定的格式区别，因此我们需要把导出的hprof文件转换一下。`hprof-conv` 是 Android SDK 提供的工具，它位于 Android SDK 的platform-tools目录下。
+会生成 hprof 文件，会弹框提示我们保存下来。    
+然后打开MAT工具，File --> Open Heap Dump...，选择刚刚生成的文件，如果出现下面的错误，用 `hprof-conv` 命令转换一下就可以了。这是因为MAT是用来分析java程序的hprof文件的，与Android导出的hprof有一定的格式区别，因此我们需要把导出的hprof文件转换一下。`hprof-conv` 是 Android SDK 提供的工具，它位于 Android SDK 的platform-tools目录下。    
 
 ![效果图](/images/development-tool-mat-to-analyse-leak/mat_open_error.png)
 
@@ -173,8 +174,8 @@ MAT 提供了很多功能，但是最常用的只有 Histogram 和 Domintor Tree
 
 ### 内存泄漏分析
 
-我们在主视图中选择`Actions`-->`Domintor Tree`或者`Histogram`也可以。
-因为在前面我们已经初步分析了`MainActivity`是存在内存泄漏的，这里我们可以使用界面中的搜索功能，在输入框中输入`MainActivity`进行过滤，查看当前存在的`MainActivity`对象，我们发现当前有两个`MainActivity`对象，这是因为我们按back键退出应用再进来，系统都会重新创建一个新的`MainActivity`，但是第一次创建的老的对象却无法回收，所以就出现了两个`MainActivity`对象。
+我们在主视图中选择`Actions`-->`Domintor Tree`或者`Histogram`也可以。    
+因为在前面我们已经初步分析了`MainActivity`是存在内存泄漏的，这里我们可以使用界面中的搜索功能，在输入框中输入`MainActivity`进行过滤，查看当前存在的`MainActivity`对象，我们发现当前有两个`MainActivity`对象，这是因为我们按back键退出应用再进来，系统都会重新创建一个新的`MainActivity`，但是第一次创建的老的对象却无法回收，所以就出现了两个`MainActivity`对象。    
 
 ![效果图](/images/development-tool-mat-to-analyse-leak/mat_activity_leak.png)
 
@@ -182,8 +183,8 @@ MAT 提供了很多功能，但是最常用的只有 Histogram 和 Domintor Tree
 
 ![效果图](/images/development-tool-mat-to-analyse-leak/mat_path_to_gc_root_exclude_phontom_soft_weak.png)
 
-这里在 Path To GC Roots 之所以选择排除所有的虚引用、弱引用和软引用，是因为它们都有很大的几率被GC回收掉的，它们并不会构成内存泄漏。
-可以看到是 `mInnerClassInstance` 引用了 `MainActivity` 导致了无法释放。
+这里在 Path To GC Roots 之所以选择排除所有的虚引用、弱引用和软引用，是因为它们都有很大的几率被GC回收掉的，它们并不会构成内存泄漏。    
+可以看到是 `mInnerClassInstance` 引用了 `MainActivity` 导致了无法释放。    
 
 ### Domintor Tree 视图分析
 

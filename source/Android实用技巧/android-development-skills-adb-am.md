@@ -477,3 +477,7 @@ am broadcast [--user <USER_ID> | all | current] <INTENT>
 ```
 adb shell am send-trim-memory com.example.heqiang.testsomething RUNNING_CRITICAL
 ```
+
+## am dumpheap
+
+抓取内存快照。

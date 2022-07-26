@@ -10,8 +10,8 @@ date: 2018-10-10 10:00:00
 
 ## 概述
 
-在内存优化前我们有必要借助一些工具来查看我们的 APP 目前使用内存的状况，为我们内存优化指明方向。
-Android 中关于的工具很多，参考下表。所以我们要灵活地选用我们需要的工具。在定位内存问题的过程中，推荐使用涵盖一定初步定位和定位能力的工具，可以让我们一步到位地剖析问题、提升效率。
+在内存优化前我们有必要借助一些工具来查看我们的 APP 目前使用内存的状况，为我们内存优化指明方向。    
+Android 中关于的工具很多，参考下表。所以我们要灵活地选用我们需要的工具。在定位内存问题的过程中，推荐使用涵盖一定初步定位和定位能力的工具，可以让我们一步到位地剖析问题、提升效率。    
 
 | 工具 | 分析问题 | 能力 | 备注 |
 |:-------------:|:-------------:|:-------------:|:-------------:|
@@ -30,18 +30,18 @@ Android 中关于的工具很多，参考下表。所以我们要灵活地选用
 
 ## getprop
 
-我们可以使用 `adb shell getprop |grep vm` 来看 Android 虚拟机对内存的一些配置：
+我们可以使用 `adb shell getprop |grep vm` 来看 Android 虚拟机对内存的一些配置：    
 
 ```
 [dalvik.vm.heapgrowthlimit]: [256m]
 [dalvik.vm.heapsize]: [512m]
 ```
-dalvik.vm.heapgrowthlimit 表示受控情况下每个进程可用的最大堆内存。dalvik.vm.heapsize 表示 设置了 `android:largeHeap="true"` 的应用可以使用的最大堆内存。
+dalvik.vm.heapgrowthlimit 表示受控情况下每个进程可用的最大堆内存。dalvik.vm.heapsize 表示 设置了 `android:largeHeap="true"` 的应用可以使用的最大堆内存。    
 
 
 ## procrank
 
-需要root权限才能运行
+需要root权限才能运行    
 
 ```
 bogon:TestSomething heqiang$ adb shell procrank
@@ -66,18 +66,18 @@ bogon:TestSomething heqiang$ adb shell procrank
  - PSS：Proportional Set Size 实际使用的物理内存（比例分配共享库占用的内存）
  - USS：Unique Set Size 进程独自占用的物理内存（不包含共享库占用的内存）USS 是一个非常非常有用的数字， 因为它揭示了运行一个特定进程的真实的内存增量大小。如果进程被终止， USS 就是实际被返还给系统的内存大小。
 
-USS 是针对某个进程开始有可疑内存泄露的情况，进行检测的最佳数字。怀疑某个程序有内存泄露可以查看这个值是否一直有增加。
-这些内存指标都是包含 Java 内存和 Native 内存的。
-一般来说内存占用大小有如下规律：VSS >= RSS >= PSS >= USS
+USS 是针对某个进程开始有可疑内存泄露的情况，进行检测的最佳数字。怀疑某个程序有内存泄露可以查看这个值是否一直有增加。    
+这些内存指标都是包含 Java 内存和 Native 内存的。    
+一般来说内存占用大小有如下规律：VSS >= RSS >= PSS >= USS    
 
 ## showmap
 
-adb shell showmap <pid>  查看一个进程的showmap，这对于我们来说非常有用，可以确定进程中哪些库占用内存比较多。
+adb shell showmap <pid>  查看一个进程的showmap，这对于我们来说非常有用，可以确定进程中哪些库占用内存比较多。    
 
 
 ## dumpsys meminfo
 
-可以使用 `adb shell dumpsys meminfo` 来看系统内所有进程的内存使用情况：
+可以使用 `adb shell dumpsys meminfo` 来看系统内所有进程的内存使用情况：    
 
 ```
 Applications Memory Usage (in Kilobytes):
@@ -118,13 +118,13 @@ Total RAM: 7,791,836K (status normal)
 
 ION:
 
-我们可以使用下面的命令来查看某个进程使用内存的情况：
+我们可以使用下面的命令来查看某个进程使用内存的情况：    
 
 ```
     adb shell dumpsys meminfo -a <进程名称>
 ```
 
-输出结果：
+输出结果：    
 
 ```
 Applications Memory Usage (in Kilobytes):
@@ -206,9 +206,21 @@ Uptime: 638409159 Realtime: 1205461779
     zip:/data/app/com.android.hq.ganktoutiao-jidQh1vu54x_dgItu-668g==/base.apk:/assets/fonts/material-design-iconic-font-v2.2.0.ttf: 97K
 ```
 
-现在对上面输出内容的各项指标来做个解释：
+现在对上面输出内容的各项指标来做个解释：    
 
 横轴指标：
+
+ - Pss Total
+ - Pss Clean
+ - Shared Dirty
+ - Private Dirty
+ - Shared Clean
+ - Private Clean
+ - Swap Dirty
+ - Rss Total
+ - 
+
+纵轴指标：
 
  - Native Heap：Native 分配的内存，就是非 Java 代码分配的内存。不受Java Object Heap大小限制，但受限于系统内存。
  - Dalvik Heap：Java对象分配的占据内存。
@@ -224,20 +236,103 @@ Uptime: 638409159 Realtime: 1205461779
  - .art mmap：
  - Other mmap
  - App Summary：
-  - Java Heap：从 Java 或 Kotlin 代码分配的对象内存。
+  - Java Heap：从 Java 或 Kotlin 代码分配的对象内存。(dalvik heap + .art mmap)
   - Native Heap：从 C 或 C++ 代码分配的对象内存。不受Java Object Heap大小限制，但受限于系统内存。当然如果 RAM 快耗尽，memory killer 就会杀进程释放 RAM。
-  - Code：您的应用用于处理代码和资源（如 dex 字节码、已优化或已编译的 dex 码、.so 库和字体）的内存。
+  - Code：您的应用用于处理代码和资源（如 dex 字节码、已优化或已编译的 dex 码、.so 库和字体）的内存(.so mmap + .jar mmap + .apk mmap + .ttf mmap + .dex mmap + .oat mmap)。
   - Stack：您的应用中的原生堆栈和 Java 堆栈使用的内存。 这通常与您的应用运行多少线程有关。
-  - Graphics：图形缓冲区队列向屏幕显示像素（包括 GL 表面、GL 纹理等等）所使用的内存。 （请注意，这是与 CPU 共享的内存，不是 GPU 专用内存。）看代码中有没有直接调用opengl，如果没有可以忽略，那就主要是framework创建的。
-  - Private Other
-  - System
+  - Graphics：图形缓冲区队列向屏幕显示像素（包括 GL 表面、GL 纹理等等，也就是GPU绘制时用的一些Buffer等）所使用的内存。 （请注意，这是与 CPU 共享的内存，不是 GPU 专用内存。）看代码中有没有直接调用opengl，如果没有可以忽略，那就主要是framework创建的。(Gfx dev + EGL mtrack + GL mtrack)
+  - Private Other:(TotalPrivateClean + TotalPrivateDirty - java - native - code - stack - graphics)
+  - System: 共享库，系统共享资源比如图像字体等(TotalPss - TotalPrivateClean - TotalPrivateDirty)
  
-对于应用的内存，一般我们主要关注 App Summary 就行了。
-进程空间中的 heap 空间是我们需要重点关注的，heap 空间完全由程序员控制，我们使用的 malloc、C++ new 和 java new 所申请的空间都是 heap 空间， 其中 C/C++ 申请的内存空间在 native heap 中，而 java 申请的内存空间则在 dalvik heap中。
+对于应用的内存，一般我们主要关注 App Summary 就行了。    
+进程空间中的 heap 空间是我们需要重点关注的，heap 空间完全由程序员控制，我们使用的 malloc、C++ new 和 java new 所申请的空间都是 heap 空间， 其中 C/C++ 申请的内存空间在 native heap 中，而 java 申请的内存空间则在 dalvik heap中。    
+
+执行这部分输出的代码主要在 `ActivityThread.dumpMemInfoTable()`，如果我们对某一部分的数据不是太了解，那么可以查看这部分代码来了解一下。比如针对 App Summary 这一块：    
+
+```
+        pw.println(" App Summary");
+        printRow(pw, TWO_COUNT_COLUMN_HEADER, "", "Pss(KB)", "", "Rss(KB)");
+        printRow(pw, TWO_COUNT_COLUMN_HEADER, "", "------", "", "------");
+        printRow(pw, TWO_COUNT_COLUMNS,
+                "Java Heap:", memInfo.getSummaryJavaHeap(), "", memInfo.getSummaryJavaHeapRss());
+        printRow(pw, TWO_COUNT_COLUMNS,
+                "Native Heap:", memInfo.getSummaryNativeHeap(), "",
+                memInfo.getSummaryNativeHeapRss());
+        printRow(pw, TWO_COUNT_COLUMNS,
+                "Code:", memInfo.getSummaryCode(), "", memInfo.getSummaryCodeRss());
+        printRow(pw, TWO_COUNT_COLUMNS,
+                "Stack:", memInfo.getSummaryStack(), "", memInfo.getSummaryStackRss());
+        printRow(pw, TWO_COUNT_COLUMNS,
+                "Graphics:", memInfo.getSummaryGraphics(), "", memInfo.getSummaryGraphicsRss());
+        printRow(pw, ONE_COUNT_COLUMN,
+                "Private Other:", memInfo.getSummaryPrivateOther());
+        printRow(pw, ONE_COUNT_COLUMN,
+                "System:", memInfo.getSummarySystem());
+        printRow(pw, ONE_ALT_COUNT_COLUMN,
+                "Unknown:", "", "", memInfo.getSummaryUnknownRss());
+        pw.println(" ");
+        if (memInfo.hasSwappedOutPss) {
+            printRow(pw, THREE_COUNT_COLUMNS,
+                    "TOTAL PSS:", memInfo.getSummaryTotalPss(),
+                    "TOTAL RSS:", memInfo.getTotalRss(),
+                    "TOTAL SWAP PSS:", memInfo.getSummaryTotalSwapPss());
+        } else {
+            printRow(pw, THREE_COUNT_COLUMNS,
+                    "TOTAL PSS:", memInfo.getSummaryTotalPss(),
+                    "TOTAL RSS:", memInfo.getTotalRss(),
+                    "TOTAL SWAP (KB):", memInfo.getSummaryTotalSwap());
+        }
+```
+
+大部分都是执行 Debug.MemoryInfo 的方法来获取的数据。    
+
+```
+        public int getSummarySystem() {
+            return getTotalPss()
+              - getTotalPrivateClean()
+              - getTotalPrivateDirty();
+        }
+
+        public int getTotalPss() {
+            return dalvikPss + nativePss + otherPss + getTotalSwappedOutPss();
+        }
+
+        public int getTotalRss() {
+            return dalvikRss + nativeRss + otherRss;
+        }
+
+        public int getTotalUss() {
+            return dalvikPrivateClean + dalvikPrivateDirty
+                    + nativePrivateClean + nativePrivateDirty
+                    + otherPrivateClean + otherPrivateDirty;
+        }
+
+        public int getTotalPrivateDirty() {
+            return dalvikPrivateDirty + nativePrivateDirty + otherPrivateDirty;
+        }
+
+        public int getTotalSharedDirty() {
+            return dalvikSharedDirty + nativeSharedDirty + otherSharedDirty;
+        }
+
+        public int getTotalPrivateClean() {
+            return dalvikPrivateClean + nativePrivateClean + otherPrivateClean;
+        }
+
+        public int getTotalSharedClean() {
+            return dalvikSharedClean + nativeSharedClean + otherSharedClean;
+        }
+```
 
 ## Memory Profiler
 
 [Android 官方文档：使用 Memory Profiler 查看 Java 堆和内存分配](https://developer.android.com/studio/profile/memory-profiler)
+
+介绍一下抓 heap profile 的几种方法：    
+1.通过 AndroidStudio 自带的Profiler工具，参考上文。    
+2.`adb shell am dumpheap <进程名>`，另外还可以指定输出文件：`adb shell am dumpheap 进程名 /sdcard/test.hprof`.    
+3.通过代码调用Debug.dumpHprofData()获取当前应用的heap。    
+如果使用命令行抓取的文件是prof文件，需要重命名成hprof后缀才能用 Memory Profiler 来查看内存。    
 
 ## Mat
 

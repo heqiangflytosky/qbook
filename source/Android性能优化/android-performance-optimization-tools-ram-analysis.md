@@ -61,8 +61,8 @@ bogon:TestSomething heqiang$ adb shell procrank
 
 输出结果是按照 PSS 值从大到小进行排列的。
 
- - VSS：Virtual Set Size 虚拟耗用内存（包含共享库占用的内存）是单个进程全部可访问的地址空间
- - RSS：Resident Set Size 实际使用物理内存（包含共享库占用的内存）是单个进程实际占用的内存大小，对于单个共享库， 尽管无论多少个进程使用，实际该共享库只会被装入内存一次。
+ - VSS：Virtual Set Size 虚拟耗用内存（包含共享库占用的内存，以及分配但未使用内存）是单个进程全部可访问的地址空间，VSS 很少被用于判断一个进程的真实内存使用量。
+ - RSS：Resident Set Size 实际使用物理内存（包含共享库占用的内存）是单个进程实际占用的内存大小，对于单个共享库， 尽管无论多少个进程使用，实际该共享库只会被装入内存一次。所以RSS并不能准确反映单进程的内存占用情况 。
  - PSS：Proportional Set Size 实际使用的物理内存（比例分配共享库占用的内存）
  - USS：Unique Set Size 进程独自占用的物理内存（不包含共享库占用的内存）USS 是一个非常非常有用的数字， 因为它揭示了运行一个特定进程的真实的内存增量大小。如果进程被终止， USS 就是实际被返还给系统的内存大小。
 
@@ -218,7 +218,11 @@ Uptime: 638409159 Realtime: 1205461779
  - Private Clean
  - Swap Dirty
  - Rss Total
- - 
+
+我们需要重点关注下面信息：
+
+Private (Clean and Dirty) RAM：这只是你的进程正在使用的内存。 这是当您的应用程序的进程被销毁时系统可以回收的大部分RAM。 一般来说，最重要的部分是private dirty RAM，这是最昂贵的，因为它仅由您的进程使用，其内容仅存在于RAM中，因此无法分页到存储（因为Android不使用交换）。 您所做的所有Dalvik和本机堆分配将是private dirty RAM; 您与Zygote进程共享的Dalvik和本机分配是shared dirty RAM。
+Proportional Set Size (PSS)：这是您的应用程序的RAM使用量的衡量标准，它考虑到跨进程共享页面。 任何对您的过程唯一的RAM页面直接有助于其PSS值，而与其他进程共享的页面仅与共享的数量成比例地贡献PSS值。 例如，两个进程之间共享的页面将为每个进程的PSS贡献一半的大小。 PSS测量的一个很好的特点是您可以将所有进程的PSS相加，以确定所有进程正在使用的实际内存。 这意味着PSS对于进程的实际RAM权重和与其他进程的RAM使用以及总可用RAM进行比较是一个很好的衡量标准。
 
 纵轴指标：
 
@@ -323,6 +327,9 @@ Uptime: 638409159 Realtime: 1205461779
             return dalvikSharedClean + nativeSharedClean + otherSharedClean;
         }
 ```
+
+ViewRootImpl：在您的进程中活动的根视图数。 每个根视图与一个窗口相关联，因此这可以帮助您识别涉及对话框或其他窗口的内存泄漏。    
+AppContexts and Activities：当前存在于您的进程中的应用程序上下文和活动对象的数量。 这可以帮助您快速识别由于静态引用而无法收集的泄漏的Activity对象，这是常见的。 这些对象通常具有与它们相关联的许多其他分配，这使得它们成为跟踪大内存泄漏的好方法。    
 
 ## Memory Profiler
 

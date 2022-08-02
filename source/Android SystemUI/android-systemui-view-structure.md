@@ -51,12 +51,12 @@ NotificationShadeWindowView //R.layout.super_notification_shade
                         QSPanel(R.id.quick_settings_panel) //QS:顶部常显示按钮和下部的折叠部分快捷开关按钮
                             BrightnessSliderView  // 顶部亮度条
                                 ToggleSeekBar
-                            PagedTileLayout
-                                SideLabelTileLayout
+                            PagedTileLayout //R.layout.qs_paged_tile_layout
+                                SideLabelTileLayout//R.layout.qs_paged_page
                                     QSTileViewImpl
                                     QSTileViewImpl
                                     ......
-                                SideLabelTileLayout
+                                SideLabelTileLayout//R.layout.qs_paged_page
                                     QSTileViewImpl
                                     QSTileViewImpl
                                     ......

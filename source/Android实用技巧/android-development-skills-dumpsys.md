@@ -9,11 +9,11 @@ date: 2014-10-15 10:00:00
 
 ## dumpsys概述
 
-Android提供的`dumpsys`工具可以用于查看手机中的应用程序和系统服务信息与状态，能够熟练使用`dumpsys`工具以及对它的输出内容进行理解是Android开发人员的必备技能，使用它我们不仅能够对方便的获取一些当前的平台的一些信息，而且能够对Android性能优化、Bug分析与调试带来很大的帮助。
-手机连接电脑后可以直接命令行执行`adb shell dumpsy`查看所有支持的`Service`，但是这样输出的太多，可以通过`adb shell dumpsys -l` 或者 `dumpsys | grep "DUMP OF SERVICE"` 仅显示主要的`Service`的信息。
-`adb shell dumpsys -h`可以查看帮助信息。
-关于这个命令的使用方法在这里做一下记录，以备使用。
-关于`adb shell dumpsy` 命令的源码分析请参考我的博客[Android 深入理解 dumpsys ](http://www.heqiangfly.com/2017/06/13/android-source-code-analysis-dumpsys/)。
+Android提供的`dumpsys`工具可以用于查看手机中的应用程序和系统服务信息与状态，能够熟练使用`dumpsys`工具以及对它的输出内容进行理解是Android开发人员的必备技能，使用它我们不仅能够对方便的获取一些当前的平台的一些信息，而且能够对Android性能优化、Bug分析与调试带来很大的帮助。    
+手机连接电脑后可以直接命令行执行`adb shell dumpsy`查看所有支持的`Service`，但是这样输出的太多，可以通过`adb shell dumpsys -l` 或者 `dumpsys | grep "DUMP OF SERVICE"` 仅显示主要的`Service`的信息。    
+`adb shell dumpsys -h`可以查看帮助信息。    
+关于这个命令的使用方法在这里做一下记录，以备使用。    
+关于`adb shell dumpsy` 命令的源码分析请参考我的博客[Android 深入理解 dumpsys ](http://www.heqiangfly.com/2017/06/13/android-source-code-analysis-dumpsys/)。    
 
 ## dumpsys支持的所有命令
 
@@ -65,12 +65,13 @@ adb shell dumpsys -l
   window
 ```
 
-输入 `adb shell dumpsys` 命令可以输出所有的系统服务信息。
+输入 `adb shell dumpsys` 命令可以输出所有的系统服务信息。    
 
 ## 具体命令如何查看帮助
 
-从上面可以看出可以查看的`Service`非常多，`adb shell dumpsys -l`所列举的服务都可以直接通过 `dumpsys + <service>` 查看相关信息，具体每一个如何使用有一种通用的查看帮助的办法。
-查看每一个命令的使用帮助，以下以`activity`为例演示：
+从上面可以看出可以查看的`Service`非常多，`adb shell dumpsys -l`所列举的服务都可以直接通过 `dumpsys + <service>` 查看相关信息，具体每一个如何使用有一种通用的查看帮助的办法。    
+查看每一个命令的使用帮助，以下以`activity`为例演示：    
+
 ```
 $ adb shell dumpsys activity -h
 
@@ -96,8 +97,9 @@ Activity manager dump options:
   -a: include all available server state.
   -c: include client state.
 ```
-这样就可以清楚每个命名的使用方法以及对应输出内容的信息查看方法。
-以`window`为例：
+这样就可以清楚每个命名的使用方法以及对应输出内容的信息查看方法。    
+以`window`为例：    
+
 ```
 $ adb shell dumpsys window -h
 
@@ -159,7 +161,8 @@ Window manager dump options:
     35 : DEBUG_DIM_LAYER
     36 : DEBUG_KEYGUARD
 ```
-比如`adb shell dumpsys window -d enable 10`就是打开`DEBUG_ORIENTATION`，这样就把代码中的关于屏幕方向旋转相关的Log打印出来。
+
+比如`adb shell dumpsys window -d enable 10`就是打开`DEBUG_ORIENTATION`，这样就把代码中的关于屏幕方向旋转相关的Log打印出来。    
 
 ## 一些常用命令解释
 
@@ -252,11 +255,13 @@ Total RAM: 5,863,228K (status normal)
 
  - adb shell dumpsys activity -h：帮助
  - adb shell dumpsys activity <包名>：查看给定包名的activity信息，包括 View Hierarchy 等 
+ - adb shell dumpsys activity package <包名>：查看该进程的所有信息，包括：`dumpsys activity settings`,`dumpsys activity allowed-associations`,`dumpsys activity intents`,`dumpsys activity broadcasts`,`dumpsys activity broadcast-stats`,`dumpsys activity providers`,`dumpsys activity services`,`dumpsys activity recents`,`dumpsys activity lastanr`,`dumpsys activity starter`,`dumpsys activity activities`,`dumpsys activity exit-info`,`dumpsys activity processes`,`dumpsys activity users`等信息内容
  - adb shell dumpsys activity top：查看当前应用的 activity 信息
  - adb shell dumpsys activity a[ctivities]：只查看activity栈
  - adb shell dumpsys activity r[recents]：最近任务activity状态
- - adb shell dumpsys activity package <包名>：查看该进程的所有信息，包括：`dumpsys activity settings`,`dumpsys activity allowed-associations`,`dumpsys activity intents`,`dumpsys activity broadcasts`,`dumpsys activity broadcast-stats`,`dumpsys activity providers`,`dumpsys activity services`,`dumpsys activity recents`,`dumpsys activity lastanr`,`dumpsys activity starter`,`dumpsys activity activities`,`dumpsys activity exit-info`,`dumpsys activity processes`,`dumpsys activity users`等信息内容
  - adb shell dumpsys activity p[rocesses] <包名>：查看该包名的进程状态，包括进程间依赖等
+ - adb shell dumpsys activity o[om]:打印进程oom状态，执行 `ActivityManagerService.dumpOomLocked` 方法。
+ - b[roadcasts] [PACKAGE_NAME] [history [-s]]：查看广播状态，包括：1.注册的广播接收列表，2.所有的注册了的BroadcastFilter列表，包括它们对应的 Receiver， 3.前台广播的历史记录，4.后台广播的历史记录。可以指定包名，执行 `ActivityManagerService.dumpBroadcastsLocked` 方法。
 
 所有上面的命令还可以添加下面的参数来定制输出结果：
 

@@ -481,3 +481,9 @@ adb shell am send-trim-memory com.example.heqiang.testsomething RUNNING_CRITICAL
 ## am dumpheap
 
 抓取内存快照。
+
+## am crash
+
+`am crash <pkg_name>`，让一个应用弹出Crash弹框，可以选择终止应用
+
+比如：adb shell am crash com.android.systemui，这个命令可以杀死一下

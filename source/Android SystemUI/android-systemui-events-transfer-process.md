@@ -943,6 +943,11 @@ NotificationStackScrollLayout 或其子 View 消费了 DOWN 事件，但是Panel
 
 ```
 NotificationShadeWindowView.dispatchTouchEvent()
+    NotificationPanelViewController.TouchHandler.onInterceptTouchEvent()
+        PanelViewController.TouchHandler.onInterceptTouchEvent()
+        NotificationPanelViewController.canCollapsePanelOnTouch() // true
+            MotionEvent.ACTION_MOVE
+                return true // 拦截move事件，执行收起面板操作
     NotificationPanelViewController.TouchHandler.onTouch()
         PanelViewController.TouchHandler.onTouch()
             MotionEvent.ACTION_MOVE
@@ -951,6 +956,22 @@ NotificationShadeWindowView.dispatchTouchEvent()
                 PanelViewController.fling()
                     NotificationPanelViewController.flingToHeight() // 滚动到指定高度，后面文章详细介绍
                 
+```
+
+```
+    @Override
+    protected boolean canCollapsePanelOnTouch() {
+	// 在锁屏时不会滑动通知，而是由PanelViewController执行收起面板操作
+        if (!isInSettings() && mBarState == KEYGUARD) {
+            return true;
+        }
+	// 非锁屏时，如果通知中心不在底部，可以滑动通知中心，如果在底部，就拦截事件执行收起面板
+        if (mNotificationStackScrollLayoutController.isScrolledToBottom()) {
+            return true;
+        }
+
+        return !mShouldUseSplitNotificationShade && (isInSettings() || mIsPanelCollapseOnQQS);
+    }
 ```
 
 ### 其他区域上滑

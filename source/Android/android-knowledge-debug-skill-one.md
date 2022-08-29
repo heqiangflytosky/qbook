@@ -81,6 +81,16 @@ projectname 为 settings.gradle 里面配置的各个 project，如果没有配�
 
 ## 打印调用栈
 
+1.
+
 ```
 android.os.Debug.getCallers(30)
 ```
+
+2.
+
+```
+Log.e("Test",Log.getStackTraceString(new Throwable()));
+```
+
+

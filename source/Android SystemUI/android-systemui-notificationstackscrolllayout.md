@@ -52,7 +52,9 @@ setQsExpansionFraction():更加QS的展开程度来更新通知中心
 
 mSwipeHelper:处理滑动删除通知逻辑    
 
-### AmbientState: 为 StackScrollAlgorithm 保存一些全局状态。   
+### AmbientState
+
+为 StackScrollAlgorithm 保存一些全局状态。   
  
 mStackY：通知中心的最上面一条通知通知距离顶部的偏移量    
 mTopPadding：NotificationStackScrollLayout.mTopPadding    
@@ -109,7 +111,9 @@ mStackHeight:所有通知的高度，当通知中心有收缩动画时，会改�
 
 mAppearFraction:    
 
-### StackScrollAlgorithm：用来使 NotificationStackScrollLayout可以查询或者更新当前的 StackScrollAlgorithmState 状态。    
+### StackScrollAlgorithm
+
+用来使 NotificationStackScrollLayout可以查询或者更新当前的 StackScrollAlgorithmState 状态。    
 
 mScrollY:AmbientState.mScrollY    
 

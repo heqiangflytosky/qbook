@@ -113,7 +113,7 @@ public class OtherTest {
 }
 ```
 
-为它定义一个 Component，TestInject2 的参数是如何提供的？就通过 `@BindsInstance` 来实现，这个后面再讲。
+为它定义一个 Component，TestInject2 的参数是如何提供的？就通过 `@BindsInstance` 来实现，这个后面再讲。    
 
 ```
 @Component
@@ -999,6 +999,17 @@ dependencies 和 SubComponent 的对比：
  - 依赖关系会生成两个独立的 DaggerXXComponent 类，而 SubComponent 子组件是依赖于父组件才能进行工作的，它并不会被独立的编译成注入代码，所以不会生成独立的 DaggerXXComponent 类，而是通过内部类的方式来实现子组件接口。
 
 ### Component.Factory
+
+`Component.Factory` 和前面介绍的 `Component.Builder` 的用法类似，不同的是使用 `Component.Builder` 时如果我们要绑定参数，需要使用 `@BindsInstance` 函数，而 `Component.Factory` 可以通过 `@BindsInstance` 参数的方式来完成绑定参数。
+
+```
+    @Component.Factory
+    interface Builder {
+        CarComponent2 create(@BindsInstance String str);
+    }
+```
+
+工厂模式和 Builder 模式相比，把需要从外部绑定的对象放到工厂类的创建函数上去了，可以同时绑定多个对象。
 
 ## Module.includes
 

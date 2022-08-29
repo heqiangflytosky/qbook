@@ -383,3 +383,40 @@ DragDownHelper.onTouchEvent
         }
     }
 ```
+
+## NotificationShadeWindowControllerImpl
+
+### apply 方法
+
+apply 方法是统一更新sdade window状态的方法，包括可见性，FocusableFlag属性，锁屏的一些属性，FLAG_SHOW_WALLPAPER，NavigationFlag等等。
+
+```
+    private void apply(State state) {
+        applyKeyguardFlags(state);   
+        applyFocusableFlag(state);  // 更新窗口是否可以获取焦点FLAG
+        applyForceShowNavigationFlag(state);
+        adjustScreenOrientation(state);
+        applyVisibility(state);   // 更新shade window view的可见性
+        applyUserActivityTimeout(state);
+        applyInputFeatures(state);
+        applyFitsSystemWindows(state);
+        applyModalFlag(state);
+        applyBrightness(state);
+        applyHasTopUi(state);
+        applyNotTouchable(state);
+        applyStatusBarColorSpaceAgnosticFlag(state);
+        applyWindowLayoutParams();
+
+        if (mHasTopUi != mHasTopUiChanged) {
+            whitelistIpcs(() -> {
+                try {
+                    mActivityManager.setHasTopUi(mHasTopUiChanged);
+                } catch (RemoteException e) {
+                    Log.e(TAG, "Failed to call setHasTopUi", e);
+                }
+                mHasTopUi = mHasTopUiChanged;
+            });
+        }
+        notifyStateChangedCallbacks();
+    }
+```

@@ -76,11 +76,13 @@ date: 2014-10-10 10:00:00
  - time：显示日期，调用时间，优先级/标记，PID
  - threadtime：显示日期，调用时间，优先级/标记以及发出消息的线程的PID和TID
  - long：显示所有的元数据字段并且用空行分隔消息内容
+ - color：使用不同的颜色来显示不用优先级的日志
 
 ## 指定缓冲区
 
 `adb logcat -b <system, radio, events, main(default)>`，默认输出main buffer里面的日志
 `adb logcat -b events`：输出 event log。
+`adb logcat -b all`：输出所有 log。
 
 ## 查看日志缓冲区
 

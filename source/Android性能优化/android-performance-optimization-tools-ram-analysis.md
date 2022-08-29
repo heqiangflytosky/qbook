@@ -221,8 +221,9 @@ Uptime: 638409159 Realtime: 1205461779
 
 我们需要重点关注下面信息：
 
-Private (Clean and Dirty) RAM：这只是你的进程正在使用的内存。 这是当您的应用程序的进程被销毁时系统可以回收的大部分RAM。 一般来说，最重要的部分是private dirty RAM，这是最昂贵的，因为它仅由您的进程使用，其内容仅存在于RAM中，因此无法分页到存储（因为Android不使用交换）。 您所做的所有Dalvik和本机堆分配将是private dirty RAM; 您与Zygote进程共享的Dalvik和本机分配是shared dirty RAM。
-Proportional Set Size (PSS)：这是您的应用程序的RAM使用量的衡量标准，它考虑到跨进程共享页面。 任何对您的过程唯一的RAM页面直接有助于其PSS值，而与其他进程共享的页面仅与共享的数量成比例地贡献PSS值。 例如，两个进程之间共享的页面将为每个进程的PSS贡献一半的大小。 PSS测量的一个很好的特点是您可以将所有进程的PSS相加，以确定所有进程正在使用的实际内存。 这意味着PSS对于进程的实际RAM权重和与其他进程的RAM使用以及总可用RAM进行比较是一个很好的衡量标准。
+Private (Clean and Dirty) RAM：这只是你的进程正在使用的内存。 这是当您的应用程序的进程被销毁时系统可以回收的大部分RAM。 一般来说，最重要的部分是private dirty RAM，这是最昂贵的，因为它仅由您的进程使用，其内容仅存在于RAM中，因此无法分页到存储（因为Android不使用交换）。 您所做的所有Dalvik和本机堆分配将是private dirty RAM; 您与Zygote进程共享的Dalvik和本机分配是shared dirty RAM。    
+
+Proportional Set Size (PSS)：这是您的应用程序的RAM使用量的衡量标准，它考虑到跨进程共享页面。 任何对您的过程唯一的RAM页面直接有助于其PSS值，而与其他进程共享的页面仅与共享的数量成比例地贡献PSS值。 例如，两个进程之间共享的页面将为每个进程的PSS贡献一半的大小。 PSS测量的一个很好的特点是您可以将所有进程的PSS相加，以确定所有进程正在使用的实际内存。 这意味着PSS对于进程的实际RAM权重和与其他进程的RAM使用以及总可用RAM进行比较是一个很好的衡量标准。    
 
 纵轴指标：
 
@@ -236,7 +237,7 @@ Proportional Set Size (PSS)：这是您的应用程序的RAM使用量的衡量�
  - .apk mmap：apk占用的内存
  - .ttf mmap：ttf文件占用过的内存
  - .dex mmap：
- - .oat mmap：
+ - .oat mmap：基于多个应用程序通常使用的预加载类的代码映像所使用的内存。在所有应用程序之间共享，不受特定应用程序的影响。
  - .art mmap：
  - Other mmap
  - App Summary：

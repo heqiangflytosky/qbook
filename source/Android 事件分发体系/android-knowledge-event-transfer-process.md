@@ -533,6 +533,9 @@ ACTION_DOWN -> ACTION_POINTER_DOWN -> ACTION_POINTER_UP -> ACTION_UP
   - B的onInterceptTouchEvent会对ACTION_DOWN、ACTION_MOVE和ACTION_UP都会响应，但onTouchEvent对此都不响应，因为子View已经表示对此次事件感兴趣了。但是父View仍然有权利对事件拦截。
  - ACTION_CANCEL事件如何被触发
   - 当C响应了ACTION_DOWN事件后（比如ACTION_CANCEL对down事件返回true），B突然插手把ACTION_MOVE事件拦截了，那么以后的move和up事件都交由B的onTouchEvent来处理，C的onTouchEvent就会收到ACTION_CANCEL事件。
+ - ACTION_OUTSIDE 事件如何被触发
+  - 如果当前窗口设置了FLAG_WATCH_OUTSIDE_TOUCH，那么点击窗口以外的区域，窗口就会收到改事件，比如 `Dialog` 中重写 `onTouchEvent`，当收到 `ACTION_OUTSIDE` 事件时表明用户点击了当前 `Dialog` 之外的区域。
+  - 如果我们为View.getViewTreeObserver().addOnComputeInternalInsetsListener() 设置了 OnComputeInternalInsetsListener，在 onComputeInternalInsets 中为 `ViewTreeObserver.InternalInsetsInfo.touchableRegion.set()` 设置可点击区域，那么点击该区域以外时 View 就会收到ACTION_OUTSIDE事件。如果直接return表示整个View可以接收事件。
 
 ## 参考文章
 

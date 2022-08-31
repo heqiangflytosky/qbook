@@ -73,6 +73,7 @@
     * [Android View 事件处理流程 -- TouchTarget](source/Android 事件分发体系/android-knowledge-event-transfer-process-touchtarget.md)
     * [Android View 事件处理流程 -- 多点触控](source/Android 事件分发体系/android-knowledge-event-transfer-process-multi-point.md)
     * [Android Input事件相关Debug技巧](source/Android 事件分发体系/android-knowledge-event-transfer-process-debug-skill.md)
+    * [Android 窗口事件相关设置](source/Android 事件分发体系/android-knowledge-window-event-settings.md)
 * [Android 图形系统]()
     * [Android 图形系统 -- Canvas使用](source/Android 图形系统/android-graphic-system-canvas-sample.md)
     * [Android 图形系统 -- Window，DecorView 和 ViewRootImpl](source/Android 图形系统/android-graphic-system-decorview-viewrootimpl.md)

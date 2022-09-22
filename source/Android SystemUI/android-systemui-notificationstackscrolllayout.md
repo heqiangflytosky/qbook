@@ -77,7 +77,7 @@ mAmbientState.setTopPadding(mTopPadding);
 
 可以发现，在 fraction 为 1 的情况下，mStackY 是等于 mTopPadding 的。
 
-mScrollY:通知栏的滚动位置，通知中心由显示QQS到满屏显示通知场景过渡时来决定通知栏的位置    
+mScrollY:通知栏的滚动位置，1.通知中心由显示QQS到满屏显示通知场景过渡时，2.全屏显示通知中心时通知中心滚动时，这两种场景时来决定通知栏的位置    
 mOverScrollTopAmount：通知中心顶部回弹量，向下滑动时设置    
 mOverScrollBottomAmount：通知中心底部回弹量，通知中心满屏时向上滚动通知栏时设置    
 mExpansionFraction ：通知栏展开的比例，场景2 -> 场景0 过渡时来决定通知的折叠比例，透明度和通知中心的位置。这个折叠指的时通知中心收起时，通知向上收起的一个动画。    

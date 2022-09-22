@@ -309,7 +309,7 @@ NotificationStackScrollLayout 的三级折叠
         if (!isInSettings() && mBarState == KEYGUARD) {
             return true;
         }
-        // 判断通知中心是否可以滚动
+        // 判断通知中心是否已经显示到底部，如果是，表示不能滚动
         if (mNotificationStackScrollLayoutController.isScrolledToBottom()) {
             return true;
         }
@@ -405,8 +405,10 @@ NotificationStackScrollLayout.onInterceptTouchEventScroll 收到 `MotionEvent.AC
 
 0->2 切换时也由PanelViewController处理，此时满足 expand 条件，就会去做 expand 动画。
 
-3->2 切换，在QS上做上划动作，NotificationStackScrollLayout 不消费DOWN事件，被NotificationPanelView子View消费，后续MOVE 和 UP事件事件再经过 NotificationPanelView 被拦截，被 NotificationPanelView.onTouch() -> NotificationPanelViewController.handleQsTouch()->onQsTouch() 处理。
+3->2 切换，在QS上做上划动作，NotificationStackScrollLayout 不消费DOWN事件，被NotificationPanelView子View消费，后续MOVE 和 UP事件事件再经过 NotificationPanelView 被拦截，被 NotificationPanelView.onTouch() -> NotificationPanelViewController.handleQsTouch()->onQsTouch() 处理。    
 
+1->0 当通知中心全屏显示时，通知中心向上滚动到显示通知中心底部时，再向上滚动就执行了收起下拉面板的操作。    
+通知中心滚动时是由 NotificationStackScrollLayout 处理事件，当 canCollapsePanelOnTouch() 判断已经滚动到低可以收起下拉面板时就由 PanelViewController 来处理收起面板操作。    
 
 ## 状态栏下拉
 

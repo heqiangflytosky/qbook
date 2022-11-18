@@ -997,3 +997,34 @@ StatusBar.onReceive()
                         PanelViewController.fling()
                             NotificationPanelViewController.flingToHeight()
 ```
+
+## 浮动通知下拉面板或者上划
+
+浮动通知下拉面板分两种情况：1.在浮动通知区域下拉；2.在状态栏区域下拉。NotificationPanelViewController 中的 mHeadsUpTouchHelper 主要是来处理浮动通知对事件的处理的。    
+首先看看在浮动通知区域下拉的情况。    
+当显示浮动通知时，此时面板时可见状态，当可触摸区域只有浮动通知的区域和状态栏，此时下拉事件的流程如下：    
+
+```
+NotificationPanelViewController.onInterceptTouchEvent（）
+    HeadsUpTouchHelper.onInterceptTouchEvent（）
+        HeadsUpTouchHelper.setTrackingHeadsUp(true) // 标记HeadsUpTouchHelper对事件进行处理
+        HeadsUpManager.unpinAll() // 隐藏浮动通知
+        Panel.clearNotificationEffects() // 取消通知的音效、震动等效果
+    return true
+```
+
+MOVE 事件被 NotificationPanelViewController 拦截，接着就由 NotificationPanelViewController.onTouch() 来处理事件，进行下面面板的操作。    
+
+当浮动通知在状态栏区域下拉：   
+
+```
+NotificationPanelViewController.onTouch()
+    HeadsUpTouchHelper.onInterceptTouchEvent（）
+        HeadsUpTouchHelper.setTrackingHeadsUp(true) // 标记HeadsUpTouchHelper对事件进行处理
+        HeadsUpManager.unpinAll() // 隐藏浮动通知
+        Panel.clearNotificationEffects() // 取消通知的音效、震动等效果
+    
+```
+
+浮动通知上划和收起面板的逻辑是一样的。
+

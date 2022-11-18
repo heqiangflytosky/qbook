@@ -40,3 +40,11 @@ view_enqueue_input_event:
 ```
 
 ```
+
+## Main 日志
+
+
+InputManager-JNI：
+
+
+InputDispatcher：

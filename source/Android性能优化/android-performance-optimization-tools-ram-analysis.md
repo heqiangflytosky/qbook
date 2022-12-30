@@ -342,6 +342,9 @@ AppContexts and Activities：当前存在于您的进程中的应用程序上下
 3.通过代码调用Debug.dumpHprofData()获取当前应用的heap。    
 如果使用命令行抓取的文件是prof文件，需要重命名成hprof后缀才能用 Memory Profiler 来查看内存。    
 
+比如如果native内存占用过高，我们可以通过查看 Bitmap 对象是否存在大内存的对象。在 app heap 点击 Bitmap 后下面会列举出所有的 Bitmap对象以及他们占用内存的大小，点击某个对象后，右边还会给出那些引用持有这些对象，然后我们就可以分析这些对象是否有存在的必要，是否存在没有及时清理的情况。
+<img src="/images/android-performance-optimization-tools-ram-analysis/profiler-native-heap.png" width="820" height="375"/>
+
 ## Mat
 
 [Android 性能优化工具篇 -- MAT分析内存泄漏 ](http://www.heqiangfly.com/2016/02/20/android-performance-optimization-use-mat-to-analyse-leak/)

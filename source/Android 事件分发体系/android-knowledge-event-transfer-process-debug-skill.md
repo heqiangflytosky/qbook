@@ -47,4 +47,7 @@ view_enqueue_input_event:
 InputManager-JNI：
 
 
+## Dumpsys
+
+adb shell dumpsys input
 InputDispatcher：

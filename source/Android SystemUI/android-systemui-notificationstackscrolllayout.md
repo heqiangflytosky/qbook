@@ -25,9 +25,11 @@ mIsExpanded：通知中心是否展开，只要通知中心显示，它就是tru
 mQsExpanded：QS是否展开，此时面板处于QS状态。    
 mExpandHelper：处理通知的展开和收缩    
 mTopPadding：通知中心的最上面一条通知通知距离顶部的偏移量，显示QQS时就是QQS的高度，不显示QQS时为通知中心距离顶部的实时距离    
-mIntrinsicPadding:通知中心本身距离顶部的距离，一般是HeaderView的高度。    
+mIntrinsicPadding:通知中心本身距离顶部的距离，一般是HeaderView的高度。在getAppearEndPosition()方法中会根据是否锁屏来计算通知位置 `return appearPosition + (onKeyguard() ? mTopPadding : mIntrinsicPadding);`    
 mIntrinsicContentHeight：通知中心各个通知累加的高度    
-mContentHeight：mIntrinsicContentHeight 加上 mTopPadding 和 mBottomMargin 的高度。    
+mContentHeight：mIntrinsicContentHeight 加上 mTopPadding和mIntrinsicPadding的最大值以及 mBottomPadding 的高度（`mContentHeight = (int) (height + Math.max(mIntrinsicPadding, mTopPadding) + mBottomPadding);`）。表示所有通知内容的高度。    
+mBottomPadding,mBottomMargin:通过这两个变量可以设置通知中心距离底部的距离。
+mMinimumPaddings:可以来设置通知中心的边距。
 mExpandedHeight：PanelViewController.mExpandedHeight    
 mOverScrolledTopPixels    
 mOverScrolledBottomPixels    

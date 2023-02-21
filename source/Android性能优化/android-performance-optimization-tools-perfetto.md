@@ -175,7 +175,7 @@ EOF
 
 打开 https://ui.perfetto.dev/ 首先配对设备，如有需要就修改配置问题。下面介绍几个配置选项。    
 
-<img src="/images/android-performance-optimization-tools-perfetto/4.png" width="450" height="362"/>
+<img src="/images/android-performance-optimization-tools-perfetto/p4.jpg" width="450" height="362"/>
 
 
 然后点击 "Start Recording",点击 Stop 后在配置文件设置的输出目录中找到 trace 文件，从手机 pull 出来后在 https://ui.perfetto.dev/ 中打开。    
@@ -199,7 +199,7 @@ Cpu X Min Freq Limit:
 perfetto可以实时记录log，然后将log和trace信息一一对应。    
 生成的perfetto文件，滑动下方的android log，可以看到有一根竖线，对应到trace的tag，日志和trace tag的一一对应。    
 
-<img src="/images/android-performance-optimization-tools-perfetto/3.png" width="829" height="333"/>
+<img src="/images/android-performance-optimization-tools-perfetto/p3.png" width="829" height="333"/>
 
 ### Actual timeline
 
@@ -218,8 +218,8 @@ ID： 1178862
 这里介绍一个在打开相机时下拉通知栏卡顿的问题。    
 首先看一下 trace，发现 systemui 渲染耗时正常，DrawFrames大部分时间都在 dequeueBuffer，应该是和相机竞争导致sf合成失速。    
 
-<img src="/images/android-performance-optimization-tools-perfetto/1.png" width="796" height="356"/>
+<img src="/images/android-performance-optimization-tools-perfetto/p1.png" width="796" height="356"/>
 
 但是此时sf跑在0，1，2小核。这个问题就可以调整一下 sf 的CPU策略。    
 
-<img src="/images/android-performance-optimization-tools-perfetto/2.png" width="829" height="333"/>
+<img src="/images/android-performance-optimization-tools-perfetto/p2.png" width="829" height="333"/>

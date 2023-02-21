@@ -133,9 +133,10 @@ cp android.ipr ${LINKED_PROJECT_PATH}
 cp android.iml ${LINKED_PROJECT_PATH}
 
 ######################################     Step 3    ##############################################
-# 链接 build、device 目录，常用于机型相关配置文件修改。
+# 链接 build、device、vendor 目录，常用于机型相关配置文件和厂商定制内容的修改。
 ln -sf ${REAL_PROJECT_PATH}/build ${LINKED_PROJECT_PATH}
 ln -sf ${REAL_PROJECT_PATH}/device ${LINKED_PROJECT_PATH}
+ln -sf ${REAL_PROJECT_PATH}/vendor ${LINKED_PROJECT_PATH}
 
 # 链接 frameworks/base、frameworks/libs ，用于SystemUI、Framework开发。
 mkdir -p ${LINKED_PROJECT_PATH}/frameworks

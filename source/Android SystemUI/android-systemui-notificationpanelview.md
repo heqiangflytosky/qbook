@@ -58,6 +58,7 @@ mTwoFingerQsExpandPossible：表示当前状态可以用于双指操作
 
 mMaxKeyguardNotifications：在锁屏上允许显示的通知的最大个数，保存在 keyguard_max_notification_count 配置中  
 mMaxAllowedKeyguardNotifications：计算当前可以在锁屏上可以显示的通知的最大个数  
+mGestureWaitForTouchSlop：是否需要等待判断滑动或者点击事件逻辑后才响应滚动面板时间。true表示明确是滚动事件后面板才响应滑动。false表示从down事件开始就响应滑动。
 
 getMaxPanelHeight():它的值有两种情况，一个是从只显示QQS到完全显示QS的状态，或者双指从状态栏下拉时，这个时候的值时经过calculatePanelHeightQsExpanded()计算，一般为mQsMaxExpansionHeight加上NotificationShelf的高度，因为它们的最终状态是全部显示QS；其他状态时经过calculatePanelHeightShade()计算，其实时通知面板的高度;  
 calculateNotificationsTopPadding()：计算通知中心的最上面的通知距离顶部的距离  

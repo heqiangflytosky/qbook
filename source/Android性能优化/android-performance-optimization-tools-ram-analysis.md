@@ -338,7 +338,7 @@ AppContexts and Activities：当前存在于您的进程中的应用程序上下
 
 介绍一下抓 heap profile 的几种方法：    
 1.通过 AndroidStudio 自带的Profiler工具，参考上文。    
-2.`adb shell am dumpheap <进程名>`，另外还可以指定输出文件：`adb shell am dumpheap 进程名 /sdcard/test.hprof`.    
+2.`adb shell am dumpheap <进程名>`，这时输出文件放在手机的/data/local/tmp/heapdump-20230208-222151.prof，这时可以把prof后缀直接修改为hprof。另外还可以指定输出文件：`adb shell am dumpheap 进程名 /sdcard/test.hprof`.    
 3.通过代码调用Debug.dumpHprofData()获取当前应用的heap。    
 如果使用命令行抓取的文件是prof文件，需要重命名成hprof后缀才能用 Memory Profiler 来查看内存。    
 

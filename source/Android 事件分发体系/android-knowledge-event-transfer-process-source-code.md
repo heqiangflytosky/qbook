@@ -12,10 +12,13 @@ date: 2015-11-6 10:00:00
 我们在前文中的默认情况下（不拦截和处理事件）在 ViewC 的 `onTouchEvent` 中添加断点。    
 调用栈如图所示：    
 
-![效果图](/images/android-knowledge-event-transfer-process-source-code/android-event-process.png)
+<img src="/images/android-knowledge-event-transfer-process-source-code/android-event-process.png" width="683" height="816"/>
 
 看了上篇博客我们也许会有疑问，事件的传递流程源头是不是从 `Activity` 开的，看了上图就有答案了，源头是从系统的事件分发系统开始。    
 当用户点击屏幕产生一个触摸行为，这个触摸行为则是通过底层硬件来传递捕获。然后由Android的系统服务处理，其中包括 InputManagerService 用来监听事件的输入，而 WindowManagerService 作为事件输入中转站，管理输入事件，配合 InputManagerService 将输入事件交由合适的 Window，即最终传输到 ViewRootImpl 的 InputChannel，最终被 ViewRootImpl 的 WindowInputEventReceiver 所接受。接着将事件传递给 DecorView，而 DecorView 再交给 PhoneWindow，PhoneWindow 再交给 Activity，然后接下来就是我们前面介绍的常见的 View 事件分发了。    
+
+<img src="/images/android-knowledge-event-transfer-process-source-code/1.png" width="885" height="343"/>
+
 InputManagerService -> WindowManagerService -> ViewRootImpl -> DecorView -> Activity(如果有) -> PhoneWindow -> DecorView -> View    
 我们用下面的流程来简单描述一下：    
 
@@ -40,13 +43,27 @@ ViewRootImpl 中实例化了一个 InputEventReceiver 对象来接收输入事�
 ```
 
     public void setView(View view, WindowManager.LayoutParams attrs, View panelParentView) {
-        ......
-                if (mInputChannel != null) {
+                ......
+                // 构建 InputChannel
+                InputChannel inputChannel = null;
+                if ((mWindowAttributes.inputFeatures
+                        & WindowManager.LayoutParams.INPUT_FEATURE_NO_INPUT_CHANNEL) == 0) {
+                    inputChannel = new InputChannel();
+                }
+                ......
+                // 把 inputChannel 传递给 WMS，用作事件的分发
+                    res = mWindowSession.addToDisplayAsUser(mWindow, mWindowAttributes,
+                            getHostVisibility(), mDisplay.getDisplayId(), userId,
+                            mInsetsController.getRequestedVisibilities(), inputChannel, mTempInsets,
+                            mTempControls);
+                ......
+                // 构建 WindowInputEventReceiver，持有 inputChannel，用作接收 WMS 分发的事件
+                if (inputChannel != null) {
                     if (mInputQueueCallback != null) {
                         mInputQueue = new InputQueue();
                         mInputQueueCallback.onInputQueueCreated(mInputQueue);
                     }
-                    mInputEventReceiver = new WindowInputEventReceiver(mInputChannel,
+                    mInputEventReceiver = new WindowInputEventReceiver(inputChannel,
                             Looper.myLooper());
                 }
 ```
@@ -81,7 +98,7 @@ ViewRootImpl.WindowInputEventReceiver.onInputEvent()
         public WindowInputEventReceiver(InputChannel inputChannel, Looper looper) {
             super(inputChannel, looper);
         }
-
+        // 用于接收事件输入
         @Override
         public void onInputEvent(InputEvent event) {
             List<InputEvent> processedEvents;
@@ -114,14 +131,10 @@ ViewRootImpl.WindowInputEventReceiver.onInputEvent()
 ```
     void enqueueInputEvent(InputEvent event,
             InputEventReceiver receiver, int flags, boolean processImmediately) {
+        // 获取队列输入事件
         QueuedInputEvent q = obtainQueuedInputEvent(event, receiver, flags);
 
-        // Always enqueue the input event in order, regardless of its time stamp.
-        // We do this because the application or the IME may inject key events
-        // in response to touch events and we want to ensure that the injected keys
-        // are processed in the order they were received and we cannot trust that
-        // the time stamp of injected events are monotonic.
-        QueuedInputEvent last = mPendingInputEventTail;
+        // 
         if (last == null) {
             mPendingInputEventHead = q;
             mPendingInputEventTail = q;
@@ -130,8 +143,7 @@ ViewRootImpl.WindowInputEventReceiver.onInputEvent()
             mPendingInputEventTail = q;
         }
         mPendingInputEventCount += 1;
-        Trace.traceCounter(Trace.TRACE_TAG_INPUT, mPendingInputEventQueueLengthCounterName,
-                mPendingInputEventCount);
+        ....
         //看是同步处理还是异步处理
         if (processImmediately) {
             doProcessInputEvents();
@@ -165,16 +177,11 @@ ViewRootImpl.WindowInputEventReceiver.onInputEvent()
                 }
             }
             mChoreographer.mFrameInfo.updateInputEventTime(eventTime, oldestEventTime);
-
+            // 事件处理
             deliverInputEvent(q);
         }
 
-        // We are done processing all input events that we can process right now
-        // so we can clear the pending flag immediately.
-        if (mProcessInputEventsScheduled) {
-            mProcessInputEventsScheduled = false;
-            mHandler.removeMessages(MSG_PROCESS_INPUT_EVENTS);
-        }
+        ....
     }
 ```
 
@@ -199,6 +206,7 @@ ViewRootImpl.WindowInputEventReceiver.onInputEvent()
 
         if (stage != null) {
             handleWindowFocusChanged();
+            // 通过deliver最终会调用到InputStage具体实现类的onProcess方法
             stage.deliver(q);
         } else {
             finishInputEvent(q);
@@ -206,8 +214,32 @@ ViewRootImpl.WindowInputEventReceiver.onInputEvent()
     }
 ```
 
-这里InputStage则是一个实现处理输入事件责任的阶段，它是一个基类，也就是说InputStage提供一系列处理输入事件的方法，也可以转发给其他事件处理，而具体的处理则是看它的实现类。每种InputStage可以处理一定的事件类型，比如AsyncInputStage、ViewPreImeInputStage、ViewPostImeInputStage等。当一个InputEvent到来时，ViewRootImpl会寻找合适它的InputStage来处理。    
-InputStage的处理情况为，会先调用deliver开始处理。    
+这里 InputStage 则是一个实现处理输入事件责任的阶段，它是一个基类，也就是说 InputStage 提供一系列处理输入事件的方法，也可以转发给其他事件处理，而具体的处理则是看它的实现类。每种 InputStage 可以处理一定的事件类型，比如AsyncInputStage、ViewPreImeInputStage、ViewPostImeInputStage等。当一个 InputEvent 到来时，ViewRootImpl 会寻找合适它的 InputStage 来处理。    
+在 ViewRootImpl.setView() 方法中，会初始化了几种 InputStage，用于处理不同的事件：
+
+```
+// ViewRootImpl.java
+    public void setView(View view, WindowManager.LayoutParams attrs, View panelParentView,
+            int userId) {
+                ....
+                // Set up the input pipeline.
+                CharSequence counterSuffix = attrs.getTitle();
+                mSyntheticInputStage = new SyntheticInputStage();
+                InputStage viewPostImeStage = new ViewPostImeInputStage(mSyntheticInputStage);
+                InputStage nativePostImeStage = new NativePostImeInputStage(viewPostImeStage,
+                        "aq:native-post-ime:" + counterSuffix);
+                InputStage earlyPostImeStage = new EarlyPostImeInputStage(nativePostImeStage);
+                InputStage imeStage = new ImeInputStage(earlyPostImeStage,
+                        "aq:ime:" + counterSuffix);
+                InputStage viewPreImeStage = new ViewPreImeInputStage(imeStage);
+                InputStage nativePreImeStage = new NativePreImeInputStage(viewPreImeStage,
+                        "aq:native-pre-ime:" + counterSuffix);
+
+                mFirstInputStage = nativePreImeStage;
+                mFirstPostImeInputStage = earlyPostImeStage;
+```
+
+InputStage 的处理情况为，会先调用deliver开始处理。    
 
 ```
        public final void deliver(QueuedInputEvent q) {
@@ -222,7 +254,7 @@ InputStage的处理情况为，会先调用deliver开始处理。
 ```
 
 最终的事件分发处理则是在apply方法里的onProcess方法。    
-对于点击事件来说，InputState的子类ViewPostImeInputStage可以处理它，我们看下ViewPostImeInputStage的onProcess方法。    
+对于点击事件来说，InputState 的子类 ViewPostImeInputStage 可以处理它，我们看下 ViewPostImeInputStage 的 onProcess 方法。    
 
 ```
     final class ViewPostImeInputStage extends InputStage {
@@ -250,27 +282,7 @@ InputStage的处理情况为，会先调用deliver开始处理。
 
 ViewPostImeInputStage.processPointerEvent -> DecorView.dispatchPointerEvent -> DecorView.dispatchTouchEvent
 
-```
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        final Window.Callback cb = mWindow.getCallback();
-        return cb != null && !mWindow.isDestroyed() && mFeatureId < 0
-                ? cb.dispatchTouchEvent(ev) : super.dispatchTouchEvent(ev);
-    }
-```
-
-这里的 cb 其实就是 Activity，在 attach() 方法中注册的回调：    
-
-```
-    final void attach(......) {
-        ......
-
-        mWindow = new PhoneWindow(this, window, activityConfigCallback);
-        mWindow.setWindowControllerCallback(this);
-        mWindow.setCallback(this);
-```
-
-那么接下来就由 Activity 来处理了。    
+那么接下来就由 DecorView 来处理了。    
 
 ## DecorView 的事件分发
 
@@ -333,8 +345,12 @@ Activity 实现了 Window.Callback 接口，并且被 mWindow 所持有。所以
 Activity 中的 `mWindow` 在 `Activity.attach()` 中被实例化，是一个 `PhoneWindow` 对象。    
 
 ```
+// Activity.java
+    final void attach(......) {
+        ......
+
         mWindow = new PhoneWindow(this);
-        // 设置callback，上面一章的流程中涉及
+        // 设置callback，上面的流程中涉及
         mWindow.setCallback(this);
         mWindow.setOnWindowDismissedCallback(this);
         mWindow.getLayoutInflater().setPrivateFactory(this);

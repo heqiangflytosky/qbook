@@ -173,13 +173,50 @@ EOF
 
 ### Perfetto UI 网站抓取
 
-打开 https://ui.perfetto.dev/ 首先配对设备，如有需要就修改配置问题。下面介绍几个配置选项。    
+打开 https://ui.perfetto.dev/ 首先配对设备，如有需要就修改配置问题。下面介绍几个配置选项。  
+
+#### Recording mode  
 
 <img src="/images/android-performance-optimization-tools-perfetto/p4.jpg" width="450" height="362"/>
 
+Stop when full 模式：perfetto停止工作受Max duration和buffer size影响，一旦满足其中一个条件，perfetto将会停止。    
+优点：trace不会因为overwrite而导致丢失。    
+缺点：如果trace太多，会导致提前结束，无法录制到出现问题时候的trace。    
+一般10s，64mb也就够用了。    
 
-然后点击 "Start Recording",点击 Stop 后在配置文件设置的输出目录中找到 trace 文件，从手机 pull 出来后在 https://ui.perfetto.dev/ 中打开。    
-如果遇到 “It looks like you didn't add any probes. Please add at least one to get a non-empty trace.”    可以执行命令：`adb shell setprop persist.traced.enable 1`
+Ring buffer 模式：可以看到选项和 Stop when full 一样，意思也是一样。Ring buffer 模式只会收到 Max duration 的影响，时间到了就停止抓取 trace，但是 trace 会有被 overwrite 的风险。    
+
+Long trace 模式：用于长时间地抓取 trace，但是由于需要定时将 buffer 中的 trace 写到文件里面去，会有 IO 的影响。前面两个选项和前两个模式的意思是一样的。    
+Flush on disk every 表示间隔多少时间将buffer中的trace写入到文件中。这个数值不能太大也不能太小。太大了，容易丢trace，太小了容易影响IO。
+
+#### CPU
+
+<img src="/images/android-performance-optimization-tools-perfetto/p7.png" width="405" height="429"/>
+
+Coarse CPU usage counter:    
+Scheduling details: 可以看到每个cpu上运行的task.    
+
+<img src="/images/android-performance-optimization-tools-perfetto/p5.png" width="611" height="121"/>
+
+CPU frequency and idle states:可以看到每个cpu的运行频率.    
+
+<img src="/images/android-performance-optimization-tools-perfetto/p6.png" width="459" height="50"/>
+
+Syscalls:记录进入和退出系统调用的过程，仅能在userdebug和eng版本上生效。    
+
+#### GPU
+
+GPU frequency:可以看到GPU的频率，繁忙程度    
+GPU memory:可以看到GPU内存，目前只能在Android12+以上的使用    
+
+
+#### Android APP & svcs
+
+Event log：对应开启下面介绍的 Android logs 功能。    
+Frame timeline：对应下面介绍的 Actual timeline。    
+
+完成配置后点击 "Start Recording",点击 Stop 后在配置文件设置的输出目录中找到 trace 文件，从手机 pull 出来后在 https://ui.perfetto.dev/ 中打开。    
+如果遇到 “It looks like you didn't add any probes. Please add at least one to get a non-empty trace.”    可以执行命令：`adb shell setprop persist.traced.enable 1`    
 
 ## 分析
 

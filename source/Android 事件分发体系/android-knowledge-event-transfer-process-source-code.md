@@ -1,5 +1,5 @@
 ---
-title: Android View 事件处理流程源码解析
+title: Android 事件处理流程源码解析
 categories: Android 事件分发体系
 comments: true
 tags: [Android 事件分发体系]
@@ -7,24 +7,274 @@ description: 介绍 Android 事件处理流程
 date: 2015-11-6 10:00:00
 ---
 
-上一篇博客介绍了事件传递的基本流程，为了做到知其然并知其所以然，本文从源码的角度来分析一下Android事件传的流程。
-再分析代码之前，我们先用 Android Studio 来看一下事件传过程中的调用栈。
-我们在前文中的默认情况下（不拦截和处理事件）在 ViewC 的 `onTouchEvent` 中添加断点。
-调用栈如图所示：
+上一篇博客介绍了事件传递的基本流程，为了做到知其然并知其所以然，本文从源码的角度来分析一下Android事件传的流程。    
+再分析代码之前，我们先用 Android Studio 来看一下事件传过程中的调用栈。    
+我们在前文中的默认情况下（不拦截和处理事件）在 ViewC 的 `onTouchEvent` 中添加断点。    
+调用栈如图所示：    
 
 ![效果图](/images/android-knowledge-event-transfer-process-source-code/android-event-process.png)
 
-看了上篇博客我们也许会有疑问，事件的传递流程源头是不是从 `Activity` 开的，看了上图就有答案了，源头是从系统的事件分发系统开始，首先传递给 `DecorView` 开始的。
-下面我们源码的分析的思路就按照上面的事件传递的流程顺序来进行。
-调用流程先用下面的流程来表示一下：
+看了上篇博客我们也许会有疑问，事件的传递流程源头是不是从 `Activity` 开的，看了上图就有答案了，源头是从系统的事件分发系统开始。    
+当用户点击屏幕产生一个触摸行为，这个触摸行为则是通过底层硬件来传递捕获。然后由Android的系统服务处理，其中包括 InputManagerService 用来监听事件的输入，而 WindowManagerService 作为事件输入中转站，管理输入事件，配合 InputManagerService 将输入事件交由合适的 Window，即最终传输到 ViewRootImpl 的 InputChannel，最终被 ViewRootImpl 的 WindowInputEventReceiver 所接受。接着将事件传递给 DecorView，而 DecorView 再交给 PhoneWindow，PhoneWindow 再交给 Activity，然后接下来就是我们前面介绍的常见的 View 事件分发了。    
+InputManagerService -> WindowManagerService -> ViewRootImpl -> DecorView -> Activity(如果有) -> PhoneWindow -> DecorView -> View    
+我们用下面的流程来简单描述一下：    
+
+```
+硬件
+    InputEventReceiver.dispatchInputEvent
+        ViewRootImpl.deliverInputEvent
+            DecorView.dispatchTouchEvent
+                Activity.dispatchTouchEvent
+                    PhoneWindow.dispatchTouchEvent
+                        DecorView.superDispatchTouchEvent
+                            View/ViewGroup.dispatchTouchEvent
 
 ```
 
+下面我们源码的分析的思路就按照上面的事件传递的流程顺序来进行。    
+
+## ViewRootImpl 的事件分发
+
+ViewRootImpl 中实例化了一个 InputEventReceiver 对象来接收输入事件，然后交给ViewRootImpl来进行处理。    
+
 ```
 
-## 事件起源
+    public void setView(View view, WindowManager.LayoutParams attrs, View panelParentView) {
+        ......
+                if (mInputChannel != null) {
+                    if (mInputQueueCallback != null) {
+                        mInputQueue = new InputQueue();
+                        mInputQueueCallback.onInputQueueCreated(mInputQueue);
+                    }
+                    mInputEventReceiver = new WindowInputEventReceiver(mInputChannel,
+                            Looper.myLooper());
+                }
+```
 
-`DecorView` 接收事件之前的流程我们这不做详细介绍，只介绍 `View` 部分的事件传递。在 `Activit` 接收到事件之前的传递流程是：
+```
+// ViewRootImpl.java
+    public IBinder getInputToken() {
+        if (mInputEventReceiver == null) {
+            return null;
+        }
+        return mInputEventReceiver.getToken();
+    }
+```
+
+事件处理流程：    
+
+```
+ViewRootImpl.WindowInputEventReceiver.onInputEvent()
+    ViewRootImpl.enqueueInputEvent()
+        ViewRootImpl.doProcessInputEvents()
+            ViewRootImpl.deliverInputEvent()
+                ViewRootImpl.InputStage.deliver()
+                    ViewRootImpl.InputStage.apply()
+                        ViewRootImpl.InputStage.forward()
+                        ViewRootImpl.InputStage.onProcess()
+                            ViewRootImpl.ViewPostImeInputStage.processPointerEvent()
+                                View.dispatchTouchEvent()
+```
+
+```
+    final class WindowInputEventReceiver extends InputEventReceiver {
+        public WindowInputEventReceiver(InputChannel inputChannel, Looper looper) {
+            super(inputChannel, looper);
+        }
+
+        @Override
+        public void onInputEvent(InputEvent event) {
+            List<InputEvent> processedEvents;
+            try {
+                processedEvents =
+                    mInputCompatProcessor.processInputEventForCompatibility(event);
+            } finally {
+                Trace.traceEnd(Trace.TRACE_TAG_VIEW);
+            }
+            if (processedEvents != null) {
+                if (processedEvents.isEmpty()) {
+                    // InputEvent consumed by mInputCompatProcessor
+                    finishInputEvent(event, true);
+                } else {
+                    for (int i = 0; i < processedEvents.size(); i++) {
+                        enqueueInputEvent(
+                                processedEvents.get(i), this,
+                                QueuedInputEvent.FLAG_MODIFIED_FOR_COMPATIBILITY, true);
+                    }
+                }
+            } else {
+                enqueueInputEvent(event, this, 0, true);
+            }
+        }
+
+        ......
+    }
+```
+
+```
+    void enqueueInputEvent(InputEvent event,
+            InputEventReceiver receiver, int flags, boolean processImmediately) {
+        QueuedInputEvent q = obtainQueuedInputEvent(event, receiver, flags);
+
+        // Always enqueue the input event in order, regardless of its time stamp.
+        // We do this because the application or the IME may inject key events
+        // in response to touch events and we want to ensure that the injected keys
+        // are processed in the order they were received and we cannot trust that
+        // the time stamp of injected events are monotonic.
+        QueuedInputEvent last = mPendingInputEventTail;
+        if (last == null) {
+            mPendingInputEventHead = q;
+            mPendingInputEventTail = q;
+        } else {
+            last.mNext = q;
+            mPendingInputEventTail = q;
+        }
+        mPendingInputEventCount += 1;
+        Trace.traceCounter(Trace.TRACE_TAG_INPUT, mPendingInputEventQueueLengthCounterName,
+                mPendingInputEventCount);
+        //看是同步处理还是异步处理
+        if (processImmediately) {
+            doProcessInputEvents();
+        } else {
+            scheduleProcessInputEvents();
+        }
+    }
+```
+
+```
+    void doProcessInputEvents() {
+        // 循环获取队列中的输入事件
+        while (mPendingInputEventHead != null) {
+            QueuedInputEvent q = mPendingInputEventHead;
+            mPendingInputEventHead = q.mNext;
+            if (mPendingInputEventHead == null) {
+                mPendingInputEventTail = null;
+            }
+            q.mNext = null;
+
+            mPendingInputEventCount -= 1;
+            Trace.traceCounter(Trace.TRACE_TAG_INPUT, mPendingInputEventQueueLengthCounterName,
+                    mPendingInputEventCount);
+
+            long eventTime = q.mEvent.getEventTimeNano();
+            long oldestEventTime = eventTime;
+            if (q.mEvent instanceof MotionEvent) {
+                MotionEvent me = (MotionEvent)q.mEvent;
+                if (me.getHistorySize() > 0) {
+                    oldestEventTime = me.getHistoricalEventTimeNano(0);
+                }
+            }
+            mChoreographer.mFrameInfo.updateInputEventTime(eventTime, oldestEventTime);
+
+            deliverInputEvent(q);
+        }
+
+        // We are done processing all input events that we can process right now
+        // so we can clear the pending flag immediately.
+        if (mProcessInputEventsScheduled) {
+            mProcessInputEventsScheduled = false;
+            mHandler.removeMessages(MSG_PROCESS_INPUT_EVENTS);
+        }
+    }
+```
+
+```
+    private void deliverInputEvent(QueuedInputEvent q) {
+        Trace.asyncTraceBegin(Trace.TRACE_TAG_VIEW, "deliverInputEvent",
+                q.mEvent.getSequenceNumber());
+        if (mInputEventConsistencyVerifier != null) {
+            mInputEventConsistencyVerifier.onInputEvent(q.mEvent, 0);
+        }
+
+        InputStage stage;
+        if (q.shouldSendToSynthesizer()) {
+            stage = mSyntheticInputStage;
+        } else {
+            stage = q.shouldSkipIme() ? mFirstPostImeInputStage : mFirstInputStage;
+        }
+
+        if (q.mEvent instanceof KeyEvent) {
+            mUnhandledKeyManager.preDispatch((KeyEvent) q.mEvent);
+        }
+
+        if (stage != null) {
+            handleWindowFocusChanged();
+            stage.deliver(q);
+        } else {
+            finishInputEvent(q);
+        }
+    }
+```
+
+这里InputStage则是一个实现处理输入事件责任的阶段，它是一个基类，也就是说InputStage提供一系列处理输入事件的方法，也可以转发给其他事件处理，而具体的处理则是看它的实现类。每种InputStage可以处理一定的事件类型，比如AsyncInputStage、ViewPreImeInputStage、ViewPostImeInputStage等。当一个InputEvent到来时，ViewRootImpl会寻找合适它的InputStage来处理。    
+InputStage的处理情况为，会先调用deliver开始处理。    
+
+```
+       public final void deliver(QueuedInputEvent q) {
+            if ((q.mFlags & QueuedInputEvent.FLAG_FINISHED) != 0) {
+                forward(q);
+            } else if (shouldDropInputEvent(q)) {
+                finish(q, false);
+            } else {
+                apply(q, onProcess(q));
+            }
+        }
+```
+
+最终的事件分发处理则是在apply方法里的onProcess方法。    
+对于点击事件来说，InputState的子类ViewPostImeInputStage可以处理它，我们看下ViewPostImeInputStage的onProcess方法。    
+
+```
+    final class ViewPostImeInputStage extends InputStage {
+        public ViewPostImeInputStage(InputStage next) {
+            super(next);
+        }
+
+        @Override
+        protected int onProcess(QueuedInputEvent q) {
+            if (q.mEvent instanceof KeyEvent) {
+                return processKeyEvent(q);
+            } else {
+                final int source = q.mEvent.getSource();
+                // 判断是触摸事件还是鼠标事件
+                if ((source & InputDevice.SOURCE_CLASS_POINTER) != 0) {
+                    return processPointerEvent(q);
+                } else if ((source & InputDevice.SOURCE_CLASS_TRACKBALL) != 0) {
+                    return processTrackballEvent(q);
+                } else {
+                    return processGenericMotionEvent(q);
+                }
+            }
+        }
+```
+
+ViewPostImeInputStage.processPointerEvent -> DecorView.dispatchPointerEvent -> DecorView.dispatchTouchEvent
+
+```
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        final Window.Callback cb = mWindow.getCallback();
+        return cb != null && !mWindow.isDestroyed() && mFeatureId < 0
+                ? cb.dispatchTouchEvent(ev) : super.dispatchTouchEvent(ev);
+    }
+```
+
+这里的 cb 其实就是 Activity，在 attach() 方法中注册的回调：    
+
+```
+    final void attach(......) {
+        ......
+
+        mWindow = new PhoneWindow(this, window, activityConfigCallback);
+        mWindow.setWindowControllerCallback(this);
+        mWindow.setCallback(this);
+```
+
+那么接下来就由 Activity 来处理了。    
+
+## DecorView 的事件分发
+
+`DecorView` 接收事件之前的流程我们这不做详细介绍，只介绍 `View` 部分的事件传递。在 `Activit` 接收到事件之前的传递流程是：    
 
 ```
 ├── View.dispatchPointerEvent
@@ -32,7 +282,7 @@ date: 2015-11-6 10:00:00
         ├── Activity.dispatchTouchEvent
 ```
 
-先来看一下 `View.dispatchPointerEvent` ，这里其实执行的是 `DecorView` 对象的 `dispatchPointerEvent`：
+先来看一下 `View.dispatchPointerEvent` ，这里其实执行的是 `DecorView` 对象的 `dispatchPointerEvent`：    
 
 ```
     public final boolean dispatchPointerEvent(MotionEvent event) {
@@ -44,10 +294,11 @@ date: 2015-11-6 10:00:00
     }
 ```
 
-`View.dispatchPointerEvent` 方法是final类型的，是不可以被 `Override` 的。
-如果是触摸事件，则调用 `DecorView` 的 `dispatchTouchEvent` 方法。
+`View.dispatchPointerEvent` 方法是final类型的，是不可以被 `Override` 的。    
+如果是触摸事件，则调用 `DecorView` 的 `dispatchTouchEvent` 方法。    
 
 ```
+// DecorView.java
         @Override
         public boolean dispatchTouchEvent(MotionEvent ev) {
             final Callback cb = getCallback();
@@ -58,24 +309,28 @@ date: 2015-11-6 10:00:00
         }
 ```
 
+Activity 实现了 Window.Callback 接口，并且被 mWindow 所持有。所以这里面就调用到了 Activity 的 dispatchTouchEvent。如果没有 Activity，那么就直接执行了View的dispatchTouchEvent()。    
+
 ## Activity 的事件分发
 
-上一篇博客中介绍事件传递的开是 Activit，Activity 首先进行事的分发，那么下面先来看一下 `Activity.dispatchTouchEvent(MotionEvent ev)` 方法。在此之的流程这里先不涉及介绍。
+上一篇博客中介绍事件传递的开是 Activit，Activity 首先进行事的分发，那么下面先来看一下 `Activity.dispatchTouchEvent(MotionEvent ev)` 方法。在此之的流程这里先不涉及介绍。    
 
 ```
     public boolean dispatchTouchEvent(MotionEvent ev) {
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
             onUserInteraction();
         }
+        // 通过PhoneWindow调用DecorView的superDispatchTouchEvent方法，
+        // 然后就走 View 的事件分发流程
         if (getWindow().superDispatchTouchEvent(ev)) {
             return true;
         }
+        // 如果没有消费事件，就Activity自己消费
         return onTouchEvent(ev);
     }
 ```
 
-这个方法主是调用了 `getWindow().superDispatchTouchEvent(ev)` 方法，如果该方法返回false，那么再调用 `Activity.onTouchEvent(ev)` 来处理事件。
-Activity 中的 `mWindow` 在 `Activity.attach()` 中被实例化，是一个 `PhoneWindow` 对象。
+Activity 中的 `mWindow` 在 `Activity.attach()` 中被实例化，是一个 `PhoneWindow` 对象。    
 
 ```
         mWindow = new PhoneWindow(this);
@@ -85,7 +340,7 @@ Activity 中的 `mWindow` 在 `Activity.attach()` 中被实例化，是一个 `P
         mWindow.getLayoutInflater().setPrivateFactory(this);
 ```
 
-那么我们就再来看一下 `PhoneWindow.superDispatchTouchEvent` 方法。
+那么我们就再来看一下 `PhoneWindow.superDispatchTouchEvent` 方法。    
 
 ```
     @Override
@@ -96,7 +351,7 @@ Activity 中的 `mWindow` 在 `Activity.attach()` 中被实例化，是一个 `P
     }
 ```
 
-这里调用了 `DecorView` 的 `superDispatchTouchEvent` 方法。
+这里调用了 `DecorView` 的 `superDispatchTouchEvent` 方法。    
 
 ```
         public boolean superDispatchTouchEvent(MotionEvent event) {
@@ -104,12 +359,16 @@ Activity 中的 `mWindow` 在 `Activity.attach()` 中被实例化，是一个 `P
         }
 ```
 
-`DecorView.superDispatchTouchEvent` 直接调了它的 `dispatchTouchEvent` 方法，我们知，`DecorView` 是继承了 `FrameLayout` 的，那么其实就是调了 `ViewGroup` 的 `dispatchTouchEvent` 方法。
+`DecorView.superDispatchTouchEvent` 直接调了它的 `dispatchTouchEvent` 方法，我们知，`DecorView` 是继承了 `FrameLayout` 的，那么其实就是调了 `ViewGroup` 的 `dispatchTouchEvent` 方法。    
+所以这里面的 `getWindow().superDispatchTouchEvent(ev)`，最终会调用到 DecorView 的 `superDispatchTouchEvent` 方法，而 DecorView 的 `superDispatchTouchEvent` 会调用 ViewGroup 的 `dispatchTouchEvent`，进而开启我们所熟知的事件分发。     
+而如果上面的流程返回false，那么再调用 `Activity.onTouchEvent(ev)` 来处理事件。    
+看了上面的流程可能大家有点不理解，为什么要从 DecorView 绕道 Activity，之后再给 DecorView 呢？    
+因为绕一圈，才可以将 Activity 作为事件分发的起点呀，当大家都不消费的事件的时候，事件就流回 Activity 了。     
 
 ## ViewGroup 的事件分发
 
-来看一下 `ViewGroup.dispatchTouchEvent` 方法，这个方法比较长，我们只选择事件传递的关键代码进行分析。
-先来看下面一段代码，这段代码主要做一些事件派发前的准备工作：
+来看一下 `ViewGroup.dispatchTouchEvent` 方法，这个方法比较长，我们只选择事件传递的关键代码进行分析。    
+先来看下面一段代码，这段代码主要做一些事件派发前的准备工作：    
 
 ```
     @Override
@@ -167,18 +426,18 @@ Activity 中的 `mWindow` 在 `Activity.attach()` 中被实例化，是一个 `P
     }
 ```
 
-上面的一段代码主要是做了一些事件派发前的准备工作，判断是否对当前事件进行拦截。
-首先第一个条件是当前事件是否是 `ACTION_DOWN` 或者 `mFirstTouchTarget != null`，判断当前是否是 `ACTION_DOWN` 事件我们容易理解，上一篇博客的例子我们也知道，`ACTION_DOWN` 事件是一个手势事件系列的开始，是会调用 `onInterceptTouchEvent` 的。那么 `mFirstTouchTarget != null` 是什么呢？从 `dispatchTouchEvent` 后面的代码我们就可以看出来，当事件被 `ViewGroup` 的子元素处理时，`mFirstTouchTarget` 就会指向这个子元素。也就是说，如果当前 `ViewGroup` 拦截该事件时，`mFirstTouchTarget != null`这个条件是不成立的，那么当后面的 `ACTION_MOVE` 和 `ACTION_UP` 事件到来时，将不会执行这段代码，那么 `onInterceptTouchEvent` 方法就不会被调用。如果有子元素处理事件，那么后面的 `ACTION_MOVE` 和 `ACTION_UP` 事件到来时，将会执行这段代码，那么 `ViewGroup` 就会有机会拦截事件的传递。
-这里还有另外一个判断条件，就是是否设置了 `FLAG_DISALLOW_INTERCEPT` 这个标志位，这个标志位一般是子 `View` 通过 `ViewGroup.requestDisallowInterceptTouchEvent` 方法来设置的，一旦设置，`ViewGroup` 将无法拦截除了 DOWN 事件的其他一切事件。
-为什么说可以拦截 DOWN 事件呢？因为 `ViewGroup` 在事件分发时，如果是 DOWN 事件就重置 `FLAG_DISALLOW_INTERCEPT` 标志位，这一点从上面的源码中也可以看到，这个操作将会导致子 View 设置的该标志位无效，因此当分发 DOWN 事件时，总是会调用 `onInterceptTouchEvent` 来询问是否要拦截该事件。
-从上面的代码可以得到下面几点结论：
+上面的一段代码主要是做了一些事件派发前的准备工作，判断是否对当前事件进行拦截。    
+首先第一个条件是当前事件是否是 `ACTION_DOWN` 或者 `mFirstTouchTarget != null`，判断当前是否是 `ACTION_DOWN` 事件我们容易理解，上一篇博客的例子我们也知道，`ACTION_DOWN` 事件是一个手势事件系列的开始，是会调用 `onInterceptTouchEvent` 的。那么 `mFirstTouchTarget != null` 是什么呢？从 `dispatchTouchEvent` 后面的代码我们就可以看出来，当事件被 `ViewGroup` 的子元素处理时，`mFirstTouchTarget` 就会指向这个子元素。也就是说，如果当前 `ViewGroup` 拦截该事件时，`mFirstTouchTarget != null`这个条件是不成立的，那么当后面的 `ACTION_MOVE` 和 `ACTION_UP` 事件到来时，将不会执行这段代码，那么 `onInterceptTouchEvent` 方法就不会被调用。如果有子元素处理事件，那么后面的 `ACTION_MOVE` 和 `ACTION_UP` 事件到来时，将会执行这段代码，那么 `ViewGroup` 就会有机会拦截事件的传递。    
+这里还有另外一个判断条件，就是是否设置了 `FLAG_DISALLOW_INTERCEPT` 这个标志位，这个标志位一般是子 `View` 通过 `ViewGroup.requestDisallowInterceptTouchEvent` 方法来设置的，一旦设置，`ViewGroup` 将无法拦截除了 DOWN 事件的其他一切事件。    
+为什么说可以拦截 DOWN 事件呢？因为 `ViewGroup` 在事件分发时，如果是 DOWN 事件就重置 `FLAG_DISALLOW_INTERCEPT` 标志位，这一点从上面的源码中也可以看到，这个操作将会导致子 View 设置的该标志位无效，因此当分发 DOWN 事件时，总是会调用 `onInterceptTouchEvent` 来询问是否要拦截该事件。    
+从上面的代码可以得到下面几点结论：    
 
- - 当 ViewGroup 决定拦截事件后，那么后续的事件将会默认交给它来处理而不再调用 `onInterceptTouchEvent` 方法。
- - `FLAG_DISALLOW_INTERCEPT` 这个标志位的作用是不让它的父View们中途来拦截事件，当然父View没有拦截DOWN事件，这个标志位无法操控父View对DOWN事件的拦截。
- - `onInterceptTouchEvent` 不是每次都调用，如果我们想操控所有的点击事件，只能在 `dispatchTouchEvent` 方法中处理。只有这个方法保证每次都会被调用（前提是事件能传递到当前的 `ViewGroup`）。
- - 子 View 调用父 View 的 `requestDisallowInterceptTouchEvent` 一定要注意调用时机，否则是不会生效的。
+ - 当 ViewGroup 决定拦截事件后，那么后续的事件将会默认交给它来处理而不再调用 `onInterceptTouchEvent` 方法。    
+ - `FLAG_DISALLOW_INTERCEPT` 这个标志位的作用是不让它的父View们中途来拦截事件，当然父View没有拦截DOWN事件，这个标志位无法操控父View对DOWN事件的拦截。    
+ - `onInterceptTouchEvent` 不是每次都调用，如果我们想操控所有的点击事件，只能在 `dispatchTouchEvent` 方法中处理。只有这个方法保证每次都会被调用（前提是事件能传递到当前的 `ViewGroup`）。    
+ - 子 View 调用父 View 的 `requestDisallowInterceptTouchEvent` 一定要注意调用时机，否则是不会生效的。    
 
-下面我们接着看当 `ViewGroup` 不拦截事件时的处理，主要是进行派发目标的查找。
+下面我们接着看当 `ViewGroup` 不拦截事件时的处理，主要是进行派发目标的查找。    
 
 ```
     @Override
@@ -317,13 +576,13 @@ Activity 中的 `mWindow` 在 `Activity.attach()` 中被实例化，是一个 `P
     }
 ```
 
-从上面源码可以看到，当 `ViewGroup` 不拦截事件时，事件会向下分发交由它的子 View 处理。这个事件必须是ACTION_DOWN或ACTION_POINTER_DOWN，即新的事件序列或子序列的开始，才会进行派发事件查找。
-首先会逆序遍历一遍所有的子元素，判断元素是否能接收点击事件，条件是判断子View是否可以处理、是否在做动画或者点击事件的坐标是否在子View范围之内来作为依据，如果可以接收事件，再通过 getTouchTarget 来寻找是否有 TouchTarget 来处理，如果找到，则意味着之前已经有触摸点落于该child且消费了事件，那么只需要给其添加触摸点ID，然后结束子view遍历；如果没有找到 TouchTarget ，说明对于该child是新的事件，则调用 `dispatchTransformedTouchEvent` 方法对其进行派发。
-若 `dispatchTransformedTouchEvent ` 找到child消费事件，则创建TouchTarget添加至mFirstTouchTarget链表，并标记已经派发过事件。
-注意：这里先前存在TouchTarget的情况下不执行dispatchTransformedTouchEvent，是因为需要对当次事件进行事件拆分，对ACTION_POINTER_DOWN类型进行转化，所以留到后面执行派发阶段，再统一处理。
-当遍历完子view，若没有找到派发目标，但是mFirstTouchTarget链表不为空，则把最早添加的那个TouchTarget当作查找到的目标。
+从上面源码可以看到，当 `ViewGroup` 不拦截事件时，事件会向下分发交由它的子 View 处理。这个事件必须是ACTION_DOWN或ACTION_POINTER_DOWN，即新的事件序列或子序列的开始，才会进行派发事件查找。    
+首先会逆序遍历一遍所有的子元素，判断元素是否能接收点击事件，条件是判断子View是否可以处理、是否在做动画或者点击事件的坐标是否在子View范围之内来作为依据，如果可以接收事件，再通过 getTouchTarget 来寻找是否有 TouchTarget 来处理，如果找到，则意味着之前已经有触摸点落于该child且消费了事件，那么只需要给其添加触摸点ID，然后结束子view遍历；如果没有找到 TouchTarget ，说明对于该child是新的事件，则调用 `dispatchTransformedTouchEvent` 方法对其进行派发。    
+若 `dispatchTransformedTouchEvent ` 找到child消费事件，则创建TouchTarget添加至mFirstTouchTarget链表，并标记已经派发过事件。    
+注意：这里先前存在TouchTarget的情况下不执行dispatchTransformedTouchEvent，是因为需要对当次事件进行事件拆分，对ACTION_POINTER_DOWN类型进行转化，所以留到后面执行派发阶段，再统一处理。    
+当遍历完子view，若没有找到派发目标，但是mFirstTouchTarget链表不为空，则把最早添加的那个TouchTarget当作查找到的目标。    
 
-那么再来看一下这个方法：
+那么再来看一下这个方法：    
 
 ```
     private boolean dispatchTransformedTouchEvent(MotionEvent event, boolean cancel,
@@ -355,10 +614,10 @@ Activity 中的 `mWindow` 在 `Activity.attach()` 中被实例化，是一个 `P
     }
 ```
 
-如果子元素为null则调用父类的 `dispatchTouchEvent`，如果子元素不为null，则调用子元素的 `dispatchTouchEvent`。
-关于对多点触控事件的分发，后面会有专门的文章来介绍。
+如果子元素为null则调用父类的 `dispatchTouchEvent`，如果子元素不为null，则调用子元素的 `dispatchTouchEvent`。    
+关于对多点触控事件的分发，后面会有专门的文章来介绍。    
 
-再来回到 `dispatchTouchEvent` 方法，如果遍历子元素后事件都没有被处理，这包含两种情况：一是 `ViewGroup` 没有子元素，二是子元素处理了点击事件，但是子元素 `dispatchTouchEvent` 返回了 false，这时  `ViewGroup`会自己处理事件。这时还是会调用 `dispatchTransformedTouchEvent`，只是 child 参数为  null，这是根据上面的的代码，会调用 `super.dispatchTouchEvent`，即 `View.dispatchTouchEvent` 来处理。
+再来回到 `dispatchTouchEvent` 方法，如果遍历子元素后事件都没有被处理，这包含两种情况：一是 `ViewGroup` 没有子元素，二是子元素处理了点击事件，但是子元素 `dispatchTouchEvent` 返回了 false，这时  `ViewGroup`会自己处理事件。这时还是会调用 `dispatchTransformedTouchEvent`，只是 child 参数为  null，这是根据上面的的代码，会调用 `super.dispatchTouchEvent`，即 `View.dispatchTouchEvent` 来处理。    
 
 ```
     @Override
@@ -420,13 +679,13 @@ Activity 中的 `mWindow` 在 `Activity.attach()` 中被实例化，是一个 `P
     }
 ```
 
-我们可以看到 `ViewGroup` 是没有覆盖父类的 `onTouchEvent ` 方法的。也没有发现调用 `onTouchEvent`。
-对 `ViewGroup` 的 `onTouchEvent` 调用，都是通过其父类 `View` 的 `dispatchTouchEvent` 来调用的。
-流程是什么呢？其实上面也介绍了：ViewGroup.dispatchTouchEvent->ViewGroup.dispatchTransformedTouchEvent->View.dispatchTouchEvent->B.onTouchEvent。
+我们可以看到 `ViewGroup` 是没有覆盖父类的 `onTouchEvent ` 方法的。也没有发现调用 `onTouchEvent`。    
+对 `ViewGroup` 的 `onTouchEvent` 调用，都是通过其父类 `View` 的 `dispatchTouchEvent` 来调用的。    
+流程是什么呢？其实上面也介绍了：ViewGroup.dispatchTouchEvent->ViewGroup.dispatchTransformedTouchEvent->View.dispatchTouchEvent->B.onTouchEvent。    
 
 ## View 的事件分发
 
-先来看一下 `View` 的 `dispatchTouchEvent` 方法。
+先来看一下 `View` 的 `dispatchTouchEvent` 方法。    
 
 ```
     public boolean dispatchTouchEvent(MotionEvent event) {
@@ -451,11 +710,11 @@ Activity 中的 `mWindow` 在 `Activity.attach()` 中被实例化，是一个 `P
     }
 ```
 
-`View` 这里对事件的处理比较简单，这里的处理包含两种类型：一类是由父元素调用子元素的 `dispatchTouchEvent` 分发而来，第二类是 `ViewGroup` 没有子元素，调用 `super.dispatchTouchEvent` 而来。
-这里对事件的处理也比较简单，如果没有满足下面的两个条件就会调用 `onTouchEvent` 来处理事件，即：该 `View` 是使能状态；设置了 `OnTouchListener` 且 `onTouch` 方法返回 true。否则就会调用 `onTouchEvent`。
-从这里可以看到 `OnTouchListener` 的优先级是高于 `onTouchEvent` 的，这样做的好处是方便在外界处理事件。
+`View` 这里对事件的处理比较简单，这里的处理包含两种类型：一类是由父元素调用子元素的 `dispatchTouchEvent` 分发而来，第二类是 `ViewGroup` 没有子元素，调用 `super.dispatchTouchEvent` 而来。    
+这里对事件的处理也比较简单，如果没有满足下面的两个条件就会调用 `onTouchEvent` 来处理事件，即：该 `View` 是使能状态；设置了 `OnTouchListener` 且 `onTouch` 方法返回 true。否则就会调用 `onTouchEvent`。    
+从这里可以看到 `OnTouchListener` 的优先级是高于 `onTouchEvent` 的，这样做的好处是方便在外界处理事件。    
 
-接下来再看一下 `View` 的 `onTouchEvent` 方法。
+接下来再看一下 `View` 的 `onTouchEvent` 方法。    
 
 ```
     public boolean onTouchEvent(MotionEvent event) {
@@ -479,11 +738,11 @@ Activity 中的 `mWindow` 在 `Activity.attach()` 中被实例化，是一个 `P
     }
 ```
 
-上面一段代码是处理 `View` 在不可用的情况下对事件的处理。通过阅读代码我们可以得到下面的结论：
+上面一段代码是处理 `View` 在不可用的情况下对事件的处理。通过阅读代码我们可以得到下面的结论：    
 
  - 不可用状态下的 `View` 在设置可点击（`CLICKABLE`、`LONG_CLICKABLE`或`CONTEXT_CLICKABLE`）的情况下仍然会消费事件。
 
-下面再来看一下 `onTouchEvent` 对具体事件的处理：
+下面再来看一下 `onTouchEvent` 对具体事件的处理：    
 
 ```
     public boolean onTouchEvent(MotionEvent event) {
@@ -612,14 +871,14 @@ Activity 中的 `mWindow` 在 `Activity.attach()` 中被实例化，是一个 `P
     }
 ```
 
-从上面的代码可以得到如下结论：
+从上面的代码可以得到如下结论：    
 
- - 设置可点击（`CLICKABLE`、`LONG_CLICKABLE`或`CONTEXT_CLICKABLE`）满足任意一个条件，`View`就会消费这个事件，`onTouchEvent` 就会返回 true，不管是否是 DISABLE 状态。
- - 当 `ACTION_UP` 事件触发时，会调用 `performClick()` 方法。`performClick()` 会调用 `OnClickListener` 的  `onClick` 方法。
+ - 设置可点击（`CLICKABLE`、`LONG_CLICKABLE`或`CONTEXT_CLICKABLE`）满足任意一个条件，`View`就会消费这个事件，`onTouchEvent` 就会返回 true，不管是否是 DISABLE 状态。    
+ - 当 `ACTION_UP` 事件触发时，会调用 `performClick()` 方法。`performClick()` 会调用 `OnClickListener` 的  `onClick` 方法。    
 
 ## 事件处理流程图
 
-下图表示了在事件不被消费的情况下 `DOWN` 事件的处理流程：
+下图表示了在事件不被消费的情况下 Activity 和 View 的 `DOWN` 事件的处理流程：    
 
 ![效果图](http://www.plantuml.com/plantuml/svg/dP912i8m44NtSufUm0kuaBeGSI_kOpAIW6P2-bFrzbR1WIffnTsGl3VyyDDsC1dbSYOV73Sd4HpbHhHODMkBq0VSbovqoS3wlHJhDpr7a7dU6R12z1wQmJm4lcwpb3IfAaKwZMM9kmZEbXEcVSU_B9qDyrAKbbZb75SyZJwIF_6_Ng1jr5Oh_LsEOdDdBKSt_8K7)
 

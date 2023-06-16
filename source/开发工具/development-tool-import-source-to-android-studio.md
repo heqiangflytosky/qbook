@@ -167,3 +167,93 @@ ln -sf ${REAL_PROJECT_PATH}/out/target/common/obj ${LINKED_PROJECT_PATH}/out/tar
 `out/target/common/obj/APPS/SystemUI_intermediates/classes.jar`,
 `out/target/common/obj/JAVA_LIBRARIES/framework_intermediates/classed-header.jar`,
 `out/target/common/obj/JAVA_LIBRARIES/services_intermediates/classes.jar`,
+
+
+# 使用AIDEGen
+
+使用前面的导入方法，或多或少会遇到下面的问题：    
+
+ - 打开整个源码工程比较慢
+ - 代码爆红，很多jar包里面的代码在源码都爆红
+ - 跳转问题，点击某个方法或者类跳转不进去
+
+Google 建议大家从 Android 10 开始，就使用 AIDEGen 来将源码导入 IDE ，无需再使用 idegen。    
+Google 文档： https://android.googlesource.com/platform/tools/asuite/+/refs/heads/master/aidegen/README.md    
+
+## 使用介绍
+
+第一步：
+
+```
+$ authbash bash // 无加密软件的不需要这一步
+$ source build/envsetup.sh && lunch <TARGET>
+```
+
+第二步：
+
+如果编译的模块是 SystemUI    
+
+```
+$ aidegen SystemUI -i s -p ~/install/android-studio/android-studio/bin/
+```
+
+解释：
+ - aidegen : 生成命令
+ - Settings ：模块名字
+ - -i : IDE
+ - s：Android Studio
+ - -p ：IDEA的具体路径，我的是：/home/wutao/Documents/android-studio/bin
+
+AIDEGen 会自动帮你把对应的模块编译一遍，顺带把梳理出的依赖用 Python 生成一个个的 dependency，在 SystemUI 目录下多了下面的文件：dependencies.iml，SystemUI.iml。
+最后直接帮你把 AS 拉起，项目自动打开。    
+
+如图：
+
+<img src="/images/development-tool-import-source-to-android-studio/aidegen-dependencies.png" width="510" height="256"/>
+
+自动把本地的Framework依赖导入
+
+<img src="/images/development-tool-import-source-to-android-studio/aidegen-dependencies-1.png" width="460" height="544"/>
+
+<img src="/images/development-tool-import-source-to-android-studio/aidegen-dependencies-2.png" width="977" height="576"/>
+
+命令执行完毕，会自动拉起路径里面的Android Studio，然后就可以跟开发普通应用一样进行开发了。
+
+## 高级用法
+
+ - 如果要编译某个模块，直接指定该模块的目录
+
+```
+$ aidegen frameworks/base/packages/services -i s -p /home/wutao/Documents/android-studio/bin
+```
+
+ - 如果该模块已经编译过，已经生成过相关的依赖，可以加参数 `-s` 来跳过编译过程。    
+
+ ```
+ $ aidegen SystemUI -s -i s -p ~/install/android-studio/android-studio/bin/
+ ```
+ 
+ - 打开多个工程
+ 
+ ```
+ $ aidegen packages/apps/Settings frameworks/base
+ ```
+## 更多命令
+
+| Option | Long option | Description |
+|:-------------:|:-------------:|:-------------:|
+|-d | --depth| The depth of module referenced by source.|
+|-i| --ide | Launch IDE type, j=IntelliJ s=Android Studio e=Eclipse c=CLion v=VS Code |
+|-p |--ide-path |Specify user's IDE installed path. |
+|-n| --no_launch|Do not launch IDE. |
+|-r | --config-reset|Reset all AIDEGen's saved configurations. |
+| -s|--skip-build | Skip building jars or modules.|
+| -v|--verbose |Displays DEBUG level logging. |
+| -a|--android-tree |Generate whole Android source tree project file for IDE. |
+| -e|--exclude-paths |Exclude the directories in IDE. |
+| -l|--language |Launch IDE with a specific language,j=java c=C/C++ r=Rust |
+| -h| --help|Shows help message and exits. |
+
+
+	
+	

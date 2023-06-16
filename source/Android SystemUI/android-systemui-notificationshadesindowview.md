@@ -10,21 +10,21 @@ date: 2021-11-6 12:00:00
 ## 概述
 
 NotificationShadeWindowView 是承载锁屏和下拉通知的界面，NotificationShadeWindowViewController 作为 NotificationShadeWindowView 控制器主要是作为事件的分发以及执行锁屏切换下拉通知(锁屏下滑)的操作。
-事件处理大概逻辑在前面文章中已经有了介绍，本文主要介绍一些方法的实现细节。
-本文基于原生 Android S 代码。
+事件处理大概逻辑在前面文章中已经有了介绍，本文主要介绍一些方法的实现细节。     
+本文基于原生 Android S 代码。     
 
 ## 相关类介绍
 
-DragDownHelper 一个工具类，处理锁屏时下拉通知栏区域展开通知中心的操作。
+DragDownHelper 一个工具类，处理锁屏时下拉通知栏区域展开通知中心的操作。     
 
 ## NotificationShadeWindowView
 
-NotificationShadeWindowView 主要处理锁屏状态下的下拉(非状态栏下拉)事件的处理或者下拉面板可见情况下事件的传递。
-在 NotificationShadeWindowView 中定义了一个 InteractionEventHandler，它的实现在 NotificationShadeWindowViewController，用于处理 NotificationShadeWindowView 对于事件的操作。
+NotificationShadeWindowView 主要处理锁屏状态下的下拉(非状态栏下拉)事件的处理或者下拉面板可见情况下事件的传递。     
+在 NotificationShadeWindowView 中定义了一个 InteractionEventHandler，它的实现在 NotificationShadeWindowViewController，用于处理 NotificationShadeWindowView 对于事件的操作。     
 
 ## dispatchTouchEvent
 
-如果 mInteractionEventHandler 返回不为空，就返回 mInteractionEventHandler 的处理结果，true 表示处理该事件，中断分发，false 表示继续分发。如果 mInteractionEventHandler 为空，交给父类来处理。
+如果 mInteractionEventHandler 返回不为空，就返回 mInteractionEventHandler 的处理结果，true 表示处理该事件，中断分发，false 表示继续分发。如果 mInteractionEventHandler 为空，交给父类来处理。     
 
 ```
 // NotificationShadeWindowView.java
@@ -91,6 +91,7 @@ NotificationShadeWindowView 主要处理锁屏状态下的下拉(非状态栏下
                 // the touch manually as the view system can't accommodate for touches outside of
                 // the
                 // regular view bounds.
+                // 下面的逻辑是判断是否需要交给StatusBar来处理
                 if (isDown && ev.getY() >= mView.getBottom()) {
                     mExpandingBelowNotch = true;
                     expandingBelowNotch = true;
@@ -126,8 +127,8 @@ NotificationShadeWindowView 主要处理锁屏状态下的下拉(非状态栏下
 
 ## onInterceptTouchEvent
 
-NotificationShadeWindowView 通过 InteractionEventHandler.shouldInterceptTouchEvent 判断是否需要拦截，拦截事件的场景为锁屏界面滑动屏幕下拉（不是状态栏下拉），这时会拦截Move事件，那么接下来的Move事件和UP事件就交给它的onTouchEvent来处理。来处理面板的整体滑动操作。
-那么为什么从状态栏滑动时没有拦截呢？因为在 NotificationPanelViewController.onQsIntercept 处理Down事件时设置了 mView.getParent().requestDisallowInterceptTouchEvent(true)，后面的Move事件就不会走 NotificationShadeWindowView 的 onInterceptTouchEvent 了。来处理QS的滑动操作。
+NotificationShadeWindowView 通过 InteractionEventHandler.shouldInterceptTouchEvent 判断是否需要拦截，拦截事件的场景为锁屏界面滑动屏幕下拉（不是状态栏下拉），这时会拦截Move事件，那么接下来的Move事件和UP事件就交给它的onTouchEvent来处理。来处理面板的整体滑动操作。     
+那么为什么从状态栏滑动时没有拦截呢？因为在 NotificationPanelViewController.onQsIntercept 处理Down事件时设置了 mView.getParent().requestDisallowInterceptTouchEvent(true)，后面的Move事件就不会走 NotificationShadeWindowView 的 onInterceptTouchEvent 了。来处理QS的滑动操作。     
 
 ```
 // NotificationShadeWindowView.java
@@ -205,7 +206,7 @@ NotificationShadeWindowView 通过 InteractionEventHandler.shouldInterceptTouchE
     }
 ```
 
-因此，在通常情况下的锁屏界面只会对Move事件拦截，条件时如果 isDragDownAnywhereEnabled 使能，那么所有的Move事件都会拦截，否则，只会拦截触摸点在通知位置的事件。
+因此，在通常情况下的锁屏界面只会对Move事件拦截，条件时如果 isDragDownAnywhereEnabled 使能，那么所有的Move事件都会拦截，否则，只会拦截触摸点在通知位置的事件。     
 
 ## onTouchEvent
 
@@ -388,7 +389,7 @@ DragDownHelper.onTouchEvent
 
 ### apply 方法
 
-apply 方法是统一更新sdade window状态的方法，包括可见性，FocusableFlag属性，锁屏的一些属性，FLAG_SHOW_WALLPAPER，NavigationFlag等等。
+apply 方法是统一更新sdade window状态的方法，包括可见性，FocusableFlag属性，锁屏的一些属性，FLAG_SHOW_WALLPAPER，NavigationFlag等等。     
 
 ```
     private void apply(State state) {

@@ -16,7 +16,9 @@ Android 中关于的工具很多，参考下表。所以我们要灵活地选用
 | 工具 | 分析问题 | 能力 | 备注 |
 |:-------------:|:-------------:|:-------------:|:-------------:|
 | top/procrank | 内存占用过大，内存泄漏 | 发现 |  |
+| showmap |  |  |  |
 | meminfo |  |  |  |
+| gfxinfo | 查看hwui所占用的内存，对应meminfo里面的gl、egl |  | adb shell dumpsys gfxinfo <pid> |
 | dmabug_dump | 分析ION内存 |  |  |
 | StrickMode | Activity 内存泄漏 | 自动发现+初步定位 |  |
 | LeakCanary | Activity 内存泄漏 | 自动发现+定位 |  |
@@ -72,7 +74,18 @@ USS 是针对某个进程开始有可疑内存泄露的情况，进行检测的�
 
 ## showmap
 
-adb shell showmap <pid>  查看一个进程的showmap，这对于我们来说非常有用，可以确定进程中哪些库占用内存比较多。    
+showmap 的数据其实是解析 smaps 的数据，会展示当前进程文件的内存占用，功能与 `/proc/<PID>/smaps` 基本一致。    
+
+`adb shell showmap -a <pid>`  查看一个进程的showmap，这对于我们来说非常有用，可以确定进程中哪些库占用内存比较多。    
+
+ - start addr 和 end addr ：分别代码进程空间的起止虚拟地址。
+ - virtual size/RSS/PSS：前面介绍过
+ - shared：共享数据。
+ - private：该进程私有数据。
+ - clean：干净数据，是指该内存数据与disk数据一致，当内存紧张时，可以直接释放内存，不需要写到disk
+ - dirty：脏数据，与disk数据不一致，需要先写回到disk，才能被释放。
+
+
 
 
 ## dumpsys meminfo
@@ -247,7 +260,7 @@ Proportional Set Size (PSS)：这是您的应用程序的RAM使用量的衡量�
   - Stack：您的应用中的原生堆栈和 Java 堆栈使用的内存。 这通常与您的应用运行多少线程有关。
   - Graphics：图形缓冲区队列向屏幕显示像素（包括 GL 表面、GL 纹理等等，也就是GPU绘制时用的一些Buffer等）所使用的内存。 （请注意，这是与 CPU 共享的内存，不是 GPU 专用内存。）看代码中有没有直接调用opengl，如果没有可以忽略，那就主要是framework创建的。(Gfx dev + EGL mtrack + GL mtrack)
   - Private Other:(TotalPrivateClean + TotalPrivateDirty - java - native - code - stack - graphics)
-  - System: 共享库，系统共享资源比如图像字体等(TotalPss - TotalPrivateClean - TotalPrivateDirty)
+  - System: 共享库，系统共享资源比如jar包，aar包，动态加载的apk，图像字体等(TotalPss - TotalPrivateClean - TotalPrivateDirty)
  
 对于应用的内存，一般我们主要关注 App Summary 就行了。    
 进程空间中的 heap 空间是我们需要重点关注的，heap 空间完全由程序员控制，我们使用的 malloc、C++ new 和 java new 所申请的空间都是 heap 空间， 其中 C/C++ 申请的内存空间在 native heap 中，而 java 申请的内存空间则在 dalvik heap中。    

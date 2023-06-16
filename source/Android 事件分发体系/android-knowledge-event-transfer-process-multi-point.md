@@ -9,14 +9,15 @@ date: 2015-11-15 10:00:00
 
 ## 概述
 
-前面的几篇关于 Android 事件分发的文章我们简要的介绍过关于多点触控的知识，本章我们就从源码角度进行一些分析。
-Android 也是支持多点触控的，当已经有手指接触屏幕的情况下，当再有其他触摸点出现时，会触发 `ACTION_POINTER_DOWN` 事件(可能被拆分成 ACTION_DOWN 事件)，当有手指离开屏幕时会触发 `ACTION_POINTER_UP` 事件（当然这个事件在某个View上还可能转换为`ACTION_UP ` 事件），最后一根手指离开屏幕是触发 `ACTION_UP ` 事件，因此多点触控的事件可能是下面的流程：
+前面的几篇关于 Android 事件分发的文章我们简要的介绍过关于多点触控的知识，本章我们就从源码角度进行一些分析。    
+Android 也是支持多点触控的，当已经有手指接触屏幕的情况下，当再有其他触摸点出现时，会触发 `ACTION_POINTER_DOWN` 事件(可能被拆分成 ACTION_DOWN 事件)，当有手指离开屏幕时会触发 `ACTION_POINTER_UP` 事件（当然这个事件在某个View上还可能转换为`ACTION_UP ` 事件），最后一根手指离开屏幕是触发 `ACTION_UP ` 事件，因此多点触控的事件可能是下面的流程：    
 
 ```
 ACTION_DOWN -> ACTION_POINTER_DOWN -> ACTION_POINTER_UP -> ACTION_UP
 ```
 
-获取多点触控获取事件类型请使用 `event.getAction() & MotionEvent.ACTION_MASK` 或者 `getActionMasked()`。追踪事件流可以使用 PointId。
+获取多点触控获取事件类型请使用 `event.getAction() & MotionEvent.ACTION_MASK` 或者 `getActionMasked()`。追踪事件流可以使用 PointId。    
+另外可以通过 `ev.getPointerId(ev.getActionIndex())` 来判断当前事件的 PointerId。
 
 ## 多点触控事件传递流程
 
@@ -120,6 +121,26 @@ Event   : Activity onTouchEvent ACTION_UP
 ```
 
 我们可以看到，在 LinearLayoutA 分发 ACTION_POINTER_DOWN 和 ACTION_POINTER_UP 之前，会把事件拆分成 ACTION_DOWN 和 ACTION_UP 事件，然后分发给它的子 View。
+
+## 禁用多点触控
+
+```
+                if (ev.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN) {
+                    return false;
+                }
+```
+
+```
+                if (ev.getActionMasked() == MotionEvent.ACTION_DOWN || mTrackingPointer == -1) {
+                    mTrackingPointer = ev.getPointerId(ev.getActionIndex());
+                }
+                if (ev.getActionMasked() == MotionEvent.ACTION_POINTER_UP) {
+                    mTrackingPointer = -1;
+                }
+                if (ev.getPointerId(ev.getActionIndex()) != mTrackingPointer) {
+                    return false;
+                }
+```
 
 ## 源码分析
 

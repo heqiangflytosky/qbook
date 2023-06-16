@@ -209,7 +209,7 @@ AIDEGen 会自动帮你把对应的模块编译一遍，顺带把梳理出的依
 
 如图：
 
-<img src="/images/development-tool-import-source-to-android-studio/aidegen-dependencies.png" width="510" height="256"/>
+<img src="/images/development-tool-import-source-to-android-studio/aidegen-dependencies.jpg" width="510" height="256"/>
 
 自动把本地的Framework依赖导入
 

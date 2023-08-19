@@ -145,26 +145,30 @@ add device 9: /dev/input/event0
 [  615041.942456] /dev/input/event7: EV_SYN       SYN_REPORT           00000000             rate 123
 ```
 
-## Systrace上查看触控事件分发的全流程
+## Systrace上查看触控事件分发
 
 InputDispatcher进行事件分发是会有一些处理队列，源码都加了一些trace tag的的打印和计数，如InputReader读取到触控事件后唤醒InputDispatcher会放入“iq”队列中，然后进行事件分发时每个目标窗口都有对应的队列“oq”和等待目标窗口事件处理的“wq”队列，最后应用这边收到触控事件后还有对应的“aq”队列，从systrace上看如下图所示：    
 system_server进程的InputDispatcher和InputReader：    
 
 <img src="/images/android-knowledge-event-transfer-process-debug-skill/system_server_input_dispatcher.jpg" width="633" height="119"/>
 
-当有input未及时处理而引发ANR时，InputDispatcher会报 notifyWindowUnresponsive，上图中的绿色方块。
+InputReader 从EventHub 中读取屏幕驱动上报的Input触控事件，并唤醒交给InputDispatcher线程进行分发。    
+InputDispatcher 被唤醒后，先对Input触控事件进行封装，然后寻找到当前前台焦点窗口，并将Input 事件发送到焦点窗口所属的应用。    
+当有input未及时处理而引发ANR时，InputDispatcher 会报 notifyWindowUnresponsive，上图中的绿色方块。    
 
 <img src="/images/android-knowledge-event-transfer-process-debug-skill/system_server_iq_oq_wq.png" width="721" height="351"/>
 
 system_server进程的    
-iq 对垒表示InputReader读取到了触控事件。    
-每个oq对应着一个可见窗口的事件分发处理队列。    
-wq表示触控事件在某个目标窗口中等待处理的耗时状态。    
+iq (InboundQueue)队列表示InputReader读取到了触控事件。    
+oq (OutboundQueue)对应着一个可见窗口的事件分发处理队列。存放的这些事件是即将要被派发给目标窗口 App，但是此时还未发送成功的事件。    
+wq (WaitQueue)表示触控事件在某个目标窗口中等待处理的耗时状态。这个队列里面记录的是已经派发给 App，但是 App 还在处理没有返回处理成功的事件。如果应用处理完成并反馈后就会从队列中移除。    
 
 目标窗口应用App进程：     
 
 <img src="/images/android-knowledge-event-transfer-process-debug-skill/app_deliver_input_event.png" width="721" height="153"/>
 
+deliverInputEvent 标识 App UI Thread 被 Input 事件唤醒。    
+aq (PendingInputEventQueue) 队列中记录的是应用需要处理的Input事件，这里可以看到input事件已经传递到了应用进程。
 
 ## 参考文章
 

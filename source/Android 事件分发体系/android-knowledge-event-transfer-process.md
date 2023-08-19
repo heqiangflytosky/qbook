@@ -1,5 +1,5 @@
 ---
-title: Android View 事件处理流程
+title: Android View 事件处理基础知识
 categories: Android 事件分发体系
 comments: true
 tags: [Android 事件分发体系]

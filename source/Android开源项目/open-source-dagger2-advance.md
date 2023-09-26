@@ -459,7 +459,7 @@ public @interface MyScope {
 ```
 
 MyScope 就是一个由 Scope 定义的注解，Scope 注解只能标注目标类、`@provide` 方法和 Component。Scope 注解要生效的话，需要同时标注在 Component 和提供依赖实例的 Module 或目标类上。Module 中 provide 方法中的 Scope 注解必须和与之绑定的 Component 的 Scope 注解一样，否则作用域不同会导致编译时会报错。例如，EngineModule 中 provide 方法的 Scope 是 MyScope 的话，CarComponent 的 Scope 必须是 是 MyScope 这样作用域才会生效，而且不能是 `@Singleton` 或其他 Scope 注解，不然编译时 Dagger 2 会报错。    
-如果我们只是在 provide 方法中或者目标类上添加 `Scope ` 注解，那么它只是在 CarComponent 的生命周期范围内是单例的，如果我们应用中有两个 CarComponent 实例，那么被 MyScope 标注的类也是有两个对象的。    
+**重点介绍：**如果我们只是在 provide 方法中或者目标类上添加 `Scope ` 注解，那么它只是在 CarComponent 的生命周期范围内是单例的，如果我们应用中有两个 CarComponent 实例，或者有两个可以生成 EngineModule 的 Component， 那么被 MyScope 标注的类也是有两个对象的。    
 那么怎么保证 MyScope 在全局范围内是单例的呢？我们要保证在 Application 生命周期内 CarComponent 是单例的就可以了。    
 
 ```

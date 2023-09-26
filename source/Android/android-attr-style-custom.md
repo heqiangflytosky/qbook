@@ -333,6 +333,34 @@ View_background attr 13
 
 参考上面代码中针对android:background属性的获取。
 
+比如：
+
+```
+        try (TypedArray ta = mContext.getTheme().obtainStyledAttributes(
+                android.R.style.Theme_DeviceDefault_DayNight, new int[]{
+                        android.R.attr.textColorPrimary,
+                        android.R.attr.textColorSecondary
+                })) {
+            if (ta != null) {
+                mPrimaryTextColor = ta.getColor(0, mPrimaryTextColor);
+                mSecondaryTextColor = ta.getColor(1, mSecondaryTextColor);
+            }
+        }
+```
+
+```
+                    final TypedArray a = mContext.obtainStyledAttributes(null,
+                            android.R.styleable.TextAppearance, android.R.attr.textAppearanceMedium,
+                            android.R.style.TextAppearance_Medium);
+                    final int textSize = a.getDimensionPixelSize(
+                            android.R.styleable.TextAppearance_textSize, 0);
+                    if (textSize != 0) {
+                        // textSize is already expressed in pixels
+                        setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
+                    }
+                    a.recycle();
+```
+
 ## 相关文章
 
 [Attr、Style和Theme详解](https://www.jianshu.com/p/dd79220b47dd)

@@ -20,10 +20,10 @@ date: 2018-4-10 10:00:00
                  
 ```
 
-注册 Module 的流程和注册 Component 流程比较类似。
-`registerModule()` 也有多个重载方法，但最终调用的是 `WXModuleManager.registerModule()` 方法。
-在介绍 `WXModuleManager.registerModule()` 方法之前，我们先看一下它的参数之一 `ModuleFactory`。这个类和注册 Component 时的 ComponentHolder 类比较类似。
-一般情况下，我们会调用 `registerModule(String moduleName, Class<T> moduleClass,boolean global)` 方法来注册 Module，比如：
+注册 Module 的流程和注册 Component 流程比较类似。    
+`registerModule()` 也有多个重载方法，但最终调用的是 `WXModuleManager.registerModule()` 方法。    
+在介绍 `WXModuleManager.registerModule()` 方法之前，我们先看一下它的参数之一 `ModuleFactory`。这个类和注册 Component 时的 ComponentHolder 类比较类似。    
+一般情况下，我们会调用 `registerModule(String moduleName, Class<T> moduleClass,boolean global)` 方法来注册 Module，比如：    
 
 ```
 registerModule("modal", WXModalUIModule.class, false);
@@ -37,14 +37,14 @@ WXSDKEngine.registerModule(String moduleName, Class<T> moduleClass,boolean globa
   }
 ```
 
-这时候会以 `WXModalUIModule.class` 为参数生成一个 `TypeModuleFactory` 实例。它有三个作用分别对应三个方法：
+这时候会以 `WXModalUIModule.class` 为参数生成一个 `TypeModuleFactory` 实例。它有三个作用分别对应三个方法：    
 
- - buildInstance()：生成一个 Module 对应 class 的实例
- - getMethods()：获取 class 所有的 JSMethod 注解的方法 
- - getMethodInvoker(String name)：获取注册 Module 提供的API的执行体
- - generateMethodMap()：解析该模块中的所有方法，并为它生成一个方法的执行体 `MethodInvoker`
+ - buildInstance()：生成一个 Module 对应 class 的实例    
+ - getMethods()：获取 class 所有的 JSMethod 注解的方法     
+ - getMethodInvoker(String name)：获取注册 Module 提供的API的执行体    
+ - generateMethodMap()：解析该模块中的所有方法，并为它生成一个方法的执行体 `MethodInvoker`    
 
-先来看一下 `TypeModuleFactory.generateMethodMap()` 方法：
+先来看一下 `TypeModuleFactory.generateMethodMap()` 方法：    
 
 ```
   private void generateMethodMap() {
@@ -80,7 +80,7 @@ WXSDKEngine.registerModule(String moduleName, Class<T> moduleClass,boolean globa
   }
 ```
 
-WXModuleManager.registerModule() 方法：
+WXModuleManager.registerModule() 方法：    
 
 ```
   public static boolean registerModule(final String moduleName, final ModuleFactory factory, final boolean global) throws WXException {
@@ -117,7 +117,7 @@ WXModuleManager.registerModule() 方法：
   }
 ```
 
-Native 层的注册过程很简单，在 `sModuleFactoryMap` 中保存了 Module 的 Name 及对应的 `ModuleFactory`，提供给 `callModuleMethod()` 方法调用。
+Native 层的注册过程很简单，在 `sModuleFactoryMap` 中保存了 Module 的 Name 及对应的 `ModuleFactory`，提供给 `callModuleMethod()` 方法调用。    
 
 ```
 static boolean registerNativeModule(String moduleName, ModuleFactory factory) throws WXException {
@@ -134,8 +134,8 @@ static boolean registerNativeModule(String moduleName, ModuleFactory factory) th
   }
 ```
 
-JS 层的注册也比较简单，调用 `WXBridge.execJS()` 注册。
-WXBridgeManager.invokeRegisterModules()
+JS 层的注册也比较简单，调用 `WXBridge.execJS()` 注册。    
+WXBridgeManager.invokeRegisterModules()    
 
 ```
   private void invokeRegisterModules(Map<String, Object> modules, List<Map<String, Object>> failReceiver) {
@@ -194,10 +194,10 @@ WXBridgeManager.invokeRegisterModules()
   }
 ```
 
-从这个方法我们可以看出，如果模块的自定义方法需要返回值，那么就只能设置 `@JSMethod(uiThread = false)`。相当于同步方法。
+从这个方法我们可以看出，如果模块的自定义方法需要返回值，那么就只能设置 `@JSMethod(uiThread = false)`。相当于同步方法。    
 
-解析参数：
-`paramClazzs` 是模块中定义的方法的参数类型数组，`args` 是JS传递过来的参数数组。
+解析参数：    
+`paramClazzs` 是模块中定义的方法的参数类型数组，`args` 是JS传递过来的参数数组。    
 
 ```
   private Object[] prepareArguments(Type[] paramClazzs, JSONArray args) throws Exception {
@@ -243,7 +243,7 @@ WXBridgeManager.invokeRegisterModules()
 
 ## callback执行流程
 
-为了测试 callback 的执行流程，我们自定义了下面模块：
+为了测试 callback 的执行流程，我们自定义了下面模块：    
 
 ```
 public class MyModule extends WXModule {
@@ -269,7 +269,7 @@ public class MyModule extends WXModule {
 }
 ```
 
-调用该模块：
+调用该模块：    
 
 ```
         weex.requireModule('myModule').testCallback({
@@ -285,7 +285,7 @@ public class MyModule extends WXModule {
         );
 ```
 
-下面来看一下 callback1 的调用流程：
+下面来看一下 callback1 的调用流程：    
 
 ```
 ├── SimpleJSCallback.invoke()
@@ -302,7 +302,7 @@ public class MyModule extends WXModule {
                     ├── WXBridge.execJS
 ```
 
-在 `callbackJavascript()` 方法中，先通过 `addJSTask()` 方法在JS线程把执行回调函数的任务放到 `mNextTickTasks` 中，等待下次执行 `invokeCallJSBatch()` 时执行该任务。
+在 `callbackJavascript()` 方法中，先通过 `addJSTask()` 方法在JS线程把执行回调函数的任务放到 `mNextTickTasks` 中，等待下次执行 `invokeCallJSBatch()` 时执行该任务。    
 
 ```
   void callbackJavascript(final String instanceId, final String callback,
@@ -404,8 +404,8 @@ public class MyModule extends WXModule {
   }
 ```
 
-解析参数：
-WXJsonUtils.wsonWXJSObject(tasks)：
+解析参数：    
+WXJsonUtils.wsonWXJSObject(tasks)：    
 
 ```
   public static final WXJSObject wsonWXJSObject(Object tasks){
@@ -418,8 +418,8 @@ WXJsonUtils.wsonWXJSObject(tasks)：
   }
 ```
 
-最后调用 `JSON.toJSONString(obj)` 方法把对象解析为 json 数据。
-解析成 `WXJSObject` 类型的参数：
+最后调用 `JSON.toJSONString(obj)` 方法把对象解析为 json 数据。    
+解析成 `WXJSObject` 类型的参数：    
 ```
 [{"args":["1",{"method":"success","paras":["paraSuccess1","paraSuccess2"]},false],"method":"callback"}]
 ```

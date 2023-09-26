@@ -10,7 +10,7 @@ date: 2018-3-15 10:00:00
 
 ## 概述
 
-从本篇博客开始，会陆续进行一些 Weex 源码分析的文章，源码的 Weex SDK Version 是基于0.17.0，JS Framework 是基于 0.23.9， 平台是基于 Android 来进行分析的。
+从本篇博客开始，会陆续进行一些 Weex 源码分析的文章，源码的 Weex SDK Version 是基于0.17.0，JS Framework 是基于 0.23.9， 平台是基于 Android 来进行分析的。    
 
 ## 初始化过程
 
@@ -28,10 +28,10 @@ public class WXApplication extends Application {
 }
 ```
 
-调用了 `WXSDKEngine.initialize()` 方法，这里有 `InitConfig` 作为参数来初始化。
-先来看一下 `InitConfig` 类。
-`InitConfig` 使用 Builder 模式来构造一个 Weex 初始化配置的一个类。不熟悉 Builder 模式的同学可以先了解一下这个设计模式。
-`InitConfig` 主要是配置一些 Adapter：
+调用了 `WXSDKEngine.initialize()` 方法，这里有 `InitConfig` 作为参数来初始化。    
+先来看一下 `InitConfig` 类。    
+`InitConfig` 使用 Builder 模式来构造一个 Weex 初始化配置的一个类。不熟悉 Builder 模式的同学可以先了解一下这个设计模式。    
+`InitConfig` 主要是配置一些 Adapter：    
 
  - IWXHttpAdapter
  - IWXImgLoaderAdapter
@@ -44,7 +44,7 @@ public class WXApplication extends Application {
  - framework
  - IWebSocketAdapterFactory
 
-配置了这些 Adapter，Weex 才能更好地实现一些功能。比如前面示例代码中，如果想显示一个图片的话就必须配置 `IWXImgLoaderAdapter`，自定义完成图片的加载工作。
+配置了这些 Adapter，Weex 才能更好地实现一些功能。比如前面示例代码中，如果想显示一个图片的话就必须配置 `IWXImgLoaderAdapter`，自定义完成图片的加载工作。    
 
 ```
 ├── WXSDKEngine.initialize()
@@ -120,8 +120,8 @@ public class WXApplication extends Application {
   }
 ```
 
-这里大部分的初始化工作是在 `WXBridgeManager.getInstance().post()` 方法中进行的，这个方法会把这些操作放到 WeexJSBridgeThread 线程中去执行。
-有关 Weex 的线程模型后面文章再介绍。
+这里大部分的初始化工作是在 `WXBridgeManager.getInstance().post()` 方法中进行的，这个方法会把这些操作放到 WeexJSBridgeThread 线程中去执行。    
+有关 Weex 的线程模型后面文章再介绍。    
 
 #### 初始化 Js Framework
 

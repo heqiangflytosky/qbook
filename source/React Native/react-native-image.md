@@ -79,47 +79,7 @@ const styles = StyleSheet.create({
 
 效果图如上如。    
 
-## 回调函数和属性
 
- - onLayout：layout时调用，与View组件的onLayout函数类似    
- - onLoadStart：开始加载时调用    
- - onLoadEnd加载结束时调用    
- - onLoad：成功读取图片时调用    
-```javascript
-        <Image source={{uri:'http://172.17.137.68/heqiang/23.jpg'}} style={{width: 200, height: 200}} 
-          onLoad={function(){console.log("onLoad");}}
-          onLayout={function(){console.log("onLayout");}}
-          onLoadStart={function(){console.log("onLoadStart");}}
-          onLoadEnd={function(){console.log("onLoadEnd");}}
-          />
-```
- - resizeMode
-  - cover：在显示比例不失真的情况下填充整个显示区域。可以对图片进行放大或者缩小，超出显示区域的部分不显示，也就是说，图片可能部分会显示不了。    
-  - contain：要求显示整张图片，可以对它进行等比缩小，图片会显示完整，可能会露出Image控件的底色。如果图片宽高都小于控件宽高，则不会对图片进行放大。    
-  - stretch：不考虑保持图片原来的宽高比，填充整个Image定义的显示区域，这种模式显示的图片可能会畸形和失真。    
-  - center：居中不缩放    
- 
- resizeMode也可以定义在style中，但在属性上定义的优先级比style中高。比如下面设置中最终生效的是Image.resizeMode.center。    
-
-```javascript
-        <Image source={{uri:'http://172.17.137.68/heqiang/test.png'}} 
-          style={{width: 200, height: 200, backgroundColor: 'grey',resizeMode: Image.resizeMode.contain}} 
-          resizeMode={Image.resizeMode.center}
-          />
-```
-
-## 样式风格
-
- - FlexBox 支持弹性盒子风格
- - Transforms 支持属性动画
- - resizeMode 设置缩放模式
- - backgroundColor 背景颜色
- - borderColor 边框颜色
- - borderWidth 边框宽度
- - borderRadius 边框圆角
- - overflow 设置图片尺寸超过容器可以设置显示或者隐藏('visible','hidden')
- - tintColor 颜色设置
- - opacity 设置不透明度0.0(透明)-1.0(完全不透明)
 
 
 

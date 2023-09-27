@@ -68,7 +68,8 @@ const styles = StyleSheet.create({
 ```
 
 ### 效果图
-![效果图](/images/react-native-image/image1.png)
+
+<img src="/images/react-native-image/image1.png" width="270" height="480"/>
 
 ## 回调函数和属性
 

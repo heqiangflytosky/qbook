@@ -72,6 +72,7 @@ const styles = StyleSheet.create({
 
 <img src="/images/react-native-image/image1.png" width="270" height="480"/>
 
+效果图如上如。    
 
 ## 回调函数和属性
 
@@ -94,13 +95,16 @@ const styles = StyleSheet.create({
   - center：居中不缩放
  
  resizeMode也可以定义在style中，但在属性上定义的优先级比style中高。比如下面设置中最终生效的是Image.resizeMode.center。
+
 ```javascript
         <Image source={{uri:'http://172.17.137.68/heqiang/test.png'}} 
           style={{width: 200, height: 200, backgroundColor: 'grey',resizeMode: Image.resizeMode.contain}} 
           resizeMode={Image.resizeMode.center}
           />
 ```
+
 ## 样式风格
+
  - FlexBox 支持弹性盒子风格
  - Transforms 支持属性动画
  - resizeMode 设置缩放模式

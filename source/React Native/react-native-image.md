@@ -69,7 +69,9 @@ const styles = StyleSheet.create({
 
 ### 效果图
 
+
 <img src="/images/react-native-image/image1.png" width="270" height="480"/>
+
 
 ## 回调函数和属性
 

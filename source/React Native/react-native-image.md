@@ -6,7 +6,9 @@ tags: [React Native]
 description: 介绍React Native中Image控件的基本使用
 date: 2017-01-13 10:00:00
 ---
+
 ## 基本用法
+
 ### 加载本地图片
 
 ```
@@ -18,18 +20,21 @@ date: 2017-01-13 10:00:00
 ```
 <Image source={{uri: 'ic_launcher'}} style={{width: 140, height: 140}} />
 ```
+
 ### 加载网络图片
 
 ```
 <Image source={{uri:'http://172.17.137.68/heqiang/2.jpg'}} style={{width: 200, height: 200}}/>
 ```
+
 资源图片和网络图片必须声明图片寬高，否则不显示。
-<!-- more -->
 
 ### 适配不同平台
-有时我们希望在不同平台之间用不同的图片
-比如baidu.android.png，baidu.ios.png，代码中只需要写baidu.png，便可以适配android和ios平台
-baidu@2x.png，baidu@3x.png还可以适配不同分辨率的机型。如果没有图片恰好满足屏幕分辨率，则会自动选中最接近的一个图片。这点是和Android中是类似的。
+
+有时我们希望在不同平台之间用不同的图片    
+比如baidu.android.png，baidu.ios.png，代码中只需要写baidu.png，便可以适配android和ios平台    
+baidu@2x.png，baidu@3x.png还可以适配不同分辨率的机型。如果没有图片恰好满足屏幕分辨率，则会自动选中最接近的一个图片。这点是和Android中是类似的。    
+
 ### 代码
 
 ```javascript
@@ -76,10 +81,10 @@ const styles = StyleSheet.create({
 
 ## 回调函数和属性
 
- - onLayout：layout时调用，与View组件的onLayout函数类似
- - onLoadStart：开始加载时调用
- - onLoadEnd加载结束时调用
- - onLoad：成功读取图片时调用
+ - onLayout：layout时调用，与View组件的onLayout函数类似    
+ - onLoadStart：开始加载时调用    
+ - onLoadEnd加载结束时调用    
+ - onLoad：成功读取图片时调用    
 ```javascript
         <Image source={{uri:'http://172.17.137.68/heqiang/23.jpg'}} style={{width: 200, height: 200}} 
           onLoad={function(){console.log("onLoad");}}
@@ -89,12 +94,12 @@ const styles = StyleSheet.create({
           />
 ```
  - resizeMode
-  - cover：在显示比例不失真的情况下填充整个显示区域。可以对图片进行放大或者缩小，超出显示区域的部分不显示，也就是说，图片可能部分会显示不了。
-  - contain：要求显示整张图片，可以对它进行等比缩小，图片会显示完整，可能会露出Image控件的底色。如果图片宽高都小于控件宽高，则不会对图片进行放大。
-  - stretch：不考虑保持图片原来的宽高比，填充整个Image定义的显示区域，这种模式显示的图片可能会畸形和失真。
-  - center：居中不缩放
+  - cover：在显示比例不失真的情况下填充整个显示区域。可以对图片进行放大或者缩小，超出显示区域的部分不显示，也就是说，图片可能部分会显示不了。    
+  - contain：要求显示整张图片，可以对它进行等比缩小，图片会显示完整，可能会露出Image控件的底色。如果图片宽高都小于控件宽高，则不会对图片进行放大。    
+  - stretch：不考虑保持图片原来的宽高比，填充整个Image定义的显示区域，这种模式显示的图片可能会畸形和失真。    
+  - center：居中不缩放    
  
- resizeMode也可以定义在style中，但在属性上定义的优先级比style中高。比如下面设置中最终生效的是Image.resizeMode.center。
+ resizeMode也可以定义在style中，但在属性上定义的优先级比style中高。比如下面设置中最终生效的是Image.resizeMode.center。    
 
 ```javascript
         <Image source={{uri:'http://172.17.137.68/heqiang/test.png'}} 

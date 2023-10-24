@@ -165,6 +165,7 @@
     * [Android 性能优化实战篇 -- 内存优化](source/Android性能优化/android-performance-optimization-memory.md)
     * [Android 性能优化工具篇 -- 内存查看和分析工具](source/Android性能优化/android-performance-optimization-tools-ram-analysis.md)
     * [Android 性能优化工具篇 -- Android Profiler 分析内存使用和内存泄漏](source/Android性能优化/android-performance-optimization-profiler-leak.md)
+    * [Android 卡顿优化工具篇 -- SimplePerf](source/Android性能优化/android-performance-optimization-tools-simpleperf.md)
     * [Android 卡顿优化工具篇 -- Perfetto 的使用](source/Android性能优化/android-performance-optimization-tools-perfetto.md)
 * [Android源码分析]()
     * [Android PackageManager相关源码分析之PMS初始化](source/Android源码分析/android-source-code-analysis-package-manager-init.md)

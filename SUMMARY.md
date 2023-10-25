@@ -145,6 +145,7 @@
     * [Dagger2 的基本使用和原理](source/Android开源项目/open-source-dagger2-baisc.md)
     * [Dagger2 进阶](source/Android开源项目/open-source-dagger2-advance.md)
 * [Android性能优化]()
+    * [Android 性能优化文章汇总](source/Android性能优化/android-performance-optimization-article-summary.md)
     * [Android 性能优化实战篇 -- 解决 Toast BadTokenException 异常](source/Android性能优化/android-performance-optimization-toast-badtoken.md)
     * [Android 性能优化实战篇 -- 解决 'int android.view.View.mPrivateFlags' NullPointerException](source/Android性能优化/android-performance-optimization-privateflags-crash.md)
     * [Android 性能优化实战篇 -- 使用 CrashHandler 处理崩溃问题](source/Android性能优化/android-performance-optimization-crash-handler.md)

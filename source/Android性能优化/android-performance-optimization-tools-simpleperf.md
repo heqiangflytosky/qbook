@@ -25,12 +25,18 @@ Simpleperf 提供了命令行抓取 CPU 运行数据的方法，对于我们分�
 手机端执行采样前需要先执行 `adb root`    
 
 采样：    
-adb shell simpleperf record -p 30639 -g --no-cut-samples --duration 5 -o /sdcard/perf_sysui.data    
+
+```
+adb shell simpleperf record -p 30639 -g --no-cut-samples --duration 5 -o /sdcard/perf_sysui.data   
+``` 
 
 -p 后面添加需要采样的进程 ID。
 
 数据转换：    
+
+```
 adb shell simpleperf report-sample --show-callchain --protobuf -i /sdcard/perf_sysui.data -o /sdcard/perf_sysui.trace    
+```
 
 ### 分析
 

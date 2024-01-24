@@ -16,25 +16,61 @@ wm 命令是和 Android WindowManagerService 相关联的，可以获取设备�
 使用 `adb shell wm` 可以查看wm支持的一些参数：
 
 ```
-usage: wm [subcommand] [options]
-       wm size [reset|WxH|WdpxHdp]
-       wm density [reset|DENSITY]
-       wm overscan [reset|LEFT,TOP,RIGHT,BOTTOM]
-       wm scaling [off|auto]
-       wm screen-capture [userId] [true|false]
+Window manager (window) commands:
+  help
+      Print this help text.
+  size [reset|WxH|WdpxHdp] [-d DISPLAY_ID]
+    Return or override display size.
+    width and height in pixels unless suffixed with 'dp'.
+  density [reset|DENSITY] [-d DISPLAY_ID]
+    Return or override display density.
+  folded-area [reset|LEFT,TOP,RIGHT,BOTTOM]
+    Return or override folded area.
+  scaling [off|auto] [-d DISPLAY_ID]
+    Set display scaling mode.
+  dismiss-keyguard
+    Dismiss the keyguard, prompting user for auth if necessary.
+  disable-blur [true|1|false|0]
+  user-rotation [-d DISPLAY_ID] [free|lock] [rotation]
+    Print or set user rotation mode and user rotation.
+  dump-visible-window-views
+    Dumps the encoded view hierarchies of visible windows
+  fixed-to-user-rotation [-d DISPLAY_ID] [enabled|disabled|default]
+    Print or set rotating display for app requested orientation.
+  set-ignore-orientation-request [-d DISPLAY_ID] [true|1|false|0]
+  get-ignore-orientation-request [-d DISPLAY_ID] 
+    If app requested orientation should be ignored.
+  set-multi-window-config
+    Sets options to determine if activity should be shown in multi window:
+      --supportsNonResizable [configValue]
+        Whether the device supports non-resizable activity in multi window.
+        -1: The device doesn't support non-resizable in multi window.
+         0: The device supports non-resizable in multi window only if
+            this is a large screen device.
+         1: The device always supports non-resizable in multi window.
+      --respectsActivityMinWidthHeight [configValue]
+        Whether the device checks the activity min width/height to determine 
+        if it can be shown in multi window.
+        -1: The device ignores the activity min width/height when determining
+            if it can be shown in multi window.
+         0: If this is a small screen, the device compares the activity min
+            width/height with the min multi window modes dimensions
+            the device supports to determine if the activity can be shown in
+            multi window.
+         1: The device always compare the activity min width/height with the
+            min multi window dimensions the device supports to determine if
+            the activity can be shown in multi window.
+  get-multi-window-config
+    Prints values of the multi window config options.
+  reset-multi-window-config
+    Resets overrides to default values of the multi window config options.
+  reset [-d DISPLAY_ID]
+    Reset all override settings.
+  tracing (start | stop)
+    Start or stop window tracing.
+  logging (start | stop | enable | disable | enable-text | disable-text)
+    Logging settings.
 
-wm size: return or override display size.
-         width and height in pixels unless suffixed with 'dp'.
-
-wm density: override display density.
-
-wm overscan: set overscan area for display.
-
-wm scaling: set display scaling mode.
-
-wm screen-capture: enable/disable screen capture.
-
-wm dismiss-keyguard: dismiss the keyguard, prompting the user for auth if necessary.
 ```
 
  - `wm size`：查看屏幕的分辨率, 单位: px。
@@ -47,3 +83,4 @@ wm dismiss-keyguard: dismiss the keyguard, prompting the user for auth if necess
  - `wm scaling`：设置缩放模式
  - `wm screen-capture`：屏幕截图
  - `wm dismiss-keyguard`：取消锁屏
+ - `wm logging`：打开或者关闭一些wm相关的日志：比如：`adb shell wm logging enable-text WM_DEBUG_ORIENTATION` 就能打开WMS中类似 `ProtoLog.v(WM_DEBUG_ORIENTATION......`的这种日志。

@@ -254,6 +254,7 @@ Total RAM: 5,863,228K (status normal)
 用来显示ams的一些信息，包括任务栈，activity信息，进程信息等。
 
  - adb shell dumpsys activity -h：帮助
+ - adb shell dumpsys activity containers:可以查看当前容器层级信息
  - adb shell dumpsys activity <包名>：查看给定包名的activity信息，包括 View Hierarchy 等 
  - adb shell dumpsys activity package <包名>：查看该进程的所有信息，包括：`dumpsys activity settings`,`dumpsys activity allowed-associations`,`dumpsys activity intents`,`dumpsys activity broadcasts`,`dumpsys activity broadcast-stats`,`dumpsys activity providers`,`dumpsys activity services`,`dumpsys activity recents`,`dumpsys activity lastanr`,`dumpsys activity starter`,`dumpsys activity activities`,`dumpsys activity exit-info`,`dumpsys activity processes`,`dumpsys activity users`等信息内容
  - adb shell dumpsys activity top：查看当前应用的 activity 信息

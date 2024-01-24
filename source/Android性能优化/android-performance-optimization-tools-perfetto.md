@@ -251,7 +251,26 @@ Android Missed Frames:可以标识出掉帧情况，点击后可以看到掉帧�
 
 ### animator
 
-animator:该行表示正在执行动画。    
+animator:该行表示正在执行动画。可以看出动画执行的开始和结束时间以及执行时长。    
+分别在 ValueAnimator.startAnimation() 和 ValueAnimator.endAnimation() 中加入了 Trace。
+
+```
+    private void startAnimation() {
+        if (Trace.isTagEnabled(Trace.TRACE_TAG_VIEW)) {
+            Trace.asyncTraceBegin(Trace.TRACE_TAG_VIEW, getNameForTrace(),
+                    System.identityHashCode(this));
+        }
+    }
+    private void endAnimation() {
+        if (Trace.isTagEnabled(Trace.TRACE_TAG_VIEW)) {
+            Trace.asyncTraceEnd(Trace.TRACE_TAG_VIEW, getNameForTrace(),
+                    System.identityHashCode(this));
+        }
+    }
+    String getNameForTrace() {
+        return "animator";
+    }
+```
 
 
 

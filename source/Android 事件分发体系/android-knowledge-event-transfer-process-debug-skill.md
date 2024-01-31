@@ -45,6 +45,7 @@ view_enqueue_input_event:
 
 
 InputManager-JNI：
+InputEventReceiver:
 
 
 ## Dumpsys

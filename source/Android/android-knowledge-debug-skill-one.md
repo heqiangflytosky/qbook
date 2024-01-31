@@ -81,6 +81,8 @@ projectname 为 settings.gradle 里面配置的各个 project，如果没有配�
 
 ## 打印调用栈
 
+### Java
+
 1.
 
 ```
@@ -93,4 +95,36 @@ android.os.Debug.getCallers(30)
 Log.e("Test",Log.getStackTraceString(new Throwable()));
 ```
 
+### C++
 
+Android.bp 文件里面添加依赖库：
+
+```
+cc_defaults {
+    shared_libs: [
+    
+        "libutils",
+        "libutilscallstack",
+
+```
+
+添加头文件：
+
+```
+#include <utils/CallStack.h>
+```
+
+打印调用栈：
+
+```
+android::CallStack::logStack("CALLSTACK_DUMP");
+```
+
+或者：
+
+```
+    android::CallStack stack;
+    stack.update();
+    stack.dump(1);               //to stdout
+    stack.log("CALLSTACK_DUMP"); //to logcat
+```

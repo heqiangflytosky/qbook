@@ -44,24 +44,111 @@ view_enqueue_input_event:
 ## Main 日志
 
 
-InputManager-JNI：
-InputEventReceiver:
+InputManager-JNI：input JNI 层相关日志。    
+InputEventReceiver:    
+SystemGesture-XXXXX:SystemGesture相关日志，比如 SystemGesture-GestureManager，GestureManager-MzPhoneWindowManager等等。    
 
 
 ## Dumpsys
 
-`adb shell dumpsys input` 通过dump查看触控事件处理系统框架部分：EventHub、InputReader、InputDispatcher的工作状态：
+`adb shell dumpsys input` 通过dump查看触控事件处理系统框架部分：EventHub、InputReader、InputDispatcher的工作状态：    
 
-InputDispatcher：
+InputDispatcher：    
 
 ## 开发者选项输入相关
 
-打开 开发者选项 -> 触摸事件 开关，就可以额外获取一些触摸事件日志。
+打开 开发者选项 -> 触摸事件 开关，就可以额外获取一些触摸事件日志。对应的其实就是 `sys.inputlog.enabled` 系统属性，也可以通过命令来打开和关闭：`adb shell setprop sys.inputlog.enabled true`    
 
-InputTransport：
+InputTransport：    
 
 打开 开发者选项 -> 指针位置 开关，触摸屏幕能看到小白点实时显示，能够主观感受屏幕滑动跟手度等状况。屏幕上会显示当前的触控数据    
 打开 开发者选项 -> 显示点按操作反馈 开关，点击屏幕能看到点按操作的视觉反馈。    
+
+## 其他上层日志开关
+
+需要动态或者静态的打开Log 开关，通过log 来分析定位。    
+
+比如我们在 InputDispatcher::finishDispatchCycleLocked() 方法中会看到下面的日志开关：    
+```
+void InputDispatcher::finishDispatchCycleLocked(nsecs_t currentTime,
+                                                const std::shared_ptr<Connection>& connection,
+                                                uint32_t seq, bool handled, nsecs_t consumeTime) {
+    if (DEBUG_DISPATCH_CYCLE) {
+        ALOGD("channel '%s' ~ finishDispatchCycle - seq=%u, handled=%s",
+              connection->getInputChannelName().c_str(), seq, toString(handled));
+    }
+```
+
+DEBUG_DISPATCH_CYCLE 定义在 `frameworks/native/services/inputflinger/dispatcher/DebugConfig.h` 中：    
+
+```
+/**
+ * Log detailed debug messages about each outbound event processed by the dispatcher.
+ * Enable this via "adb shell setprop log.tag.InputDispatcherOutboundEvent DEBUG" (requires restart)
+ */
+const bool DEBUG_OUTBOUND_EVENT_DETAILS =
+        __android_log_is_loggable(ANDROID_LOG_DEBUG, LOG_TAG "OutboundEvent", ANDROID_LOG_INFO);
+
+/**
+ * Log debug messages about the dispatch cycle.
+ * Enable this via "adb shell setprop log.tag.InputDispatcherDispatchCycle DEBUG" (requires restart)
+ */
+const bool DEBUG_DISPATCH_CYCLE =
+        __android_log_is_loggable(ANDROID_LOG_DEBUG, LOG_TAG "DispatchCycle", ANDROID_LOG_INFO);
+
+.........
+
+/**
+ * Log debug messages about hover events.
+ * Enable this via "adb shell setprop log.tag.InputDispatcherHover DEBUG" (requires restart)
+ */
+const bool DEBUG_HOVER =
+        __android_log_is_loggable(ANDROID_LOG_DEBUG, LOG_TAG "Hover", ANDROID_LOG_INFO);
+
+```
+
+类似有很多这种日志，可以通过 `adb shell setprop log.tag.InputDispatcherOutboundEvent DEBUG` 打开，然后重启 system_server 进程即可生效。
+
+
+```
+// frameworks/native/services/inputflinger/reader/Macros.cpp 
+DEBUG_RAW_EVENTS  
+DEBUG_VIRTUAL_KEYS DEBUG_POINTERS DEBUG_POINTER_ASSIGNMENT 
+DEBUG_GESTURES DEBUG_VIBRATOR DEBUG_STYLUS_FUSION 
+
+//frameworks/base/services/core/jni/com_android_server_input_InputManagerService.cpp
+DEBUG_INPUT_READER_POLICY 
+DEBUG_INPUT_DISPATCHER_POLICY
+
+//frameworks/native/services/inputflinger/dispatcher/inputDispatcher.cpp
+DEBUG_FOCUS
+DEBUG_INJECTION
+```
+
+开启ViewRootImpl/View/ViewGroup中input event的处理过程的log开关。 去确认以下怀疑点：Input 事件传递到了哪个window？ 有没有被正确的view处理？有没有被drop?等等。    
+
+```
+//frameworks/base/services/core/java/com/android/server/wm/WindowManagerDebugConfig.java  
+DEBUG_INPUT = true;
+
+//frameworks/base/core/java/android/view/KeyEvent.java 
+DEBUG = true;
+
+//frameworks/base/core/java/android/view/ViewRootImpl.java 
+DEBUG_INPUT_RESIZE = true;
+DEBUG_INPUT_STAGES = true;
+
+//frameworks/base/core/java/android/view/ViewDebug.java
+DEBUG_POSITIONING = true;
+
+//PhoneWindowManagerInjectImpl.java
+    /**
+     * 使用命令
+     * adb shell dumpsys window -p
+     * 打开或者关闭 DEBUG_INPUT
+     */
+    private static /*final*/ boolean DEBUG_INPUT = false;
+```
 
 ## 查看支持的触控输入设备节点
 
@@ -80,9 +167,15 @@ crw-rw---- 1 root input 13,  71 1970-07-12 04:58 event7
 crw-rw---- 1 root input 13,  72 1970-07-12 04:58 event8
 ```
 
-## adb getevent 命令查看屏幕报点情况
+## adb shell input
 
-adb shell getevent -ltr 可以滑动查看屏幕触控报点是否正常和均匀： 
+`adb shell input [<source>] [-d DISPLAY_ID] <command> [<arg>...]` 具体命令可以通过 `adb shell input -h`     
+比如 `adb shell input motionevent DOWN 400 800` 可以模拟屏幕(400,800)点处的Down事件。    
+`adb shell input keyevent key-value` 可以模拟进行按键的点击，将点击事件直接通过InputDispatcher的injectInputEvent方法发送到Native层，若这边有问题表示InputDispatcher的拦截和分发存在问题。
+
+## adb shell getevent 命令查看屏幕报点情况
+
+adb shell getevent -ltr 可以滑动查看屏幕触控报点是否正常和均匀：     
 
 ```
 $ adb shell getevent -ltr 
@@ -145,6 +238,8 @@ add device 9: /dev/input/event0
 [  615041.942456] /dev/input/event7: EV_KEY       BTN_TOUCH            UP                  
 [  615041.942456] /dev/input/event7: EV_SYN       SYN_REPORT           00000000             rate 123
 ```
+
+
 
 ## Systrace上查看触控事件分发
 

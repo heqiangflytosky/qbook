@@ -299,6 +299,12 @@ date: 2016-12-1 10:00:00
 
  - [AndroidSdkSourceAnalysis](https://github.com/LittleFriendsGroup/AndroidSdkSourceAnalysis)：CJJ，网易的开发者，由他带领发起的Android SDK源码解析GitHub项目
 
+### 论文、资源检索
+
+ - [arxiv.org](https://arxiv.org/):arXiv.org是一个收录科学文献预印本的在线数据库，目前包含了超过50万篇文章，并且以每个月5000篇的速度增长着。目前，这个数据库包含：数学，物理，计算机，非线性科学，定量生物学，定量财务以及统计学几大分类。其最重要的特点就是“开放式获取”，每个人都可以免费地访问全文数据。
+ - [arxiv-sanity：arxiv便捷预览版](https://arxiv-sanity-lite.com/)：我们都知道arxiv.org是一个非常大的预印本资源库，里面有大量的最新的论文，但缺点是浏览、搜索和排序不是很方便。这个库每天会更新大量的论文，如果只是通过手动搜索和浏览效率就太低了。所以这里提供了一个便捷预览版，可以
+ -[中国科学院科技论文预发布平台（ChinaXiv）](http://chinaxiv.org/home.htm):中国版本的arxiv，支持国内外最新研究成果的网络传播，保障作者的网络首发权，提供最快速的学术信息交流。
+
 ### GitBook
 
  - [wizardforcel](https://www.gitbook.com/@wizardforcel)：目前收集了约223本书，偏向计算机科学，编程类等。

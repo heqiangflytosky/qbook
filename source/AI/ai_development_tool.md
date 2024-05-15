@@ -11,13 +11,18 @@ date: 2016-7-2 10:00:00
 
 [Hugging face 官网](https://huggingface.co/)    
 可以说是AI开发者的GitHub，提供了模型、数据集（文本|图像|音频|视频）、类库（比如transformers|peft|accelerate）、教程等。目前大概有50多万个针对多个领域的开源预训练模型和12万多个数据集。    
-缓存路径：`~/.cache/huggingface/modules/transformers_modules/`    
 我们使用from_pretrained加载模型时，如果用的路径是repo id，那么就会从huggingface上下载并缓存到本地。    
+缓存路径：`~/.cache/huggingface/modules/transformers_modules/`    
 https://zhuanlan.zhihu.com/p/675078682    
+
+## modelscope
+
+[modelscope 官网](https://www.modelscope.cn/)    
+魔搭社区，中国版的Hugging face。    
 
 ## Colab
 
-[Colaboratory](https://colab.research.google.com/)简称 Colab）,是Google提供的一个免费的云服务，可以在浏览器中编写和执行 Python 代码，并且无需任何配置可以免费使用 GPU（虽然免费的只能用T4GPU，如果想要使用A100或者V100就需要付费了）。借助 Colab，只需使用几行代码，即可导入图像数据集、用图像数据集训练图像分类器，以及评估模型等等。Colab 笔记本会在 Google 的云服务器中执行代码，也就是说，无论您所用机器的功能如何，您都可以利用 Google 硬件（包括 GPU 和 TPU）的强大性能。只要有个浏览器即可。在 Hugging face 以及Langchain上提供的一些示例代码，可以直接在 Colab 上运行。    
+（[Colaboratory](https://colab.research.google.com/)简称 Colab）,是Google提供的一个免费的云服务，可以在浏览器中编写和执行 Python 代码，并且无需任何配置可以免费使用 GPU（虽然免费的只能用T4GPU，如果想要使用A100或者V100就需要付费了）。借助 Colab，只需使用几行代码，即可导入图像数据集、用图像数据集训练图像分类器，以及评估模型等等。Colab 笔记本会在 Google 的云服务器中执行代码，也就是说，无论您所用机器的功能如何，您都可以利用 Google 硬件（包括 GPU 和 TPU）的强大性能。只要有个浏览器即可。在 Hugging face 以及Langchain上提供的一些示例代码，可以直接在 Colab 上运行。    
 
 ## Google AI Studio
 
@@ -53,19 +58,19 @@ bash Anaconda3-2024.02-1-Linux-x86_64.sh
 ~/install/anaconda3/bin$ ./anaconda-navigator
 ```
 
- - 查看安装结果：conda info    
- - 查看版本：conda -V    
- - 查看已安装虚拟环境列表 conda env list     
- - 设置conda 的基础环境在启动终端时不被激活：conda config --set auto_activate_base false    
- - 创建新环境 conda create -n <your_env_name> python=x.x    
- - 删除已有的虚拟环境 conda remove -n <your_env_name> --all    
- - 激活环境：conda activate <your_env_name>    
- - 退出环境：conda deactivate <your_env_name>    
- - 复制环境：conda create -n <new_env_name> --clone <origin_env_name>     
- - 查看已安装的包：conda list    
- - 搜索包：conda search <package_name1>    
- - 安装包：conda install <package_name1> <package_name2> 或者 pip install <package_name1> <package_name2>    
- - 卸载包：conda remove <package_name> 或者 pip remove <package_name>     
+ - 查看安装结果：`conda info`    
+ - 查看版本：`conda -V`    
+ - 查看已安装虚拟环境列表 `conda env list`     
+ - 设置conda 的基础环境在启动终端时不被激活：`conda config --set auto_activate_base false`    
+ - 创建新环境 `conda create -n <your_env_name> python=x.x`    
+ - 删除已有的虚拟环境 `conda remove -n <your_env_name> --all`    
+ - 激活环境：`conda activate <your_env_name>`    
+ - 退出环境：`conda deactivate <your_env_name>`    
+ - 复制环境：`conda create -n <new_env_name> --clone <origin_env_name>`     
+ - 查看已安装的包：`conda list`    
+ - 搜索包：`conda search <package_name1>`    
+ - 安装包：`conda install <package_name1> <package_name2>` 或者 `pip install <package_name1> <package_name2>`    
+ - 卸载包：`conda remove <package_name>` 或者 `pip remove <package_name>`     
 
 Anaconda卸载：     
 删除Anaconda3文件夹：     

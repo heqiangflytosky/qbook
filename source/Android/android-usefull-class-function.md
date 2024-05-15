@@ -69,8 +69,8 @@ date: 2016-6-12 10:00:00
  35. ViewOverlay 和 ViewGroupOverlay：ViewOverlay 是位于 View 视图层顶部的一个附加层，在 View 所有内容绘制完成后被绘制。 ViewGroupOverlay 是 ViewOverlay 的子类，对应于 ViewGroup，同样地，这个层在 ViewGroup中所有内容（包括childView）绘制完毕后才会被绘制。这个层和我们的 View 拥有同样的尺寸，可看做浮在 View 上方的一个二维空间。
  36. GhostView：GhostView可以在不改变View的parent的情况下，在自己的Overlay里绘制另一个View。被绘制的View不会在它的Parent里绘制，因为View的visibility被设为INVISIBLE。GhostView使用被绘制的View的 render node去绘制。当GhostView为VISIBLE时，它所绘制的View为INVISIBLE；当GhostView为INVISIBLE时，它所绘制的View为VISIBLE。可以用来做转场动画等，实现无缝切换。
  37. GestureDetector: Android 手势检测，可以使用 MotionEvents 检测各种手势和事件。比如：单击，双击，长按，拖动，滑动等等。
- 38. 关于View的剪切：setClipBounds()可以实现，但是被剪切部分只是没有绘制出来，还是可以接受事件。setBottom和setTop等方法会使View的实际宽高发生变化，没有绘制区域是不接受事件的。
-
+ 38. 关于View的剪切：setClipBounds()可以实现，但是被剪切部分只是没有绘制出来，还是可以接受事件。setBottom和setTop等方法会使View的实际宽高发生变化，没有绘制的区域是不接受事件的。
+ 39. MotionLayout:它是google推出的一种实现动画的布局view，基于ConstraintLayout为基础，可以让开发者直接通过xml布局的方式来轻松实现动画。
 
 ## Java
 

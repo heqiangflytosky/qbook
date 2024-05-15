@@ -291,7 +291,7 @@ Colab已经对Gemini提供了支持，因此不需要安装模块就行了。
     提供的信息中没有提到百川大模型。
 ```
 
-## OpenAI
+## 基于OpenAI
 ```
     !pip install -qU pypdf langchain openai chromadb tiktoken langchain-openai
 ```

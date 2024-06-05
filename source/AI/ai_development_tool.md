@@ -19,6 +19,7 @@ https://zhuanlan.zhihu.com/p/675078682
 
 [modelscope 官网](https://www.modelscope.cn/)    
 魔搭社区，中国版的Hugging face。    
+提供免费在线开发环境NoteBook。    
 
 ## Colab
 
@@ -88,6 +89,13 @@ rm -rf ~/.condarc ~/.conda ~/.continuum
 ```
  打开 ~/.bashrc (例如: vim ~/.bashrc)，找到与conda 相关的，注释掉即可。
 ```
+
+## gradio
+
+Gradio 是一个开源而且非常灵活和易于使用的 Python 库，用于构建演示机器学习或数据科学，以及 web 应用程序。可以帮助您快速构建机器学习模型的用户友好界面，是一个非常好用的大模型展示工具。无论你是机器学习专业人士还是新手，Gradio都是一个非常有用的工具，可以帮助您将模型部署到生产环境中，并通过Web应用程序向最终用户提供服务。    
+[Gradio官网](https://www.gradio.app/)    
+[Gradio Github 源码](https://github.com/gradio-app/gradio)
+
 
 
 

@@ -642,6 +642,11 @@ UMS 有下列变量来存储用户的相关信息：
  - `mStartedUserArray`表示mStartedUsers中当前正在运行的用户列表的index，即mStartedUsers中除去正在关闭和已经被关闭状态外的用户
 
 ## 创建用户
+### 命令创建
+
+```
+adb shell pm create-user testUser
+```
 
 ### UserManagerService
 
@@ -812,6 +817,12 @@ UMS 中创建用户是在`createUser()`方法中实现的：
 对每一个用户，系统都会以 `PackageuserState` 类来保护其安装的每一个包状态。它以`SparseArray`的形式由 `PackageSetting` 类来保护，`PackageSetting` 存储了每一个安装包的数据。也就是说对于每个安装包，里面都有个每个用户对应的列表 `userState` 来存储该安装包对于不同用户的不同状态，比如针对该用户是否隐藏以及是否标识为已安装状态。具体详细介绍参考我的介绍 `PackageManagerService` 的博客。
 
 ## 切换用户
+
+### 命令切换
+
+```
+adb shell am switch-user <userid>
+```
 
 ### ActivityManagerService
 

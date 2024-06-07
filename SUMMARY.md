@@ -5,6 +5,7 @@
     * [AI 开发工具](source/AI/ai_development_tool.md)
     * [Colab + Langchain 简单实现 RAG](source/AI/ai_rag_simple_implementation.md)
     * [ChatGLM 3 本地安装部署以及快速入门](source/AI/ai_llm_chatglm3_deployment.md)
+    * [LangChain 介绍](source/AI/ai_langchain_overview.md)
 * [Android]()
     * [Android 常用调试知识](source/Android/android-knowledge-debug-skill-one.md)
     * [Android IPC 之 AIDL](source/Android/android-ipc-aidl.md)

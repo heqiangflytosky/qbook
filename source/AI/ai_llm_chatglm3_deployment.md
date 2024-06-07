@@ -17,7 +17,7 @@ ChatGLM3 是智谱AI和清华大学 KEG 实验室联合发布的对话预训练�
 [GitHub 地址](https://github.com/THUDM/ChatGLM3)
 
 模型下载：
-HF：https://huggingface.co/THUDM
+HF：https://huggingface.co/THUDM    
 魔搭：https://modelscope.cn/models/ZhipuAI
 
 ## 环境准备
@@ -37,16 +37,16 @@ import torch
 print(torch.__version__)
 ```
 
-如果输出结果是 `2.2.1+cu118` 则表示当前PyTorch版本符合要求，其中cu代表cuda，是GPU的版本。如果返回的结果是`1.x.x+cpu`，则说明当前PyTorch版本过低，且只支持cpu运行模式。那么就要重新安装。
-如果PyTorch版本符合要求，那么再来测试一下是否能调用cuda完成gpu运算。
+如果输出结果是 `2.2.1+cu118` 则表示当前PyTorch版本符合要求，其中cu代表cuda，是GPU的版本。如果返回的结果是`1.x.x+cpu`，则说明当前PyTorch版本过低，且只支持cpu运行模式。那么就要重新安装。    
+如果PyTorch版本符合要求，那么再来测试一下是否能调用cuda完成gpu运算。    
 
 ```
 print(torch.cuda.is_available())
 ```
 
-如果返回True，那么表示和cuda兼容，如果fase则表示当前cuda不兼容，需要重新安装或者升级cuda版本。
+如果返回True，那么表示和cuda兼容，如果fase则表示当前cuda不兼容，需要重新安装或者升级cuda版本。    
 
-如果重新安装PyTorch那么可以先删除现有版本：
+如果重新安装PyTorch那么可以先删除现有版本：    
 
 ```
 pip uninstall torch torchvision torchaudio
@@ -99,9 +99,9 @@ model = AutoModel.from_pretrained(path, trust_remote_code=True).quantize(8).cuda
 model = model.eval()
 ```
 
-`AutoTokenizer.from_pretrained` 加载模型文件可以是repo id，也可以是本地路径。
-如果是 "THUDM/chatglm3-6b" 就会从huggingface下载并缓存，缓存路径是 ~/.cache/huggingface/modules/transformers_modules/THUDM/chatglm3-6b/。
-如果是"/path/to/model/"这种本地路径，就可以避免访问http://huggingface.co，从而迅速加载模型。
+`AutoTokenizer.from_pretrained` 加载模型文件可以是repo id，也可以是本地路径。    
+如果是 "THUDM/chatglm3-6b" 就会从huggingface下载并缓存，缓存路径是 ~/.cache/huggingface/modules/transformers_modules/THUDM/chatglm3-6b/。    
+如果是"/path/to/model/"这种本地路径，就可以避免访问http://huggingface.co，从而迅速加载模型。    
 
 ```
 response, history = model.chat(tokenizer, "你好", history=[])
@@ -234,7 +234,7 @@ ChatCompletion(id='', choices=[Choice(finish_reason='stop', index=0, logprobs=No
 
 ## 定制
 
-如果运行时遇到 `torch.cuda.OutOfMemoryError: CUDA out of memory.` 的问题，可以限制一下模型的加载精度：
+如果运行时遇到 `torch.cuda.OutOfMemoryError: CUDA out of memory.` 的问题，可以限制一下模型的加载精度：    
 
 ```
 #api_server.py

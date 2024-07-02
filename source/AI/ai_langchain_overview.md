@@ -13,37 +13,11 @@ date: 2024-6-5 10:00:00
 ## 概述
 
 LangChain 是一种大模型应用开发框架，提供了构建基于大模型的 AI 应用所需的模块和工具，使得与语言模型中各种数据的连接、语言模型的应用和优化变得简单直接，大大降低了 AI 应用开发的门槛。
-其他类似框架：SK、LlamaIndex、AutoGPT。
+其他类似框架：LlamaIndex、AutoChain。
 
 [LangChain 官网](https://python.langchain.com)
 [中文文档](https://python.langchain.com.cn/docs/)
 [LangChain Java 版](https://github.com/langchain4j)
-
-## LangChain的6大模块
-
-<img src="/images/ai_langchain_overview/langchain.png" width="793" height="641"/>
-
- - 模型 I/O
- - 链
- - 数据增强
- - 回调处理器
- - 记忆
- - Agent
-
-1. 模型I/O（Model IO）：包含：Prompts、 Language models 和 Output parsers。对于任何大语言模型应用来说，其核心无疑都是模型自身。LangChain提供了与任何大语言模型均适配的模型包装器（模型I/O的功能），分为LLM和聊天模型包装器（Chat Model）。模型包装器的提示词模板功能使得开发者可以模板化、动态选择和管理模型输入。LangChain自身并不提供大语言模型，而是提供统一的模型接口。模型包装器这种包装方式允许开发者与不同模型平台底层的API进行交互，从而简化了大语言模型的调用，降低了开发者的学习成本。此外，其输出解析器也能帮助开发者从模型输出中提取所需的信息。    
-
-2. 数据增强（Data Connection）：许多LLM应用需要的用户特定数据并不在模型的训练集中。LangChain提供了加载、转换、存储和查询数据的构建块。开发者可以利用文档加载器从多个来源加载文档，通过文档转换器进行文档切割、转换等操作。矢量存储和数据检索工具则提供了对嵌入数据的存储和查询功能。    
-
-3. 链（Chain）：单独使用LLM对于简单应用可能是足够的，但面对复杂的应用，往往需要将多个LLM模型包装器或其他组件进行链式连接。LangChain为此类“链式”应用提供了接口。    
-
-4. 记忆（Memory）：大部分的LLM应用都有一个对话式的界面，能够引用之前对话中的信息是至关重要的。LangChain提供了多种工具，帮助开发者为系统添加记忆功能。记忆功能可以独立使用，也可以无缝集成到链中。记忆模块需要支持两个基本操作，即读取和写入。在每次运行中，链首先从记忆模块中读取数据，然后在执行核心逻辑后将当前运行的输入和输出写入记忆模块，以供未来引用。    
-
-5.  Agent：核心思想是利用LLM选择操作序列。在链中，操作序列是硬编码的，而在 Agent 代理中，大语言模型被用作推理引擎，确定执行哪些操作，以及它们的执行顺序。    
-
-6. 回调处理器（Callback）：LangChain 提供了一个回调系统，允许开发者在LLM应用的各个阶段对状态进行干预。这对于日志记录、监视、流处理等任务非常有用。开发者可以通过 API 提供的 callbacks 参数来订阅这些事件。    
-
-
-## 简单介绍
 
 1.Providers
 
@@ -67,10 +41,40 @@ Langchain 提供的大模型以及组件和接口等。
  - Tools：工具
  - Toolkits：工具集
  - Callback：回调
+ - Agent：
  
 3.LangChain Expression Language (LCEL)
 
 LangChain表达式语言（LCEL）使得构建复杂的链变得更加容易。
+
+4.LangChain 生态
+ - LangSmith：用于构建生产级 LLM 应用程序的平台。可以用于调试、测试、评估和监控大语言模型（LLM）应用
+ - LangGraph：在 LangChain 基础上的一个库,是 LangChain 的LangChain Expression Language(LCEL)的扩展。
+ - LangServe：用于一键部署 LangChain 应用程序，提供REST API。
+
+## LangChain的6大模块
+
+<img src="/images/ai_langchain_overview/langchain.png" width="793" height="641"/>
+
+ - 模型 I/O
+ - 链
+ - 数据增强
+ - 回调处理器
+ - 记忆
+ - Agent
+
+1. 模型I/O（Model IO）：包含：Prompts、 Language models 和 Output parsers。对于任何大语言模型应用来说，其核心无疑都是模型自身。LangChain提供了与任何大语言模型均适配的模型包装器（模型I/O的功能），分为LLM和聊天模型包装器（Chat Model）。模型包装器的提示词模板功能使得开发者可以模板化、动态选择和管理模型输入。LangChain自身并不提供大语言模型，而是提供统一的模型接口。模型包装器这种包装方式允许开发者与不同模型平台底层的API进行交互，从而简化了大语言模型的调用，降低了开发者的学习成本。此外，其输出解析器也能帮助开发者从模型输出中提取所需的信息。    
+
+2. 数据增强（Data Connection）：许多LLM应用需要的用户特定数据并不在模型的训练集中。LangChain提供了加载、转换、存储和查询数据的构建块。开发者可以利用文档加载器从多个来源加载文档，通过文档转换器进行文档切割、转换等操作。矢量存储和数据检索工具则提供了对嵌入数据的存储和查询功能。    
+
+3. 链（Chain）：单独使用LLM对于简单应用可能是足够的，但面对复杂的应用，往往需要将多个LLM模型包装器或其他组件进行链式连接。LangChain为此类“链式”应用提供了接口。    
+
+4. 记忆（Memory）：大部分的LLM应用都有一个对话式的界面，能够引用之前对话中的信息是至关重要的。LangChain提供了多种工具，帮助开发者为系统添加记忆功能。记忆功能可以独立使用，也可以无缝集成到链中。记忆模块需要支持两个基本操作，即读取和写入。在每次运行中，链首先从记忆模块中读取数据，然后在执行核心逻辑后将当前运行的输入和输出写入记忆模块，以供未来引用。    
+
+5.  Agent：核心思想是利用LLM选择操作序列。在 Agent 中，大语言模型被用作推理引擎，确定执行哪些操作，借助哪些工具，以及它们的执行顺序。        
+
+6. 回调处理器（Callback）：LangChain 提供了一个回调系统，允许开发者在LLM应用的各个阶段对状态进行干预。这对于日志记录、监视、流处理等任务非常有用。开发者可以通过 API 提供的 callbacks 参数来订阅这些事件。    
+
 
 ## 组件
 
@@ -443,6 +447,8 @@ LangChain 中集成了很多模型提供商的嵌入模型：
  - LlamaCppEmbeddings
  - VoyageAIEmbeddings
 
+[如何选择RAG的Embedding模型](https://techdiylife.github.io/blog/topic.html?category2=t07&blogid=0047)
+
 #### 向量存储
 
 向量存储是构建索引的最重要组件之一，用来存储前面嵌入模型生成的向量。    
@@ -452,6 +458,7 @@ LangChain 中集成了很多三方向量存储器：
  - Chroma
  - Dingo
  - SQLiteVSS
+ - DocArrayInMemorySearch:将整个文档以向量的形式存储在内存中，适用于小型数据集
 
 #### 检索
 
@@ -876,6 +883,8 @@ LangChain 中主要有以下几种 Chains:
  - 转换链 TransformChain
  - 文档链 BaseCombineDocumentsChain: StuffDocumentsChain、ReduceDocumentsChain、MapReduceDocumentsChain、RefineDocumentsChain、MapRerankDocumentsChain
  - 文档分析 AnalyzeDocumentChain:可用作端到端链。该链接收单个文档，将其拆分，然后通过合并文档链运行它。
+ - 问答链 QAGenerateChain:基于文档自动创建问答集，用于LLM自我评估
+ - 评估链 QAEvalChain：基于问答测试机对LLM的回复做自我评估
 
 #### 基础链（LLMChain）
 

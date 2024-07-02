@@ -307,3 +307,39 @@ public inline fun TODO(reason: String): Nothing = throw NotImplementedError("An 
  - ::fun ：在 run 方法中有介绍
  - return@方法名 ：在 run 方法中有介绍
 
+## 扩展函数
+
+Kotlin 能够扩展一个类的新功能而无需继承该类或者使用像装饰者这样的设计模式。 这通过叫做 扩展 的特殊声明完成。 例如，你可以为一个你不能修改的、来自第三方库中的类编写一个新的函数。 这个新增的函数就像那个原始类本来就有的函数一样，可以用普通的方法调用。 这种机制称为扩展函数 。此外，也有扩展属性 ， 允许你为一个已经存在的类添加新的属性。    
+建议向哪个类中添加扩展函数，就定义一个同名的Kotlin文件，便于以后查找。当然扩展函数可以定义在任何一个现有类中，并不一定非要创建新文件。不过通常而言，最好定义成顶层方法，这样可以让扩展函数拥有全局的访问域。    
+
+语法结构：
+
+```
+fun ClassName.methodName(param1: Int, param2: Int): Int {
+    //相关逻辑
+    return 0
+}
+```
+
+比如我们为 String 类扩展一个 `testFunc()` 方法：
+
+```
+    fun String.testFunc() : String {
+        return "testFunc"
+    }
+```
+
+接下来就可以调用方法了：    
+
+```
+Log.e("Test","Test".testFunc())
+```
+
+注意：扩展函数不能访问原有类的私有属性
+
+
+## 内联函数
+
+
+
+

@@ -170,6 +170,16 @@ OkHttp 也提供了对 WebSocket 的支持。
         builder.addInterceptor(loggingInterceptor);
 ```
 
+或者：    
+
+```
+        // 日志拦截器
+        var logInterceptor = HttpLoggingInterceptor()
+        logInterceptor.level = HttpLoggingInterceptor.Level.BODY
+        
+        .addInterceptor(logInterceptor)
+```
+
 ### 缓存
 
 OKHttp 提供了缓存机制以将我们的的 HTTP 和 HTTPS 请求的响应缓存到文件系统中，但是它默认是不使用缓存的，所以如果我们需要使用缓存，就得在实例化 OKHttpClient 的时候进行相关的配置。
@@ -208,6 +218,69 @@ OKHttp 提供了缓存机制以将我们的的 HTTP 和 HTTPS 请求的响应缓
         } catch (IOException e) {
             Log.e(TAG , "Http get error ", e);
         }
+```
+
+#### 有网络时请求服务器，无网络是本地缓存
+
+
+首先要配置本地缓存：    
+
+```
+        val cacheDirectory = File(AppUtils.getCacheDir(), "http_cache")
+        val okHttpBuilder = OkHttpClient.Builder()
+            .cache(Cache(cacheDirectory, CACHE_SIZE.toLong()))
+```
+
+如果服务端响应数据没有配置缓存相关的header，那么需要加上：    
+
+```
+        // 拦截器
+        val networkInterceptor = Interceptor { chain ->
+            Log.d(tag,"networkInterceptor")
+
+            val request = chain.request()
+            lateinit var response: Response
+            try {
+                response = chain.proceed(request)
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+
+            if (request.url().toString().startsWith(Api.BASE_URL)/* && !request.url().toString().startsWith(
+                    Api.SEARCH_URL
+                )*/
+            ) {
+                // 搜索数据不做缓存，其他数据做缓存
+                response.newBuilder()
+                    .header("Cache-Control", "max-age=$MAX_AGE")
+                    .build()
+            } else response
+        }
+```
+
+然后可以再网络拦截器中设置:    
+
+```
+        val connectionInterceptor = Interceptor { chain ->
+            Log.d(tag,"connectionInterceptor")
+            if (AppUtils.isConnected()) {
+                var request = chain.request()
+                request = request.newBuilder().cacheControl(CacheControl.FORCE_NETWORK).build()
+                chain.proceed(request)
+            } else {
+                Log.d(tag,"no network")
+                var request = chain.request()
+                request = request.newBuilder()
+                    .cacheControl(CacheControl.FORCE_CACHE)
+                    .build()
+                chain.proceed(request)
+            }
+        }
+```
+
+```
+            .addNetworkInterceptor(networkInterceptor)
+            .addInterceptor(logInterceptor)
 ```
 
 #### 常见问题

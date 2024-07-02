@@ -132,6 +132,69 @@ public interface UserDao {
 }
 ```
 
+#### 插入
+
+需求：约束数据name冲突时替换原有数据    
+使用indices指定数据库索引，unique设置其为唯一索引
+```
+@Entity(tableName = "search_history", indices = [Index(value = ["name"], unique = true)])
+class DBSearchHistoryItem{
+    @PrimaryKey(autoGenerate = true)
+    @ColumnInfo(name = "_id")
+    var id:Long? = null
+    @ColumnInfo(name = "name")
+    var name:String?
+    @ColumnInfo(name = "time")
+    var time: Long?
+
+    constructor(name:String,time:Long) {
+        this.name = name
+        this.time = time
+    }
+}
+```
+
+```
+@Dao
+interface SearchHistoryDao :BaseDao<DBSearchHistoryItem>{
+    // 约束数据冲突时替换原有数据
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    override fun insert(bean: DBSearchHistoryItem)
+    
+}
+```
+
+#### 删除
+
+需求：根据agentId删除列表：    
+
+```
+@Entity(tableName = "added_agent", indices = [Index(value = ["agentId"], unique = true)])
+class DBAddedAgentItem{
+    @PrimaryKey(autoGenerate = true)
+    @ColumnInfo(name = "_id")
+    var id:Long? = null
+    @ColumnInfo(name = "agentId")
+    var agentId:Long?
+
+    constructor(agentId:Long) {
+        this.agentId = agentId
+    }
+}
+
+data class AgentID (
+    var agentId:Long?
+)
+```
+
+```
+@Dao
+interface AddedAgentDao :BaseDao<DBAddedAgentItem>{
+    @Delete(DBAddedAgentItem::class)
+    fun deleteAgents(agentIDs: List<AgentID>)
+}
+```
+
 ### 创建数据库
 
 ```
@@ -155,6 +218,26 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract UserDao userDao();
 }
 ```
+
+### 监听数据库
+
+可以使用 Flow、LiveData、RxJava来对数据库的增删改进行监听：    
+
+```
+    @Query("select * from added_agent")
+    fun getAllData(): Flow<List<DBAddedAgentItem>>
+```
+
+```
+        CoroutineScope(Dispatchers.IO).launch {
+            dao.getAllAddedAgents().collect{
+                Log.e("log_tag", "data changed : $it")
+                
+            }
+        }
+```
+
+注意：这里调用 getAllData() 的Dao和增删改操作的Dao必须是同一个对象才能会有回调，否则不会。    
 
 ### 数据库升级
 

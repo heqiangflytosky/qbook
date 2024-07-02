@@ -306,6 +306,67 @@ public inline fun TODO(reason: String): Nothing = throw NotImplementedError("An 
 
  - ::fun ：在 run 方法中有介绍
  - return@方法名 ：在 run 方法中有介绍
+ 
+
+## 高阶函数
+
+### 回调函数
+
+定义方法：    
+
+```
+    fun doSomething(onSuccess:()->Unit = {},onFail:(msg:String)->Unit = {}) {
+        onSuccess()
+        onFail("error")
+    }
+```
+
+调用：    
+
+```
+        doSomething ( {
+            Log.d("Test","onSuccess")
+        })
+```
+
+```
+        doSomething ( {
+            Log.d("Test","onSuccess")
+        },{ msg->
+            Log.d("Test","onFail $msg")
+        })
+```
+
+```
+        doSomething ( onFail = { msg->
+            Log.d("Test","onFail $msg")
+        })
+```
+
+```
+        doSomething ( onSuccess = {
+            Log.d("Test","onSuccess")
+        }, onFail = { msg->
+            Log.d("Test","onFail $msg")
+        })
+```
+
+还可以定义一个回调方法：    
+
+```
+    }
+    ......
+        doSomething ( {
+            Log.d("Test","onSuccess")
+        },::handleResult)
+    }
+
+    fun handleResult(msg: String) {
+        // 在回调函数中处理结果
+        Log.d("Test","handleResult $msg")
+    }
+
+```
 
 ## 扩展函数
 

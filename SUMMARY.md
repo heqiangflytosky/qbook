@@ -124,6 +124,7 @@
     * [Android实用技巧之adb命令：getprop，setprop，watchprops命令的使用](source/Android实用技巧/android-development-skills-props.md)
     * [Android实用技巧之adb命令：am 命令的使用](source/Android实用技巧/android-development-skills-adb-am.md)
     * [Android实用技巧之adb命令：wm 命令的使用](source/Android实用技巧/android-development-skills-adb-wm.md)
+    * [Android实用技巧之adb命令：kill 命令的使用](source/Android实用技巧/android-development-skills-kill.md)
 * [Android开源项目]()
     * [Android热修复之AndFix使用简介](source/Android开源项目/open-source-andfix-introduction.md)
     * [Android热修复之AndFix源码分析](source/Android开源项目/open-source-andfix-source-code-analysis.md)

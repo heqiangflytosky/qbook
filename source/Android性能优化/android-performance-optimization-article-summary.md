@@ -15,7 +15,12 @@ date: 2016-2-20 10:00:00
 [另一个Android性能剖析工具——simpleperf](https://zhuanlan.zhihu.com/p/25277481)    
 [Simpleperf](https://developer.android.com/ndk/guides/simpleperf?hl=zh-cn)    
 [Android application profiling](https://android.googlesource.com/platform/system/extras/+/refs/heads/main/simpleperf/doc/android_application_profiling.md)    
-[Android Tech And Perf 的 Android Systrace 系列文章](https://www.androidperformance.com/2019/05/28/Android-Systrace-About/#)
+[Android Tech And Perf 的 Android Systrace 系列文章](https://www.androidperformance.com/2019/05/28/Android-Systrace-About/#)    
+[Where does TransactionTooLargeException come from if I didn’t do anything wrong?](https://proandroiddev.com/where-does-transactiontoolargeexception-come-from-if-i-didnt-do-anything-wrong-792843835d4f)    
+
+### 工具
+
+[toolargetool](https://github.com/guardian/toolargetool)    
 
 ## ANR
 

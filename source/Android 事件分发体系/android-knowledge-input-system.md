@@ -126,7 +126,6 @@ TouchState：`frameworks/native/services/inputflinger/dispatcher/TouchState.cpp`
  - 如果发生ANR的情况，通过系统服务进行响应的处理（抓日志，弹对话框等）。    
 
 
-<img src="/images/android-knowledge-event-transfer-process-debug-skill/system_server_iq_oq_wq.png" width="721" height="351"/>
 https://www.jianshu.com/p/386bbb5fa29a
 
 

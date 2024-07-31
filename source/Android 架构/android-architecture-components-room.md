@@ -160,7 +160,9 @@ interface SearchHistoryDao :BaseDao<DBSearchHistoryItem>{
     // 约束数据冲突时替换原有数据
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     override fun insert(bean: DBSearchHistoryItem)
-    
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertList(list: List<DBSearchHistoryItem>)    
 }
 ```
 
@@ -192,6 +194,13 @@ data class AgentID (
 interface AddedAgentDao :BaseDao<DBAddedAgentItem>{
     @Delete(DBAddedAgentItem::class)
     fun deleteAgents(agentIDs: List<AgentID>)
+    
+    @Query("delete from added_agent")
+    fun deleteAll()
+    
+    // 适用于清除表数据时 PrimaryKey 也需要重置的情况
+    @Query("DELETE FROM sqlite_sequence WHERE name = 'added_agent'")
+    fun recordDeletion()
 }
 ```
 

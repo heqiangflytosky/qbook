@@ -487,3 +487,15 @@ adb shell am send-trim-memory com.example.heqiang.testsomething RUNNING_CRITICAL
 `am crash <pkg_name>`，让一个应用弹出Crash弹框，可以选择终止应用
 
 比如：adb shell am crash com.android.systemui，这个命令可以杀死一下
+
+## am trace-ipc
+
+```
+adb shell am trace-ipc start
+adb shell am trace-ipc stop --dump-file /data/local/tmp/ipc-trace.txt
+```
+
+binder 传到客户端会进行堆栈打印    
+SystemServer 那块也会打印堆栈。由此可以定位 binder 源码的位置    
+
+

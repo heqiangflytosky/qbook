@@ -310,6 +310,56 @@ public inline fun TODO(reason: String): Nothing = throw NotImplementedError("An 
 
 ## 高阶函数
 
+高阶函数定义：参数有函数类型或者返回值是函数类型的函数。    
+
+### 基本介绍
+
+函数作为参数，下面分别介绍了无参函数和有参函数作为函数参数的情况：    
+
+```
+    fun testFunc() {
+        test1(::getString)
+        test2("AAA",::appendString)
+    }
+
+    fun test1(f:()->String) {
+        var str = f()
+        Log.d("Test",str)
+    }
+
+    fun test2(str: String,f:(s: String)->String) {
+        var str = f(str)
+        Log.d("Test",str)
+    }
+
+    fun getString() :String{
+        return "TestString"
+    }
+
+    fun appendString(str:String):String{
+        return "TestString $str"
+    }
+```
+
+函数作为返回值：
+
+
+```
+    fun testFunc2() {
+        //调用,返回的是一个匿名类型，所以info就是一个匿名函数
+        val info=show()
+        //info接受的返回值为匿名类型，此时info就是一个匿名函数
+        Log.w("Test",info("kotlin",20))
+    }
+
+    fun show():(String,Int)->String{
+        Log.d("Test","show func")
+        return {
+                name,age-> "我叫$name,我今年$age"
+        }
+    }
+```
+
 ### 回调函数
 
 定义方法：    

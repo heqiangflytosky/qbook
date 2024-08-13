@@ -270,7 +270,7 @@
     * [Kotlin -- 异步操作](source/Kotlin/kotlin-coroutines-async.md)
     * [Kotlin -- 集合](source/Kotlin/kotlin-set-list-api.md)
     * [Kotlin -- 泛型](source/Kotlin/kotlin-generics.md)
-    * [Kotlin -- 泛型](source/Kotlin/kotlin-flow.md)
+    * [Kotlin -- Flow](source/Kotlin/kotlin-flow.md)
 * [OpenGL]()
     * [OpenGL ES -- 基础知识](source/OpenGL/opengl-es-basic-knowledge.md)
     * [OpenGL ES -- 基础绘制](source/OpenGL/opengl-es-basic-render.md)

@@ -822,6 +822,12 @@ StateFlow 是粘性的，以上面代码为例，当我们把Activity放到后�
 
 ### SharedFlow
 
+`shareIn` 可以把 Flow 转换成 SharedFlow，它接受三个参数：    
+ - scope：作用域
+ - started：启动策略，SharingStarted.Eagerly:立即启动；SharingStarted.Lazily：在第一个订阅者出现后开始共享数据，并使数据流永远保持活跃状态；SharingStarted.WhileSubscribed()：存在订阅者时，将使上游提供方保持活跃状态。    
+ - replay：订阅时从流中回放的元素数量
+同样还可以通过 MutableSharedFlow 来创建。    
+
 ```
     var counter = 0
     var sharedFlow = MutableSharedFlow<Int>()

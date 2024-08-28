@@ -12,11 +12,11 @@ date: 2024-6-5 10:00:00
 
 ## 概述
 
-LangChain 是一种大模型应用开发框架，提供了构建基于大模型的 AI 应用所需的模块和工具，使得与语言模型中各种数据的连接、语言模型的应用和优化变得简单直接，大大降低了 AI 应用开发的门槛。
-其他类似框架：LlamaIndex、AutoChain。
+LangChain 是一种大模型应用开发框架，提供了构建基于大模型的 AI 应用所需的模块和工具，使得与语言模型中各种数据的连接、语言模型的应用和优化变得简单直接，大大降低了 AI 应用开发的门槛。    
+LangChain 在 2022 年 10 月在 GitHub 上开源。其他类似框架：LlamaIndex、AutoChain。
 
-[LangChain 官网](https://python.langchain.com)
-[中文文档](https://python.langchain.com.cn/docs/)
+[LangChain 官网](https://www.langchain.com)：官方提供了 python 和 js 版本。
+[中文文档](https://www.langchain.com.cn/)
 [LangChain Java 版](https://github.com/langchain4j)
 
 1.Providers
@@ -41,17 +41,19 @@ Langchain 提供的大模型以及组件和接口等。
  - Tools：工具
  - Toolkits：工具集
  - Callback：回调
- - Agent：
+ - Agent：智能体
  
 3.LangChain Expression Language (LCEL)
 
-LangChain表达式语言（LCEL）使得构建复杂的链变得更加容易。
+LangChain表达式语言（LCEL）使得构建复杂的链变得更加容易。提供更好的异步、批处理和流支持、Fallbacks、并行性以及无缝集成LangSmith。
 
 4.LangChain 生态
- - LangSmith：用于构建生产级 LLM 应用程序的平台。可以用于调试、测试、评估和监控大语言模型（LLM）应用
- - LangGraph：在 LangChain 基础上的一个库,是 LangChain 的LangChain Expression Language(LCEL)的扩展。
- - LangServe：用于一键部署 LangChain 应用程序，提供REST API。
+ - LangSmith：用于构建生产级 LLM 应用程序的平台。可以用于调试、测试、评估和监控大语言模型（LLM）应用。可以和 LangChain 无缝对接，配置简单。
+ - LangGraph：在 LangChain 基础上的一个扩展库，基于图这一数学概念，作为大型语言模型驱动应用的框架。用于更好地支持包含循环的LLM工作流以及多代理工作流的创建。
+ - [LangServe](https://python.langchain.com/v0.2/docs/langserve/)：用于一键部署 LangChain 开发的应用程序，可以是 Runnable 、Chain等，并提供REST API。
+ - [Templates](https://github.com/langchain-ai/langchain/tree/master/templates/)：基于各种流行的LLM用例，快速构建可用于生产的LLM应用程序，并使用LangServe轻松部署。
 
+<img src="/images/ai_langchain_overview/langchain-1.png" width="988" height="909"/>
 ## LangChain的6大模块
 
 <img src="/images/ai_langchain_overview/langchain.png" width="793" height="641"/>
@@ -63,18 +65,21 @@ LangChain表达式语言（LCEL）使得构建复杂的链变得更加容易。
  - 记忆
  - Agent
 
-1. 模型I/O（Model IO）：包含：Prompts、 Language models 和 Output parsers。对于任何大语言模型应用来说，其核心无疑都是模型自身。LangChain提供了与任何大语言模型均适配的模型包装器（模型I/O的功能），分为LLM和聊天模型包装器（Chat Model）。模型包装器的提示词模板功能使得开发者可以模板化、动态选择和管理模型输入。LangChain自身并不提供大语言模型，而是提供统一的模型接口。模型包装器这种包装方式允许开发者与不同模型平台底层的API进行交互，从而简化了大语言模型的调用，降低了开发者的学习成本。此外，其输出解析器也能帮助开发者从模型输出中提取所需的信息。    
+1. 模型I/O（Model IO）：包含：Prompts、 Language models 和 Output parsers。对于任何大语言模型应用来说，其核心无疑都是模型自身。LangChain提供了与任何大语言模型均适配的模型包装器（模型I/O的功能），分为LLM和聊天模型包装器（Chat Model）。模型包装器的提示词模板功能使得开发者可以模板化、动态选择和管理模型输入。LangChain自身并不提供大语言模型，而是提供统一的模型接口。模型包装器这种包装方式允许开发者与不同模型平台底层的API进行交互，从而简化了大语言模型的调用，降低了开发者的学习成本。此外，其输出解析器也能帮助开发者从模型输出中提取所需的信息。      
 
-2. 数据增强（Data Connection）：许多LLM应用需要的用户特定数据并不在模型的训练集中。LangChain提供了加载、转换、存储和查询数据的构建块。开发者可以利用文档加载器从多个来源加载文档，通过文档转换器进行文档切割、转换等操作。矢量存储和数据检索工具则提供了对嵌入数据的存储和查询功能。    
+2. 数据增强（Data Connection）：许多LLM应用需要的用户特定数据并不在模型的训练集中。LangChain提供了加载、转换、存储和查询数据的构建块。开发者可以利用文档加载器从多个来源加载文档，通过文档转换器进行文档切割、转换等操作。矢量存储和数据检索工具则提供了对嵌入数据的存储和查询功能。      
 
-3. 链（Chain）：单独使用LLM对于简单应用可能是足够的，但面对复杂的应用，往往需要将多个LLM模型包装器或其他组件进行链式连接。LangChain为此类“链式”应用提供了接口。    
+3. 链（Chain）：单独使用LLM对于简单应用可能是足够的，但面对复杂的应用，往往需要将多个LLM模型包装器或其他组件进行链式连接。LangChain为此类“链式”应用提供了接口。可以定义一系列有序步骤以完成特定任务。      
 
-4. 记忆（Memory）：大部分的LLM应用都有一个对话式的界面，能够引用之前对话中的信息是至关重要的。LangChain提供了多种工具，帮助开发者为系统添加记忆功能。记忆功能可以独立使用，也可以无缝集成到链中。记忆模块需要支持两个基本操作，即读取和写入。在每次运行中，链首先从记忆模块中读取数据，然后在执行核心逻辑后将当前运行的输入和输出写入记忆模块，以供未来引用。    
+4. 记忆（Memory）：大部分的LLM应用都有一个对话式的界面，能够引用之前对话中的信息是至关重要的。LangChain提供了多种工具，帮助开发者为系统添加记忆功能。记忆功能可以独立使用，也可以无缝集成到链中。记忆模块需要支持两个基本操作，即读取和写入。在每次运行中，链首先从记忆模块中读取数据，然后在执行核心逻辑后将当前运行的输入和输出写入记忆模块，以供未来引用。      
 
-5.  Agent：核心思想是利用LLM选择操作序列。在 Agent 中，大语言模型被用作推理引擎，确定执行哪些操作，借助哪些工具，以及它们的执行顺序。        
+5. Agent：在 Agent 中，大语言模型被用作推理引擎，确定执行哪些操作，借助哪些工具，以及它们的执行顺序。        
 
-6. 回调处理器（Callback）：LangChain 提供了一个回调系统，允许开发者在LLM应用的各个阶段对状态进行干预。这对于日志记录、监视、流处理等任务非常有用。开发者可以通过 API 提供的 callbacks 参数来订阅这些事件。    
+6. 回调处理器（Callback）：LangChain 提供了一个回调系统，允许开发者在LLM应用的各个阶段对状态进行干预。这对于日志记录、监视、流处理等任务非常有用。开发者可以通过 API 提供的 callbacks 参数来订阅这些事件。      
 
+下图简单介绍 LangChain 的组件的工作流程：      
+
+<img src="/images/ai_langchain_overview/langchain-flow.png" width="698" height="400"/>
 
 ## 组件
 
@@ -210,13 +215,13 @@ print(chain.run(question))
 接受一系列消息并返回消息输出的模型。Chat models 是 LLM 的一种变体。 虽然Chat models 在底层使用LLM，但它们使用的接口有点不同。它们不是使用“输入文本，输出文本”的API，而是使用“聊天消息”作为输入和输出的接口。    
 
 一些聊天模型提供流式响应。这意味着你可以在整个响应返回之前就开始处理它，而不是等待整个响应返回。如果你想要在生成响应时将其显示给用户，或者在生成响应时处理响应，这将非常有用。     
-而且我们也可以封装一个自定义 Chat models ：[How to create a custom chat model class](https://python.langchain.com/v0.2/docs/how_to/custom_chat_model/)    
 
 #### 通义千问
 
 ```
 from langchain_community.chat_models.tongyi import ChatTongyi
 from langchain_core.messages import HumanMessage, SystemMessage
+from google.colab import userdata
 import os
 
 os.environ["DASHSCOPE_API_KEY"] = userdata.get('ALI_API_KEY')
@@ -224,19 +229,33 @@ chatLLM = ChatTongyi(
     streaming=True,
 )
 # 流式响应
-res = chatLLM.stream([HumanMessage(content="hi")], streaming=True)
-for r in res:
-    print("chat resp:", r)
+stream =  chatLLM.stream([HumanMessage(content="请用300字来介绍一下你自己")], streaming=True)
+
+for chunk in stream :
+  print("chat resp:",chunk)
 ```
 
 ```
-
-
-chat resp: content='Hello' id='run-d2e59d8b-a31f-4992-886c-f6504dd07b5d'
-chat resp: content='!' id='run-d2e59d8b-a31f-4992-886c-f6504dd07b5d'
-chat resp: content=' How' id='run-d2e59d8b-a31f-4992-886c-f6504dd07b5d'
-chat resp: content=' can I assist you today' id='run-d2e59d8b-a31f-4992-886c-f6504dd07b5d'
-chat resp: content='?' response_metadata={'finish_reason': 'stop', 'request_id': 'be5b2e97-c315-942f-b8e4-44f89938d8a6', 'token_usage': {'input_tokens': 9, 'output_tokens': 9, 'total_tokens': 18}} id='run-d2e59d8b-a31f-4992-886c-f6504dd07b5d'
+chat resp: content='我' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='是一个' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='基于' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='大模型的AI助手' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='，能够理解和生成自然语言文本。' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='我被设计为提供信息、解答' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='问题、辅助决策和执行任务。' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='我的知识涵盖广泛的主题，包括但不限于' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='科学、技术、文化、历史、' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='艺术、日常生活等。我可以帮助用户' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='进行学术研究、学习辅导、创意' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='启发、日常事务管理、娱乐休闲' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='等。此外，我还具备多语言' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='能力，可以与来自不同国家和' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='地区的用户进行交流。我的目标是' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='通过智能、高效、个性化的服务' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='，为用户提供便捷、准确的信息支持' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='和解决方案，提升用户的生活质量和工作效率' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='。' id='run-7ee28add-489e-4d51-854c-1eb87146391c'
+chat resp: content='' response_metadata={'finish_reason': 'stop', 'request_id': 'f86cdc71-467b-988a-ad4a-5ac1311c5f02', 'token_usage': {'input_tokens': 17, 'output_tokens': 121, 'total_tokens': 138}} id='run-7ee28add-489e-4d51-854c-1eb87146391c'
 ```
 
 ```
@@ -257,13 +276,13 @@ AIMessage(content='春风吹绿江南岸，野花纷飞如蝴蝶。\n燕舞柳�
 
 #### BaseChatModel
 
+而且我们也可以封装一个自定义 Chat models ：[How to create a custom chat model class](https://python.langchain.com/v0.2/docs/how_to/custom_chat_model/)    
 Chat models 都继承自 BaseChatModel，下面再介绍一下其他一些常用的方法。    
 
-##### bind_tools
-
-https://python.langchain.com/v0.2/docs/integrations/chat/tongyi/
-
-##### bind
+ - bind_tools:https://python.langchain.com/v0.2/docs/integrations/chat/tongyi/
+ - bind
+ - stream
+ - astream
 
 ### Prompts
 
@@ -371,7 +390,7 @@ class BaseExampleSelector(ABC):
 内置样本选择器类型：   
 
  - LengthBasedExampleSelector：根据提示词长度选择要使用的示例。如果担心构建的提示会超出上下文窗口的长度时，可以使用这种选择器，对于较长的输入，它将选择较少的示例，而对于较短的输入，它将选择更多示例。
- - SemanticSimilarityExampleSelector：根据与输入的相似性选择示例。
+ - SemanticSimilarityExampleSelector：根据与输入的相似性选择示例。它使用嵌入模型来计算输入和少数样本之间的相似度。
  - MaxMarginalRelevanceExampleSelector：从一组候选示例中选择出与输入最相关且具有多样性的示例。它是 SemanticSimilarityExampleSelector 的子类，进行了一些算法上的优化。
  - NGramOverlapExampleSelector：根据 ngram 重叠分数，选择并排序与输入最相似的示例。
 
@@ -462,7 +481,7 @@ LangChain 中集成了很多三方向量存储器：
 
 #### 检索
 
-检索器是一个接口，根据非结构化查询返回文档。向量存储可以用作检索器的支撑，但也有其他类型的检索器。    
+检索器是一个接口，根据非结构化查询返回文档。向量存储可以用作检索器的支撑，所有向量存储都可以转换为检索器。但也有其他类型的检索器。检索器不需要能够存储文档，只需返回（或检索）它们即可，比如  Wikipedia search，AmazonKnowledgeBasesRetriever，ArxivRetriever等。    
 生成检索器的方法有如下几种：    
 
  - VectorStore.as_retriever():向量存储器的父类 VectorStore 提供了一个 as_retriever() 方法，返回一个 VectorStoreRetriever，使用 get_relevant_documents 获取相关文本。
@@ -870,7 +889,7 @@ https://zhuanlan.zhihu.com/p/642024080
 
 链允许我们将多个组件组合在一起，以创建一个单一的、连贯的应用程序。例如，我们可以创建一个链，该链接受用户输入，使用提示模板对其进行格式化，然后将格式化的响应传递给 LLM。我们可以通过将多个链组合在一起，或者通过将链与其他组件组合在一起来构建更复杂的链。    
 
-您可以通过子类Chains化自定义链实现特定的 NLP 任务。链还支持序列化到磁盘或者从磁盘加载。    
+您可以通过子类Chains化自定义链实现特定的任务。链还支持序列化到磁盘或者从磁盘加载。    
 
 官方已经开始大规模的废弃一些built-in的链，例如SequentialChain，RouterChain，LLMChain，TransformationChain，逐步由 LCEL 替代。    
 
@@ -889,7 +908,7 @@ LangChain 中主要有以下几种 Chains:
 #### 基础链（LLMChain）
 
 基础链（LLMChain）是一个简单的链，它围绕语言模型添加了一些功能。它在整个 LangChain 中广泛使用，包括其他链和代理。    
-LLMChain 由 PromptTemplate 和语言模型（LLM 或聊天模型）组成。它使用提供的输入键值（以及内存键值，如果可用）格式化提示模板，将格式化的字符串传递给 LLM 并返回 LLM 输出。     
+LLMChain 由 PromptTemplate 和语言模型（LLM 或聊天模型）组成。它使用提供的输入键值格式化提示模板，将格式化的字符串传递给 LLM 并返回 LLM 输出。     
 
 ```
 from langchain_core.prompts import PromptTemplate
@@ -905,7 +924,7 @@ llm = LLMChain(llm=ChatTongyi(), prompt=prompt)
 print(llm.run("香蕉")) #等价于 llm.run({"fruit": "香蕉"})
 ```
 
-LLMChain 类在 LangChain 0.1.17 版本中已被弃用，并将在 0.3.0 版本中移除。请改用 RunnableSequence，例如 prompt | llm。    
+LLMChain 类在 LangChain 0.1.17 版本中已被弃用，并将在 0.3.0 版本中移除。可以改用 `RunnableSequence`，例如通过 LECL 的管道操作符构造组合成链 `prompt | llm`。    
 
 ```
 from langchain_core.prompts import PromptTemplate
@@ -923,6 +942,8 @@ print(message.content)
 ```
 
 #### 对话链（ConversationChain）
+
+可以通过 ConversationChain 来实现具有记忆功能的多轮对话。     
 
 ```
 from langchain_core.prompts import PromptTemplate
@@ -942,14 +963,16 @@ print(conversation.run("那么第四种颜色呢？"))
 # 第四种颜色是绿色。在彩虹的颜色序列中，绿色紧接在黄色之后。
 ```
 
+历史信息存储在 `conversation.memory.buffer` 中。      
+
 #### 路由链 RouterChain
 
 路由链（RouterChain）用于创建可以动态选择下一条链的链。    
 
 RouterChain 由两个部分组成:
 
- - 路由链本身：负责选择下一条链
- - destination_chains：RouterChain 可以路由到的链
+ - 路由链本身RouterChain：负责选择下一条链
+ - 目的链DestinationChain：RouterChain 可以路由到的目的链
 
 RouterChain 的几种类型包括:    
 
@@ -957,6 +980,8 @@ RouterChain 的几种类型包括:
  - EmbeddingRouterChain：使用嵌入和相似性来路由到不同的链
 
 RouterChain 通常与其他链组合使用，比如 MultiPromptChain，可以根据问题动态选择不同的 prompt 来回答问题。    
+
+<img src="/images/ai_langchain_overview/router_chain.png" width="1041" height="627"/>
 
 总之，RouterChain 允许链动态地选择下一步的操作，实现更加智能和灵活的链。它是 Langchain 中实现链组合的重要组件之一。    
 
@@ -1065,8 +1090,8 @@ BaseChatMemory -> BaseChatMessageHistory
  - ConversationBufferMemory: 简单的将历史信息保存到内存，内存没有限制。
  - ConversationStringBufferMemory: 功能同ConversationBufferMemory，重载了save_context方法。
  - ConversationBufferWindowMemory: 增加一个窗口信息，保留最近的K条信息。
- - ConversationSummaryMemory: 保存用户与AI的对话内容摘要信息 
- - ConversationSummaryBufferMemory: 存储用户和AI的对话内容的摘要，并根据token长度来确定何时来确定何时刷新交互。
+ - ConversationSummaryMemory: 保存用户与AI的对话内容摘要信息，会在每轮对话后更新一次摘要。 
+ - ConversationSummaryBufferMemory: 存储用户和AI的对话内容的摘要，支持根据配置生成摘要的间隔，从而进一步降低计算消耗。
  - ConversationTokenBufferMemory: 根据token的长度保存用户和AI的对话内容。
  - CombinedMemory: 将多个对话历史信息保存的方式以list的方式组合，保存的信息是一样的，这样可以保证历史信息的高可用和并发。
 
@@ -1249,7 +1274,7 @@ StdOutCallbackHandler 将所有事件记录到 stdout
 
 ### Agent
 
-Agent的核心思想是使用语言模型（LLM）作为推理的大脑，以制定解决问题的计划、借助工具实施动作。LangChain 为实现 Agent 提供了标准接口，一系列可供选择的代理和端到端代理的示例。      
+Agent的核心思想是使用语言模型（LLM）作为推理的大脑，以制定解决问题的计划、然后借助工具实施动作，LangChain 为实现 Agent 提供了标准接口。      
 
 <img src="/images/ai_langchain_overview/agent.png" width="1000" height="400"/>
 

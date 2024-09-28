@@ -47,7 +47,7 @@ RAG的实现通常有下面几个流程：Load，Split，Embed和Store。
     from langchain_community.llms import HuggingFaceHub
     import os
 
-    os.environ['HUGGINGFACEHUB_API_TOKEN'] = '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'
+    os.environ['HUGGINGFACEHUB_API_TOKEN'] = 'hf_*****'
     llm = HuggingFaceHub(
         repo_id="HuggingFaceH4/zephyr-7b-beta",
         task="text-generation",
@@ -66,7 +66,7 @@ RAG的实现通常有下面几个流程：Load，Split，Embed和Store。
         SystemMessage,
     )
     from langchain_community.chat_models.huggingface import ChatHuggingFace
-    os.environ['HF_TOKEN'] = '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'
+    os.environ['HF_TOKEN'] = 'hf_*****'
     query = '百川大模型是什么?'
     messages = [
         SystemMessage(content="你是一个专业的知识助手"),

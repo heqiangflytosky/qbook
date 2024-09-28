@@ -45,13 +45,14 @@ Langchain 提供的大模型以及组件和接口等。
  
 3.LangChain Expression Language (LCEL)
 
-LangChain表达式语言（LCEL）使得构建复杂的链变得更加容易。提供更好的异步、批处理和流支持、Fallbacks、并行性以及无缝集成LangSmith。
+[LangChain表达式语言（LCEL）](https://python.langchain.com/v0.2/docs/how_to/#langchain-expression-language-lcel)使得构建复杂的链变得更加容易。提供更好的异步、批处理和流支持、Fallbacks、并行性以及无缝集成LangSmith。[LCEL old](https://python.langchain.com/v0.1/docs/expression_language/)
 
 4.LangChain 生态
- - LangSmith：用于构建生产级 LLM 应用程序的平台。可以用于调试、测试、评估和监控大语言模型（LLM）应用。可以和 LangChain 无缝对接，配置简单。
+ - [LangSmith](https://smith.langchain.com)：用于构建生产级 LLM 应用程序的平台，和 LangChain 无缝对接，配置简单。可以用于调试、测试、评估和监控大语言模型（LLM）应用，是贯穿产品的开发、测试、上线整个周期的可观测性平台。[LangSmith Doc](https://docs.smith.langchain.com/)、[LangSmith Doc old](https://docs.smith.langchain.com/old/)
  - LangGraph：在 LangChain 基础上的一个扩展库，基于图这一数学概念，作为大型语言模型驱动应用的框架。用于更好地支持包含循环的LLM工作流以及多代理工作流的创建。
  - [LangServe](https://python.langchain.com/v0.2/docs/langserve/)：用于一键部署 LangChain 开发的应用程序，可以是 Runnable 、Chain等，并提供REST API。
- - [Templates](https://github.com/langchain-ai/langchain/tree/master/templates/)：基于各种流行的LLM用例，快速构建可用于生产的LLM应用程序，并使用LangServe轻松部署。
+ - [Templates](https://github.com/langchain-ai/langchain/tree/master/templates/)：基于各种流行的LLM用例，快速构建可用于生产的LLM应用程序，并使用 LangServe 轻松部署。
+ - [LangChain Hub](https://smith.langchain.com/hub):用于管理和共享LLM提示词的在线平台。
 
 <img src="/images/ai_langchain_overview/langchain-1.png" width="988" height="909"/>
 ## LangChain的6大模块
@@ -1170,7 +1171,7 @@ llm_chain.predict(human_input="我叫什么名字？")
 ```
 
 
-#### 基于第三方向量索引的类
+#### 基于第三方数据库的类
 
 LangChain 中封装的第三方存储的类，带有Chat字样的类是为聊天设计的，主要保存聊天的历史信息。实现了add_message方法，不同的存在实现对应的逻辑。通过message方法(属性)获取历史信息。      
 下面列表部分实现：      

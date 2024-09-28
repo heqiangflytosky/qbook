@@ -552,13 +552,31 @@ public class com.example.heqiang.testsomething.util.JniUtils {
 | char | C |
 | short | S |
 | int | I |
-| long | L |
+| long | J |
 | float | F |
 | double | D |
 | void | V |
 | object 对象 | LClassName;L类名 |
-| Arrays | [array-type[数组类型 |
+| Arrays | [array-type[数组类型，比如： [I |
 | methods方法 | (argument-types)return-type(参数类型)返回类型 |
+
+```
+static JNINativeMethod gMethods_Base[] = {
+        {"stringFromJNI", "(I)Ljava/lang/String;", (void *) stringFromJNI},
+        {"create", "()J", (void *) create},
+        {"c_add", "(J[F)V", (void *) c_add},
+        {"c_write", "(JLjava/lang/String;)V", (void *) c_write},
+        {"c_search", "(J[FILjava/lang/String;)[J", (void *) c_search},
+};
+
+JNICALL stringFromJNI(JNIEnv *env, jclass clazz, jint number) {}
+JNIEXPORT jlong JNICALL create(JNIEnv *env, jclass clazz){}
+JNIEXPORT void JNICALL c_add( //
+        JNIEnv* env, jclass clazz, jlong c_ptr, jfloatArray vector) {}
+JNIEXPORT void JNICALL c_write(JNIEnv *env, jclass clazz, jlong c_ptr, jstring path){}
+JNIEXPORT jlongArray JNICALL c_search( //
+        JNIEnv* env, jclass clazz, jlong c_ptr, jfloatArray vector, jint count, jstring path) {}
+```
 
 ### 类型转换
 
@@ -569,6 +587,13 @@ jstring -> char* ：
 
     const char *r2c = env->GetStringUTFChars(r2, 0);
     LOGD("call testObject2 sucessfully %s",r2c);
+```
+
+jfloatArray -> jfloat*
+
+```
+jfloatArray vector
+jfloat* vector_data = (*env).GetFloatArrayElements(vector, 0);
 ```
 
 ### 其他

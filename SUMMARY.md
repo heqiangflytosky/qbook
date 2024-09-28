@@ -80,7 +80,7 @@
     * [Android 窗口事件相关设置](source/Android 事件分发体系/android-knowledge-window-event-settings.md)
     * [Android Input 系统简介](source/Android 事件分发体系/android-knowledge-input-system.md)
 * [Android 窗口系统]()
-    * [Android 图形系统 -- Canvas使用](source/Android 窗口系统/android-window-system-window-tree-basic.md)
+    * [Android 窗口层级树](source/Android 窗口系统/android-window-system-window-tree-basic.md)
 * [Android 图形系统]()
     * [Android 图形系统 -- Canvas使用](source/Android 图形系统/android-graphic-system-canvas-sample.md)
     * [Android 图形系统 -- Window，DecorView 和 ViewRootImpl](source/Android 图形系统/android-graphic-system-decorview-viewrootimpl.md)

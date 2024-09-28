@@ -9,10 +9,10 @@ date: 2022-11-23 10:00:00
 
 ## 窗口的概念
 
-在 Android 中，一个显示界面由多个窗口（Window）组成。    
-从应用侧来看，窗口以PhoneWindow的形式存在，承载了一个应用界面的 View 层级结构。statusbar、navigationbar、Activity、Wallpaper 等都分别占据一个窗口，每个窗口都有一个Z轴的属性，高的窗口会盖在低的窗口之上，所以才会有statusbar 和 navigationbar覆盖在 Activity和Wallpaper之上，而 Activity 又会优先于 Wallpaper 显示。    
+在 Android 中，一个显示界面由多个窗口（Window）组成。       
+从应用侧来看，窗口以PhoneWindow的形式存在，承载了一个应用界面的 View 层级结构。statusbar、navigationbar、Activity、Wallpaper 等都分别占据一个窗口，每个窗口都有一个Z轴的属性，高的窗口会盖在低的窗口之上，所以才会有statusbar 和 navigationbar覆盖在 Activity和Wallpaper之上，而 Activity 又会优先于 Wallpaper 显示。       
 
-我们可以通过 `adb shell dumpsys window w` 来查看当前系统的窗口的信息。    
+我们可以通过 `adb shell dumpsys window w` 来查看当前系统的窗口的信息。       
 
 ```
 WINDOW MANAGER WINDOWS (dumpsys window windows)
@@ -64,11 +64,11 @@ WINDOW MANAGER WINDOWS (dumpsys window windows)
 
 ```
 
-从系统侧看，Android11 以后，使用 `WindowContainer` 组成的树来描述整个显示界面。为方便叙述，本文称这棵树为窗口容器树。    
+从系统侧看，Android11 以后，使用 `WindowContainer` 组成的树来描述整个显示界面。为方便叙述，本文称这棵树为窗口容器树。       
 我们可以通过 `adb shell dumpsys activity containers` 命令查看整个窗口容器树的描述。打印信息很长，在这里就不做展示了，后面会分析。        
 从代码侧来看，应用端的窗口指的是 Window， framework 层的窗口指的是 WindowState，而 SurfaceFlinger 侧指的是 Layer。      
-在WMS窗口体系中，一个 WindowState 对象就代表了一个窗口。WMS为了管理窗口，创建了多个 WindowContainer 及其子类，来对 WindowState 进行分类，不同的窗口类型和层级关系，从而对窗口进行系统化的管理。   
-我们可以用Android UI 中的 View 树来类比，WindowContainer 及其子类就像 View 树中的 View 和 ViewGroup。    
+在WMS窗口体系中，一个 WindowState 对象就代表了一个窗口。WMS为了管理窗口，创建了多个 WindowContainer 及其子类，来对 WindowState 进行分类，不同的窗口类型和层级关系，从而对窗口进行系统化的管理。       
+我们可以用Android UI 中的 View 树来类比，WindowContainer 及其子类就像 View 树中的 View 和 ViewGroup。       
 代码分析基于 Android U。      
 
 ## 容器类
@@ -81,6 +81,8 @@ Task --> TaskFragment --> WindowContainer
 RootWindowContainer --> WindowContainer
 DisplayArea.Dimmable --> DisplayArea --> WindowContainer
 ```
+
+<img src="/images/android-window-system-window-tree-basic/0.png" width="1127" height="633"/>
 
 ```mermaid
 classDiagram
@@ -518,22 +520,17 @@ android 14目前一共也只有5个Feature。
         return 38;
     }
 ```
-
 另外提一下这里的 “Leaf”代表的不是Feature，而且说当前是某个叶子节点，下面是要挂着具体Window的。    
 3. 看其他属性，比如type，mode    
 知道上面这4点基本上就能看到层级结构树的信息了，内容虽然很多，但是我们其实主要关心的还是下面`#1 DefaultTaskDisplayArea` 的部分，因为这里放的才是应用相关的窗口，其他的一般都是系统窗口。像应用操作，分屏，小窗，自由窗口操作导致层级改变都体现在这一层，     
 另外可以留意一下如果是 WindowToken + WindowState的都是系统窗口，比如下面这种形式：      
-
 ```
         #0 WindowToken{4a10d17 type=2011 android.os.Binder@ea4ed96} type=undefined mode=fullscreen override-mode=undefined requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
          #0 17a21f2 InputMethod type=undefined mode=fullscreen override-mode=undefined requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
 
 ```
-
 17a21f2 这个应该是WindowState的对象名，后面的InputMethod是具体的窗口名。    
-
 而 ActivityRecord+WindowState就是应用了比如：      
-
 ```
          #0 ActivityRecord{e3d51d2 u0 com.hq.android.androiddemo/.MainActivity t149} type=standard mode=fullscreen override-mode=undefined requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
           #0 2a9f648 com.hq.android.androiddemo/com.hq.android.androiddemo.MainActivity type=standard mode=fullscreen override-mode=undefined requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
@@ -541,7 +538,7 @@ android 14目前一共也只有5个Feature。
 
 下图是根据 dump 信息来绘制的一个窗口层级树图：    
 
-<img src="/images/android-window-system-window-tree-basic/5.png" width="2097" height="1032"/>
+<img src="/images/android-window-system-window-tree-basic/5.png" width="1048" height="516"/>
 
 
 

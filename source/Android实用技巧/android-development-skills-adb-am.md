@@ -21,6 +21,8 @@ am <command>
 adb shell am start -a android.intent.action.VIEW
 ```
 
+具体的实现在 `ActivityManagerShellCommand` 类中。    
+
 可用的 am 命令：
 
 ```

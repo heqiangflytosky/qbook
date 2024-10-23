@@ -10,7 +10,7 @@ date: 2022-11-23 10:00:00
 ## 窗口的概念
 
 在 Android 中，一个显示界面由多个窗口（Window）组成。       
-从应用侧来看，窗口以PhoneWindow的形式存在，承载了一个应用界面的 View 层级结构。statusbar、navigationbar、Activity、Wallpaper 等都分别占据一个窗口，每个窗口都有一个Z轴的属性，高的窗口会盖在低的窗口之上，所以才会有statusbar 和 navigationbar覆盖在 Activity和Wallpaper之上，而 Activity 又会优先于 Wallpaper 显示。       
+从应用侧来看，我们可以通过 Activity 启动一个窗口，也可以通过 `WindowManager.addView` 方式创建一个窗口，它承载了一个应用界面的 View 层级结构。statusbar、navigationbar、Activity、Wallpaper 等都分别占据一个窗口，每个窗口都有一个Z轴的属性，高的窗口会盖在低的窗口之上，所以才会有statusbar 和 navigationbar覆盖在 Activity和Wallpaper之上，而 Activity 又会优先于 Wallpaper 显示。       
 
 我们可以通过 `adb shell dumpsys window w` 来查看当前系统的窗口的信息。       
 
@@ -82,7 +82,7 @@ RootWindowContainer --> WindowContainer
 DisplayArea.Dimmable --> DisplayArea --> WindowContainer
 ```
 
-<img src="/images/android-window-system-window-tree-basic/0.png" width="1127" height="633"/>
+<img src="/images/android-window-system-window-tree-basic/0.png" width="615" height="324"/>
 
 ```mermaid
 classDiagram
@@ -106,6 +106,9 @@ Tokens <|-- ImeContainer
 class WindowContainer{
     private WindowContainer<WindowContainer> mParent
     protected final WindowList<WindowContainer> mChildren
+}
+class DisplayContent{
+    HashMap<IBinder, WindowToken> mTokenMap
 }
 ```
 
@@ -141,6 +144,8 @@ class WindowContainer<E extends WindowContainer> extends ConfigurationContainer<
 2）、其次是WindowList类型的mChildren成员变量，保存的则是当前WindowContainer持有的所有子容器。并且列表的顺序也就是子容器出现在屏幕上的顺序，最顶层的子容器位于队尾。      
 有了这两个成员变量，便为生成WindowContainer层级结构，WindowContainer树形结构提供了可能。      
 
+ - getSession()：获取 SurfaceSession，用来连接 SurfaceFlinger。
+
 
 ### RootWindowContainer
 
@@ -175,6 +180,18 @@ ROOT type=undefined mode=fullscreen override-mode=undefined requested-bounds=[0,
 ```
 class WindowState extends WindowContainer<WindowState> implements WindowManagerPolicy.WindowState,
         InsetsControlTarget, InputTarget {
+    // 和客户端通信的binder
+    final IWindow mClient
+    // 窗口大小
+    int mRequestedWidth;
+    int mRequestedHeight;
+    // 窗口可见性
+    int mViewVisibility;
+    // 是否创建了 surfaceController
+    boolean mHasSurface = false;
+    
+    // 设置窗口大小
+    void setFrames()
 ```
 
 场景示例（电话APP界面弹出 Popupwindow）：      
@@ -418,6 +435,9 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
 ROOT type=undefined mode=fullscreen override-mode=undefined requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
   #0 Display 0 name="内置屏幕" type=undefined mode=fullscreen override-mode=fullscreen requested-bounds=[0,0][1080,2340] bounds=[0,0][1080,2340]
 ```
+
+
+`mTokenMap` 变量保存了此显示器上所有的 WindowToken 对象。
 
 ##### DisplayAreaGroup
 

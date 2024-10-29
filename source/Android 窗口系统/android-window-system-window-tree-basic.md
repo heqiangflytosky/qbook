@@ -127,24 +127,25 @@ ConfigurationContainer 是窗口容器 WindowContainer 的父类，但是它并�
 class WindowContainer<E extends WindowContainer> extends ConfigurationContainer<E>
         implements Comparable<WindowContainer>, Animatable, SurfaceFreezer.Freezable,
         InsetsControlTarget {
-    /**
-     * The parent of this window container.
-     * For removing or setting new parent {@link #setParent} should be used, because it also
-     * performs configuration updates based on new parent's settings.
-     */
+    //同样为WindowContainer类型的mParent成员变量，保存的是当前WindowContainer的父容器的引用。
     private WindowContainer<WindowContainer> mParent = null;    
     ......
-    // List of children for this window container. List is in z-order as the children appear on
-    // screen with the top-most window container at the tail of the list.
+    // WindowList类型的mChildren成员变量，保存的则是当前WindowContainer持有的所有子容器。
+    // 并且列表的顺序也就是子容器出现在屏幕上的顺序，最顶层的子容器位于队尾。 
+    // 有了这两个成员变量，便为生成WindowContainer层级结构，WindowContainer树形结构提供了可能。
     protected final WindowList<E> mChildren = new WindowList<E>();        
-        
+    
+    // 根据窗口层次结构中给定的布局属性执行应用程序过渡动画。
+    boolean applyAnimation(WindowManager.LayoutParams lp, @TransitionOldType int transit,
+            boolean enter, boolean isVoiceInteraction,
+            @Nullable ArrayList<WindowContainer> sources)   
+            
+    getSession()：获取 SurfaceSession，用来连接 SurfaceFlinger。 
 }
 ```
-1）、首先是一个同样为WindowContainer类型的mParent成员变量，保存的是当前WindowContainer的父容器的引用。      
-2）、其次是WindowList类型的mChildren成员变量，保存的则是当前WindowContainer持有的所有子容器。并且列表的顺序也就是子容器出现在屏幕上的顺序，最顶层的子容器位于队尾。      
-有了这两个成员变量，便为生成WindowContainer层级结构，WindowContainer树形结构提供了可能。      
 
- - getSession()：获取 SurfaceSession，用来连接 SurfaceFlinger。
+
+
 
 
 ### RootWindowContainer
@@ -189,9 +190,23 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
     int mViewVisibility;
     // 是否创建了 surfaceController
     boolean mHasSurface = false;
+    // 表示窗口需要 relayout
+    boolean mLayoutNeeded;
     
     // 设置窗口大小
     void setFrames()
+    // 主要调用 prepareWindowToDisplayDuringRelayout
+    int relayoutVisibleWindow(int result)
+    // 做一些准备工作。1.判断是否需要亮屏；2.准备动画 applyEnterAnimationLocked
+    void prepareWindowToDisplayDuringRelayout(boolean wasVisible)
+    // 填充计算好的frame返回给客户端，更新mergedConfiguration对象
+    void fillClientWindowFramesAndConfiguration(ClientWindowFrames outFrames,
+            MergedConfiguration outMergedConfiguration, boolean useLatestConfig,
+            boolean relayoutVisible) {
+    // 判断窗口是否需要在屏幕上显示
+    boolean isOnScreen() 
+    // 把窗口状态设置到HAS_DRAWN,同时还设置了窗口动画
+    boolean performShowLocked()
 ```
 
 场景示例（电话APP界面弹出 Popupwindow）：      
@@ -427,6 +442,10 @@ RootDisplayArea，是一个DisplayArea层级结构的根节点。
 
 ```
 class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.DisplayContentInfo {
+    // 壁纸控制器
+    WallpaperController mWallpaperController;
+    //`mTokenMap` 变量保存了此显示器上所有的 WindowToken 对象。
+    private final HashMap<IBinder, WindowToken> mTokenMap = new HashMap();
 ```
 
 代表一个屏幕，Android是支持多屏幕的。    
@@ -436,8 +455,6 @@ ROOT type=undefined mode=fullscreen override-mode=undefined requested-bounds=[0,
   #0 Display 0 name="内置屏幕" type=undefined mode=fullscreen override-mode=fullscreen requested-bounds=[0,0][1080,2340] bounds=[0,0][1080,2340]
 ```
 
-
-`mTokenMap` 变量保存了此显示器上所有的 WindowToken 对象。
 
 ##### DisplayAreaGroup
 

@@ -84,6 +84,7 @@
     * [Android 窗口层级树](source/Android 窗口系统/android-window-system-window-tree-basic.md)
     * [Android 窗口层级构建](source/Android 窗口系统/android-window-system-build-window-tree.md)
     * [Android 窗口层级树-添加窗口](source/Android 窗口系统/android-window-system-add-window.md)
+    * [Android 窗口层级树-Layer树](source/Android 窗口系统/android-window-system-window-tree-layer-tree.md)
 * [Android 图形系统]()
     * [Android 图形系统 -- Canvas使用](source/Android 图形系统/android-graphic-system-canvas-sample.md)
     * [Android 图形系统 -- Window，DecorView 和 ViewRootImpl](source/Android 图形系统/android-graphic-system-decorview-viewrootimpl.md)

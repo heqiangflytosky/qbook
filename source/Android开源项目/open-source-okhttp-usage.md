@@ -142,6 +142,76 @@ okhttp3.Request.Builder() 的 get() 方法不调用也是可以的，创建Build
         });
 ```
 
+### 流式请求
+
+OkHttp 也对 SSE 提供了支持。    
+所谓SSE（Sever-Sent Event），就是浏览器向服务器发送一个HTTP请求，保持长连接，服务器不断单向地向浏览器推送“信息”（message），这么做是为了节约网络资源，不用一直发请求，建立新连接。    
+
+
+```
+api("com.squareup.okhttp3:okhttp-sse:4.12.0")
+```
+
+```
+        var eventSourceListener: EventSourceListener = object : EventSourceListener() {
+            override fun onOpen(eventSource: EventSource, response: Response) {
+                super.onOpen(eventSource, response)
+            }
+
+            override fun onEvent(
+                eventSource: EventSource,
+                id: String?,
+                type: String?,
+                data: String
+            ) {
+                super.onEvent(eventSource, id, type, data)
+            }
+
+            override fun onClosed(eventSource: EventSource) {
+                super.onClosed(eventSource)
+            }
+
+            override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
+                super.onFailure(eventSource, t, response)
+            }
+        }
+
+
+        EventSources.createFactory(flymeAiClient.client)
+            .newEventSource(flymeAiClient.generateStreaming(messages.toString(),accessToken).request(),eventSourceListener)
+```
+
+```
+  // 定义see接口
+    Request request = new Request.Builder().url("http://127.0.0.1:8080/sse/2").build();
+    OkHttpClient okHttpClient = new OkHttpClient.Builder()
+            .connectTimeout(1, TimeUnit.DAYS)
+            .readTimeout(1, TimeUnit.DAYS)//这边需要将超时显示设置长一点，不然刚连上就断开
+            .build();
+
+    // 实例化EventSource，注册EventSource监听器
+    RealEventSource realEventSource = new RealEventSource(request, new EventSourceListener() {
+
+        @Override
+        public void onOpen(EventSource eventSource, Response response) {
+        }
+
+        @Override
+        public void onEvent(EventSource eventSource, String id, String type, String data) {
+        }
+
+        @Override
+        public void onClosed(EventSource eventSource) {
+        }
+
+        @Override
+        public void onFailure(EventSource eventSource, Throwable t, Response response) {
+            printEvent("onFailure");//这边可以监听并重新打开
+        }
+    });
+    realEventSource.connect(okHttpClient);//真正开始请求的一步
+```
+
 ### WebSocket
 
 OkHttp 也提供了对 WebSocket 的支持。

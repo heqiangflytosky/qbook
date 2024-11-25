@@ -1,6 +1,6 @@
 ---
 title: Android 窗口层级树-Layer树
-categories: Android 窗口层级树-Layer树
+categories: Android 窗口系统
 comments: true
 tags: [Android 窗口系统]
 description: 介绍 Android 窗口层级树和Layer树的关系

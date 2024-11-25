@@ -313,7 +313,7 @@ Call<ResultBean> postSayHi(@Header("city") String city);
     Call<ResultBean> postSayHi(@Body UserBean userBean, @Header("city") String city);
 ```
 
- - Streaming：如果您正在下载一个大文件，Retrofit2将尝试将整个文件移动到内存中。为了避免这种，我们必须向请求声明中添加一个特殊的注解
+ - Streaming：表示返回的数据是以流的形式返回。如果下载一个大文件，如果没有使用该注解，Retrofit2将尝试将整个文件移动到内存中。为了避免这种，我们必须向请求声明中添加一个这个注解使用流的方式。
 
 ```
 @Streaming

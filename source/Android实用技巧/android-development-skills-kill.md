@@ -35,7 +35,8 @@ adb shell killall com.android.systemui
 
 ## kill -3 {Pid}
 
-使用kill -3 {Pid} 命令，生成对应进程的 dump 文件，就像我们在分析ANR时的那种信息，可以得到当前进程各个线程的调用栈信息、CPU使用等 java trace 信息。    
+使用kill -3 {Pid} 命令，生成对应进程的 dump 文件，就像我们在分析ANR时的那种信息，可以得到当前进程各个线程的调用栈信息、CPU使用等 java trace 信息。也就是进程的 backtrace 信息。    
 执行命令后去 /data/anr/ 目录下找到类似 trace_00     这种文件pull出来后就可以分析了。     
-
-另外 adb shell debuggerd -j {Pid} 也可以打印对应进程的 java trace 信息。
+这个命令貌似只对 apk 类型的进程有效。    
+另外 adb shell debuggerd -j {Pid} 也可以打印对应进程的 java trace 信息。      
+debuggerd 也可以打印 native 程序的 backtrace。

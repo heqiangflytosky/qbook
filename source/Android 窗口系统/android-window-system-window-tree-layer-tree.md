@@ -126,7 +126,8 @@ SystemServer.main
 
 #### 创建不带 buffer 的 Surface
 
-层级树其他的各个容器创建的也会触发创建出对应的一个Surface，以 ActivityRecord 的创建为例，具体的调用链如下：     
+层级树其他的各个容器创建的也会触发创建出对应的一个Surface，WindowContainer addChild 时候其实都会触发 WindowContainer.onParentChanged，从而触发 DisplayContent 中创建对应的SurfaceControl，而 setContainerLayer() 创建出来的都是容器，而不是真正可以绘制的SurfaceControl。     
+以 ActivityRecord 的创建为例，具体的调用链如下：     
 
 
 ```
@@ -152,6 +153,8 @@ SystemServer.main
 
 #### 创建带 buffer 的 Surface
 
+那么哪里才是真正的绘制画面的 SurfaceControl 呢？      
+App 调用到 WMS 的 relayout 才可以获取可以绘制画面的 SurfaceControl，而且是 WMS 端创建好传递回去的。      
 下面以 WindowState 的创建为例来介绍：     
 
 ```
@@ -165,6 +168,17 @@ WindowManagerService.relayoutWindow
                 Builder.build()
     //给应用端Surface赋值
     WindowSurfaceController.getSurfaceControl
+```
+
+relayoutWindow 的 outSurfaceControl 参数就是 WMS 端写入数据，然后 app 端的 ViewRootImpl 来进行读取的。
+
+```
+    public int relayoutWindow(Session session, IWindow client, LayoutParams attrs,
+            int requestedWidth, int requestedHeight, int viewVisibility, int flags, int seq,
+            int lastSyncSeqId, ClientWindowFrames outFrames,
+            MergedConfiguration outMergedConfiguration, SurfaceControl outSurfaceControl,
+            InsetsState outInsetsState, InsetsSourceControl.Array outActiveControls,
+            Bundle outSyncIdBundle) {
 ```
 
 ```

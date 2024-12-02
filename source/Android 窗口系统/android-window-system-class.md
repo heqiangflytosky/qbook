@@ -9,9 +9,29 @@ date: 2022-11-23 10:00:00
 
 ## 窗口相关类
 
+### WindowManagerService
+
+mWindowMap:mWindowMap保存了每个WindowState和客户端窗口的映射关系，客户端应用请求窗口操作时，通过mWindowMap查询到对应的WindowState。    
+
+### ActivityTaskManagerService
+
+```
+    RootWindowContainer mRootWindowContainer;
+    WindowManagerService mWindowManager;
+```
+
 ### WindowContainer
 
 窗口容器类，它有众多的子类来构建窗口层级系统，具体见[Android 窗口层级树](http://www.heqiangfly.com/qbook/source/Android%20%E7%AA%97%E5%8F%A3%E7%B3%BB%E7%BB%9F/android-window-system-window-tree-basic.html)。    
+
+### DisplayAreaPolicy
+
+用来管理 DisplayArea
+
+```
+    // 对应的 DefaultTaskDisplayArea
+    protected final RootDisplayArea mRoot;
+```
 
 ### Surface
 
@@ -41,9 +61,6 @@ ViewRootImpl, WindowManagerImpl, WindowManagerGlobal 三者都存在于应用（
 
 #### WindowManagerImpl
 
-### WindowManagerService
-
-mWindowMap:mWindowMap保存了每个WindowState和客户端窗口的映射关系，客户端应用请求窗口操作时，通过mWindowMap查询到对应的WindowState。    
 
 ### WindowStateAnimator
 

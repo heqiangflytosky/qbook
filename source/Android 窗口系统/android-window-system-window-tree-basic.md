@@ -156,6 +156,9 @@ RootWindowContainer 由 ActivityTaskManagerService 和 WindowManagerService 直�
 ```
 public class RootWindowContainer extends WindowContainer<DisplayContent>
         implements DisplayManager.DisplayListener {
+        
+    
+    
     @Override
     String getName() {
         return "ROOT";
@@ -172,6 +175,34 @@ ROOT type=undefined mode=fullscreen override-mode=undefined requested-bounds=[0,
   #0 Display 3 name="叠加视图 #1" type=undefined mode=fullscreen override-mode=fullscreen requested-bounds=[0,0][1920,1080] bounds=[0,0][1920,1080]
 ```
 “ROOT” 即 RootWindowContainer，“#1 Display 0”代表默认屏幕，“#0 Display 3”是我们开启的虚拟屏幕。      
+
+DisplayContent 的创建：
+
+```
+// RootWindowContainer.java
+    void setWindowManager(WindowManagerService wm) {
+        mWindowManager = wm;
+        mDisplayManager = mService.mContext.getSystemService(DisplayManager.class);
+        mDisplayManager.registerDisplayListener(this, mService.mUiHandler);
+        mDisplayManagerInternal = LocalServices.getService(DisplayManagerInternal.class);
+
+        final Display[] displays = mDisplayManager.getDisplays();
+        for (int displayNdx = 0; displayNdx < displays.length; ++displayNdx) {
+            final Display display = displays[displayNdx];
+            final DisplayContent displayContent =
+                    new DisplayContent(display, this, mDeviceStateController);
+            addChild(displayContent, POSITION_BOTTOM);
+            if (displayContent.mDisplayId == DEFAULT_DISPLAY) {
+                mDefaultDisplay = displayContent;
+            }
+        }
+
+        final TaskDisplayArea defaultTaskDisplayArea = getDefaultTaskDisplayArea();
+        defaultTaskDisplayArea.getOrCreateRootHomeTask(ON_TOP);
+        positionChildAt(POSITION_TOP, defaultTaskDisplayArea.mDisplayContent,
+                false /* includingParents */);
+    }
+```
 
 ### WindowState（窗口）
 
@@ -254,6 +285,7 @@ public final class ActivityRecord extends WindowToken implements WindowManagerSe
 ```
 
 ActivityRecord 是 WindowToken 的子类，如上面所说，在 WMS 中一个 ActivityRecord 对象就代表一个 Activity 对象。      
+它的 children 类型为 WindowState。    
 
 ```
          #0 ActivityRecord{b13c14b u0 com.hq.android.androiddemo/.MainActivity t141} type=standard mode=fullscreen override-mode=undefined requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
@@ -307,6 +339,7 @@ class Task extends TaskFragment {
 
 关于应用侧 Task 的介绍，可以参考 Google 官方关于[任务和返回堆栈](https://developer.android.com/guide/components/activities/tasks-and-back-stack?hl=zh-cn)的介绍。    
 WMS中的Task类的作用和以上说明基本一致，用来管理ActivityRecord。    
+它的children可以是Task，也可以是ActivityRecord类型。    
 我们通过 Launcher 启动一个应用后，窗口的层级结构如下：    
 
 ```
@@ -362,14 +395,14 @@ WMS中的Task类的作用和以上说明基本一致，用来管理ActivityRecor
 public class DisplayArea<T extends WindowContainer> extends WindowContainer<T> {
 ```
 
-DisplayArea，是DisplayContent之下的对WindowContainer进行分组的容器。      
-DisplayArea受DisplayAreaPolicy管理，而且能够复写Configuration和被绑定到leash上。      
+DisplayArea，是 DisplayContent 之下的对 WindowContainer 进行分组的容器，代表一组窗口合集，具有多个子类，如 Tokens，TaskDisplayArea等。      
+DisplayArea 受 DisplayAreaPolicy 管理，而且能够复写 Configuration 和被绑定到 leash 上。      
 DisplayArea可以包含嵌套DisplayArea。      
 DisplayArea有三种风格，用来保证窗口能够拥有正确的Z轴顺序：      
 
- - BELOW_TASKS，只能包含Task之下的的DisplayArea和WindowToken。
- - ABOVE_TASKS，只能包含Task之上的DisplayArea和WindowToken。
- - ANY，能包含任何种类的DisplayArea、WindowToken或是Task容器。 
+ - BELOW_TASKS，只能包含Task之下的的 DisplayArea 和 WindowToken。
+ - ABOVE_TASKS，只能包含Task之上的 DisplayArea 和 WindowToken。
+ - ANY，能包含任何种类的 DisplayArea、WindowToken 或是 Task 容器。 
 
 #### TaskDisplayArea(Task的容器)
 
@@ -377,7 +410,7 @@ DisplayArea有三种风格，用来保证窗口能够拥有正确的Z轴顺序�
 class TaskDisplayArea extends DisplayArea<WindowContainer> {
 ```
 
-TaskDisplayArea，代表了屏幕的一个包含App类型的WindowContainer的区域。它的子节点可以是 Task，或者是 TaskDisplayArea。    
+TaskDisplayArea，代表了屏幕的一个包含 App 类型的 WindowContainer 的区域。它的子节点可以是 Task，或者是 TaskDisplayArea。    
 在窗口的层级树中，只发现了一个名为“DefaultTaskDisplayArea”的TaskDisplayArea对象。    
 把多任务中的所有App都清理掉后，看一下 DefaultTaskDisplayArea 的层级结构：    
 
@@ -397,7 +430,7 @@ Task=125 是Launcher相关的 Task，Task=5 和 Task=4 是系统启动后 TaskOr
 
 #### DisplayArea.Tokens （WindowToken的容器）
 
-可以容纳WindowToken的容器。 比如 StatusBar。       
+可以容纳 WindowToken 的容器，它的children是 WindowToken。 比如 StatusBar。       
 
 ```
     public static class Tokens extends DisplayArea<WindowToken> {
@@ -409,7 +442,7 @@ Task=125 是Launcher相关的 Task，Task=5 和 Task=4 是系统启动后 TaskOr
     private static class ImeContainer extends DisplayArea.Tokens {
 ```
 
-是存放输入法窗口的容器。它继承的是DisplayArea.Tokens，说明它是一个只能存放WindowToken容器。      
+是存放输入法窗口的容器。它继承的是DisplayArea.Tokens，说明它是一个只能存放 WindowToken 容器。      
 
 #### DisplayArea.Dimmable
 
@@ -446,9 +479,15 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
     WallpaperController mWallpaperController;
     //`mTokenMap` 变量保存了此显示器上所有的 WindowToken 对象。
     private final HashMap<IBinder, WindowToken> mTokenMap = new HashMap();
+    // DisplayArea 管理器
+    DisplayAreaPolicy mDisplayAreaPolicy;
+    
+    // 注册指针事件监听
+    void registerPointerEventListener(@NonNull PointerEventListener listener)
+    void unregisterPointerEventListener(@NonNull PointerEventListener listener)
 ```
 
-代表一个屏幕，Android是支持多屏幕的。    
+代表一个屏幕，Android是支持多屏幕的，所以可能存在多个DisplayContent对象。    
 
 ```
 ROOT type=undefined mode=fullscreen override-mode=undefined requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]

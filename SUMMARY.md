@@ -88,6 +88,7 @@
     * [Android 窗口系统-窗口布局](source/Android 窗口系统/android-window-system-window-layout.md)
     * [Android 窗口系统-窗口刷新](source/Android 窗口系统/android-window-system-window-refresh.md)
     * [Android 窗口层级树-Layer树](source/Android 窗口系统/android-window-system-window-tree-layer-tree.md)
+    * [Android 窗口系统-移栈](source/Android 窗口系统/android-window-system-move-task.md)
 * [Android 图形系统]()
     * [Android 图形系统 -- Canvas使用](source/Android 图形系统/android-graphic-system-canvas-sample.md)
     * [Android 图形系统 -- Window，DecorView 和 ViewRootImpl](source/Android 图形系统/android-graphic-system-decorview-viewrootimpl.md)

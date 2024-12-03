@@ -302,6 +302,53 @@ Call<ResultBean> postSayHi(@Header("city") String city);
     Call<ResultBean> upload(@Part("file\"; filename=\"launcher_icon.png") RequestBody file);
 ```
 
+Part 为参数：    
+
+```
+    @Multipart
+    //@Headers("Content-Type: multipart/form-data")
+    @POST(FlymeAiApi.URL_UPLOAD_FILE)
+    fun upLoadFile1(@Part filePart: MultipartBody.Part?,@Part("description") description: RequestBody?): Call<UpLoadResponse>
+    
+    
+        var file = uri.toFile()
+        var requestBody = RequestBody.create("text/plain".toMediaTypeOrNull(), file)
+
+        var part = MultipartBody.Part.createFormData("document", file.name, requestBody)
+
+        var descriptionString = "This is a description"
+        var description =
+        RequestBody.create(
+            "multipart/form-data".toMediaTypeOrNull(), descriptionString);
+
+        var request = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addPart(part)
+            .build()
+        return api().upLoadFile(part,description)
+```
+
+Body 为参数：     
+
+```
+    @POST(FlymeAiApi.URL_UPLOAD_FILE)
+    fun upLoadFile(@Body body:MultipartBody?): Call<UpLoadResponse>
+    
+    
+    
+        var file = uri.toFile() // file:///mnt/sdcard/Download/test.txt
+        var requestBody = RequestBody.create("text/plain".toMediaTypeOrNull(), file)
+
+        var part = MultipartBody.Part.createFormData("document", file.name, requestBody)
+
+        var request = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addPart(part)
+            //.addPart(description) //添加其他part
+            .build()
+        return api().upLoadFile(request)
+```
+
 ### 方法注解
 
  - FormUrlEncoded：上面已经介绍过了。

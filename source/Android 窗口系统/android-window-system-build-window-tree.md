@@ -46,9 +46,10 @@ SystemServer.main
                                             PendingArea.computeMaxLayer
                                             PendingArea.instantiateChildren  // 开始递归构建层级树，看后面代码分析
                                             RootDisplayArea.onHierarchyBuilt // 构建完成，看后面代码分析
-                        //
+                        // 获取 DefaultTaskDisplayArea
                         RootWindowContainer.getDefaultTaskDisplayArea()
-                                                
+                        // 创建 RootTask
+                        TaskDisplayArea.getOrCreateRootHomeTask()                                      
 ```
 
 
@@ -1028,8 +1029,8 @@ featureAreas 就是存储了 5 个 Feature 的数组。
 
 <img src="/images/android-window-system-build-window-tree/3.png" width="972" height="347"/>
 
-这个层级树和上一篇看 不太一样那是因为Leaf下没有内容了，应用层`DefaultTaskDisplayArea` 和壁纸层也没有内容，那是因为 Leaf 后面的内容都是具体业务添加上去的。     
-所以其实对应Window的add流程，其实也就是真没添加到这个层级树的流程。这些我们后面再分析。    
+至此，基本的窗口层级树是构建完了，但是这个层级树和上一篇看不太一样，那是因为Leaf下没有内容了，应用层`DefaultTaskDisplayArea` 和壁纸层也没有内容，那是因为 Leaf 后面的内容都是具体业务添加上去的。比如 Task、ActivityRecord 和非 Activity 窗口的 WindowToken 等等。     
+所以其实对应 Window 的 add 流程，其实也就是真没添加到这个层级树的流程。这些我们后面再分析。    
 
 
 ## 小结

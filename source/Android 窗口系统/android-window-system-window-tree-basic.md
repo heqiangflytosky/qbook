@@ -396,16 +396,16 @@ WMS中的Task类的作用和以上说明基本一致，用来管理ActivityRecor
 public class DisplayArea<T extends WindowContainer> extends WindowContainer<T> {
 ```
 
-DisplayArea，是 DisplayContent 之下的对 WindowContainer 进行分组的容器，代表一组窗口合集，具有多个子类，如 Tokens，TaskDisplayArea等。      
+DisplayArea 代表了屏幕的显示区域，是 DisplayContent 之下的对 WindowContainer 进行分组的容器，代表一组窗口合集，具有多个子类，如 Tokens，TaskDisplayArea等。DisplayContent 本身也继承自DisplayArea。       
 DisplayArea 受 DisplayAreaPolicy 管理，而且能够复写 Configuration 和被绑定到 leash 上。      
-DisplayArea可以包含嵌套DisplayArea。      
+DisplayArea可以包含嵌套 DisplayArea。      
 DisplayArea有三种风格，用来保证窗口能够拥有正确的Z轴顺序：      
 
  - BELOW_TASKS，只能包含Task之下的的 DisplayArea 和 WindowToken。
  - ABOVE_TASKS，只能包含Task之上的 DisplayArea 和 WindowToken。
  - ANY，能包含任何种类的 DisplayArea、WindowToken 或是 Task 容器。 
 
-窗口容器树的 "Feature" 类型节点就是这种类型容器。      
+窗口容器树的 DisplayContent，"Feature" 和 "Leaf" 类型节点就是这种类型容器。"Leaf" 类型节点是 DisplayArea.Tokens，继承自DisplayArea。        
 
 #### TaskDisplayArea(Task的容器)
 

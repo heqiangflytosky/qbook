@@ -44,13 +44,17 @@ SystemServer.main
                                             // 计算叶子节点
                                             // 计算MaxLayer
                                             PendingArea.computeMaxLayer
-                                            PendingArea.instantiateChildren  // 开始递归构建层级树
-                                            RootDisplayArea.onHierarchyBuilt // 构建完成
+                                            PendingArea.instantiateChildren  // 开始递归构建层级树，看后面代码分析
+                                            RootDisplayArea.onHierarchyBuilt // 构建完成，看后面代码分析
+                        //
+                        RootWindowContainer.getDefaultTaskDisplayArea()
                                                 
 ```
 
 
 ## 构建流程分析
+
+窗口构建流程其实就是把配置好的 Feature 转换为对应 DisplayArea 的过程。
 
 ### 配置Feature
 
@@ -58,6 +62,7 @@ SystemServer.main
 
 #### Feature介绍
 
+Feature 代表的是 DisplayArea 的一个特征，可以根据 Feature 来对不同的 DisplayArea 进行划分。      
 层级树中一共就出现了5个Feature就是在 `configureTrustedHierarchyBuilder` 方法中配置的，分别如下：    
 
  - WindowedMagnification：支持窗口缩放的一块区域，一般是通过辅助服务进行缩小或放大    
@@ -100,6 +105,21 @@ SystemServer.main
 这个方法移动执行了 5 次 `addFeature`，所以就构建了 5 个 Feature。    
 
 ```
+// DisplayAreaPolicyBuilder.Feature
+    static class Feature {
+        private final String mName;
+        private final int mId;
+        private final boolean[] mWindowLayers;
+        private final NewDisplayAreaSupplier mNewDisplayAreaSupplier;
+
+        private Feature(String name, int id, boolean[] windowLayers,
+                NewDisplayAreaSupplier newDisplayAreaSupplier) {
+            mName = name;
+            mId = id;
+            mWindowLayers = windowLayers;
+            mNewDisplayAreaSupplier = newDisplayAreaSupplier;
+        }
+
 //DisplayAreaPolicyBuilder.Feature.Builder
 
             Builder(WindowManagerPolicy policy, String name, int id) {
@@ -110,7 +130,7 @@ SystemServer.main
             }
 ```
 
-参数 mName 就是前面 addFeature 时传入的字符串。      
+参数 mName 就是前面 addFeature 时传入的字符串。如上面的“WindowedMagnification”，“HideDisplayCutout”之类的，后续 DisplayArea 层级结构建立起来后，每个 DisplayArea 的名字用的就是当前 DisplayArea 对应的那个 Feature 的名字。      
 参数 mId 的定义在 `DisplayAreaOrganizer` 中。    
 
 ```
@@ -127,7 +147,7 @@ SystemServer.main
     public static final int FEATURE_IME_PLACEHOLDER = FEATURE_SYSTEM_FIRST + 7;
 ```
 
-参数 mLayers 构建了数组，长度为 39，如果为ture表示这个图层支持这个Feature，为false则不支持。     
+参数 mLayers 构建了数组，长度为 39，代表了这个DisplayArea可以包含哪些层级对应的窗口。如果为ture表示这个图层支持这个Feature，为false则不支持。     
 
 再来介绍一下 Builder 的 `all()`、`and()`、`except()`、`upTo()`等方法    
 
@@ -170,6 +190,7 @@ SystemServer.main
                     mLayers[layerFromType(TYPE_SYSTEM_ERROR, false)] = value;
                 }
             }
+            // 窗口类型到层级数的转化
             private int layerFromType(int type, boolean internalWindows) {
                 return mPolicy.getWindowLayerFromTypeLw(type, internalWindows);
             }
@@ -192,6 +213,8 @@ mLayers 前面说过是一个长度为39的数组，上面列举的方法就是�
  - layerFromType：根据应用窗口的类型，返回窗口层级树中所在图层的类型。
 
 #### 判断窗口挂载在窗口层级树哪一层
+
+调用了getWindowLayerFromTypeLw来实现窗口类型到层级数的转化，来判断窗口挂载在窗口层级树哪一层。       
 
 ```
 // WindowManagerPolicy.java
@@ -314,6 +337,7 @@ mLayers 前面说过是一个长度为39的数组，上面列举的方法就是�
 
 ```
 
+上面的 `TYPE_*` 是不是看到和我们熟悉的窗口类型，如 `TYPE_WALLPAPER`，`TYPE_NAVIGATION_BAR` 等，其实他们都是有固定的一个层级的。即 windowType 的值并不是真正层级数目，都是需要通过这个方法进行转化才是真正层级数。      
 代码中窗口的类型，可以在 WindowManager 中找到。      
 
 #### Feature 配置
@@ -779,7 +803,7 @@ root.computeMaxLayer();
 | areaForLayer[37] | ROOT:0:0 | null | HideDisplayCutout:32:37| OneHanded:34:37| FullscreenMagnification:34:37| null| leaf:34:37|
 | areaForLayer[38] | ROOT:0:0 | null | null| null|null |null | leaf:38:38|
 
-### 构建层级树
+### 开始构建层级树
 
 #### 入参介绍
 
@@ -994,6 +1018,7 @@ featureAreas 就是存储了 5 个 Feature 的数组。
         }
         mHasBuiltHierarchy = true;
         mFeatures = Collections.unmodifiableList(features);
+        // 叶子节点
         mAreaForLayer = areaForLayer;
         mFeatureToDisplayAreas = featureToDisplayAreas;
     }

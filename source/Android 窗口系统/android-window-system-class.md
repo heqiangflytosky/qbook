@@ -158,3 +158,7 @@ WindowStateAnimator 用来帮助WindowState管理 animator 和 surface 基本操
             ArraySet<ActivityRecord> closingApps, @TransitionOldType int transit,
             LayoutParams animLp, boolean voiceInteraction)
 ```
+
+### TaskLaunchParamsModifier
+
+定义 Task 的默认启动参数的类。      

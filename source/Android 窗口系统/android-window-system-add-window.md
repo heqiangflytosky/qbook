@@ -30,8 +30,19 @@ ActivityTaskManagerService.startActivity
                     ActivityRecord.<init>
                 ActivityStarter.startActivityUnchecked()
                     ActivityStarter.startActivityInner
+                        ActivityStarter.setInitialState()
+                            LaunchParamsController.calculate
+                                TaskLaunchParamsModifier.onCalculate
+                                    TaskLaunchParamsModifier.calculate
+                                        TaskLaunchParamsModifier.getPreferredLaunchTaskDisplayArea
+                                            // 获取 DefaultTaskDisplayArea
+                                            DisplayContent.getDefaultTaskDisplayArea()
+                                        // 设置 DefaultTaskDisplayArea
+                                        outParams.mPreferredTaskDisplayArea = suggestedDisplayArea;
                         ActivityStarter.getOrCreateRootTask // 创建或者获取Task
                             RootWindowContainer.getOrCreateRootTask
+                                // 获取前面配置的 TaskDisplayArea
+                                taskDisplayArea = launchParams.mPreferredTaskDisplayArea;
                                 TaskDisplayArea.getOrCreateRootTask
                                     // 为 Task 设置父窗口 DefaultTaskDisplayArea
                                     Task.Builder.setParent.build() 
@@ -84,7 +95,7 @@ WindowManagerService.addWindow
 
 ## 非 Activity 窗口加载
 
-首先通过 `windowManager.addView` 方式添加一个 `lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY` 的窗口。    
+首先通过 `windowManager.addView` 方式添加一个 `lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY` 的窗口。其实和添加 statusbar，navigationbar这些系统窗口的流程是一样的。       
 
 ```
     fun addLocalWindow(view:View){
@@ -117,7 +128,7 @@ WindowManagerService.addWindow
     WindowToken$Builder.build()
         WindowToken.<init>
             DisplayContent.addWindowToken
-                //把创建的 WindowToken放到 mTokenMap 列表
+                //把创建的 WindowToken 放到 mTokenMap 列表
                 mTokenMap.put(binder, token)
                 // 找到对应的层级
                 DisplayContent.findAreaForToken
@@ -126,7 +137,9 @@ WindowManagerService.addWindow
                             RootDisplayArea.getWindowLayerFromTypeLw
                                 // 找出 TYPE_APPLICATION_OVERLAY 对应的层级 11
                                 WindowManagerPolicy.getWindowLayerFromTypeLw 
+                                // 根据对应的层级找到对应要挂载的叶子节点
                                 return mAreaForLayer[windowLayerFromType]
+                // 把 WindowToken 添加到对应的叶子节点
                 DisplayArea.Tokens.addChild()
     win = new WindowState
     WindowState.attach()

@@ -66,6 +66,7 @@ WINDOW MANAGER WINDOWS (dumpsys window windows)
 
 从系统侧看，Android11 以后，使用 `WindowContainer` 组成的树来描述整个显示界面。为方便叙述，本文称这棵树为窗口容器树。       
 我们可以通过 `adb shell dumpsys activity containers` 命令查看整个窗口容器树的描述。打印信息很长，在这里就不做展示了，后面会分析。        
+这个命令会从根容器 RootWindowContainer 开始调用 dumpChildrenNames() 方法递归打印出所有的子容器。        
 从代码侧来看，应用端的窗口指的是 Window， framework 层的窗口指的是 WindowState，而 SurfaceFlinger 侧指的是 Layer。      
 在WMS窗口体系中，一个 WindowState 对象就代表了一个窗口。WMS为了管理窗口，创建了多个 WindowContainer 及其子类，来对 WindowState 进行分类，不同的窗口类型和层级关系，从而对窗口进行系统化的管理。       
 我们可以用Android UI 中的 View 树来类比，WindowContainer 及其子类就像 View 树中的 View 和 ViewGroup。       
@@ -404,6 +405,8 @@ DisplayArea有三种风格，用来保证窗口能够拥有正确的Z轴顺序�
  - ABOVE_TASKS，只能包含Task之上的 DisplayArea 和 WindowToken。
  - ANY，能包含任何种类的 DisplayArea、WindowToken 或是 Task 容器。 
 
+窗口容器树的 "Feature" 类型节点就是这种类型容器。      
+
 #### TaskDisplayArea(Task的容器)
 
 ```
@@ -427,14 +430,18 @@ TaskDisplayArea，代表了屏幕的一个包含 App 类型的 WindowContainer �
 ```
 Task=125 是Launcher相关的 Task，Task=5 和 Task=4 是系统启动后 TaskOrganizerController 创建的，用来管理系统进入分屏后，需要跟随系统进入分屏模式的那些App对应的Task。    
 
+窗口容器树中的 "DefaultTaskDisplayArea" 节点就是这个类型的容器。      
 
 #### DisplayArea.Tokens （WindowToken的容器）
 
-可以容纳 WindowToken 的容器，它的children是 WindowToken。 比如 StatusBar。       
+可以容纳 WindowToken 的容器，它的children是 WindowToken， 比如 StatusBar。而 WindowToken 的孩子则为 WindowState 对象。WindowState 是对应着一个窗口的。       
+
 
 ```
     public static class Tokens extends DisplayArea<WindowToken> {
 ```
+
+窗口层级树里面的 "Leaf" 类型节点就是这种类型。     
 
 ##### DisplayContent.ImeContainer
 
@@ -442,7 +449,7 @@ Task=125 是Launcher相关的 Task，Task=5 和 Task=4 是系统启动后 TaskOr
     private static class ImeContainer extends DisplayArea.Tokens {
 ```
 
-是存放输入法窗口的容器。它继承的是DisplayArea.Tokens，说明它是一个只能存放 WindowToken 容器。      
+是存放输入法窗口的容器。它继承的是 DisplayArea.Tokens，说明它是一个只能存放 WindowToken 容器。WindowToken的孩子为 WindowState 类型，而这里的 WindowState 类型则对应着输入法窗口。      
 
 #### DisplayArea.Dimmable
 
@@ -461,6 +468,9 @@ Task=125 是Launcher相关的 Task，Task=5 和 Task=4 是系统启动后 TaskOr
 
 ```
 class RootDisplayArea extends DisplayArea.Dimmable {
+    // 装载了除了第二层DefaultTaskDisplayArea之外的所有叶子节点。
+    // 通过 WindowManagerPolicy.getWindowLayerFromTypeLw 可以获取给定类型窗口所在的层级，通过mAreaForLayer找到对应的叶子节点。
+    private DisplayArea.Tokens[] mAreaForLayer;
 ```
 
 RootDisplayArea，是一个DisplayArea层级结构的根节点。      
@@ -508,7 +518,7 @@ class DisplayAreaGroup extends RootDisplayArea {
 除了WindowState可以显示图像以外，大部分的WindowContainer，如WindowToken、TaskDisplayArea是不会有内容显示的，都只是一个抽象的容器概念。极端点说，WMS如果只为了管理窗口，WMS也可以不创建这些个WindowContainer类，直接用一个类似列表的东西，将屏幕上显示的窗口全部添加到这个列表中，通过这一个列表来对所有的窗口进行管理。但是为了更有逻辑地管理屏幕上显示的窗口，还是需要创建各种各样的窗口容器类，即WindowContainer及其子类，来对WindowState进行分类，从而对窗口进行系统化的管理。      
 这样带来的好处也是显而易见的，如：      
 1）、这些 WindowContainer 类都有着鲜明的上下级关系，一般不能越级处理，比如 DefaultTaskDisplayArea 只用来管理调度 Task，Task 用来管理调度 ActivityRecord，而 DefaultTaskDisplayArea 不能直接越过 Task 去调度 Task 中的 ActivityRecord。这样 TaskDisplayArea 只需要关注它的子容器们，即 Task 的管理，ActivityRecord 相关的事务让 Task 去操心就好，每一级与每一级之间的边界都很清晰，不会在管理逻辑上出现混乱，比如 DefaultTaskDisplayArea 强行去调整一个 ActivityRecord 的位置，导致这个 ActivityRecord 跳出它所在的 Task，变成和 Task 一个层级。      
-2）、保证了每一个 WiindowContainer 不会越界，这个重要。      
+2）、保证了每一个 WindowContainer 不会越界，这个重要。      
 比如我在应用界面点击 HOME 键回到Launcher，此时 DefaultTaskDisplayArea 就会把 Launcher 对应的 Task#1，移动到它内部栈的栈顶，把当前应用对应的 Task#133 移动到栈底。 而这仅限于 DefaultTaskDisplayArea 内部的调整，这一点保证了 Launcher 的窗口将永远不可能高于 StatusBar 窗口，也不会低于 Wallpaper 窗口。      
 如下图：      
 

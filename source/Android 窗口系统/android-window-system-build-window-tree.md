@@ -49,7 +49,12 @@ SystemServer.main
                         // 获取 DefaultTaskDisplayArea
                         RootWindowContainer.getDefaultTaskDisplayArea()
                         // 创建 RootTask
-                        TaskDisplayArea.getOrCreateRootHomeTask()                                      
+                        TaskDisplayArea.getOrCreateRootHomeTask() 
+                             TaskDisplayArea.createRootTask
+                                 Task$Builder.build
+                                     TaskDisplayArea.addChild           
+                                         TaskDisplayArea.addChildTask
+                                             WindowContainer.addChild
 ```
 
 
@@ -1029,11 +1034,60 @@ featureAreas 就是存储了 5 个 Feature 的数组。
 
 <img src="/images/android-window-system-build-window-tree/3.png" width="972" height="347"/>
 
-至此，基本的窗口层级树是构建完了，但是这个层级树和上一篇看不太一样，那是因为Leaf下没有内容了，应用层`DefaultTaskDisplayArea` 和壁纸层也没有内容，那是因为 Leaf 后面的内容都是具体业务添加上去的。比如 Task、ActivityRecord 和非 Activity 窗口的 WindowToken 等等。     
-所以其实对应 Window 的 add 流程，其实也就是真没添加到这个层级树的流程。这些我们后面再分析。    
 
+
+#### 创建 RootTask
+
+前面介绍完RootWindowContainer中的 setWindowManager 方法中构建基本的窗口层级树后，这个方法会继续创建一个RootTask用于App启动的时候放置Activity和对应Task。     
+
+```
+    void setWindowManager(WindowManagerService wm) {
+	    ......
+        final TaskDisplayArea defaultTaskDisplayArea = getDefaultTaskDisplayArea();
+        defaultTaskDisplayArea.getOrCreateRootHomeTask(ON_TOP);
+        positionChildAt(POSITION_TOP, defaultTaskDisplayArea.mDisplayContent,
+                false /* includingParents */);
+    }
+```
+
+创建的具体流程在上面的流程图中。     
+调用堆栈：     
+
+```
+DefaultTaskDisplayArea@193126876 addChild child = Task{2480f17 #1 type=home}
+java.lang.Exception
+    at com.android.server.wm.WindowContainer.addChild(WindowContainer.java:730)
+    at com.android.server.wm.TaskDisplayArea.addChildTask(TaskDisplayArea.java:328)
+    at com.android.server.wm.TaskDisplayArea.addChild(TaskDisplayArea.java:314)
+    at com.android.server.wm.Task$Builder.build(Task.java:6847)
+    at com.android.server.wm.TaskDisplayArea.createRootTask(TaskDisplayArea.java:1033)
+    at com.android.server.wm.TaskDisplayArea.createRootTask(TaskDisplayArea.java:1007)
+    at com.android.server.wm.TaskDisplayArea.getOrCreateRootHomeTask(TaskDisplayArea.java:1630)
+    at com.android.server.wm.RootWindowContainer.setWindowManager(RootWindowContainer.java:1320)
+    at com.android.server.wm.ActivityTaskManagerService.setWindowManager(ActivityTaskManagerService.java:1072)
+    at com.android.server.am.ActivityManagerService.setWindowManager(ActivityManagerService.java:2189)
+    at com.android.server.SystemServer.startOtherServices(SystemServer.java:1646)
+```
+
+Task 信息：      
+
+```
+DefaultTaskDisplayArea@193126876 addChild child = Task{2480f17 #1 type=home}
+```
+  
+对应窗口层级树：    
+```
+       #1 DefaultTaskDisplayArea type=undefined mode=fullscreen override-mode=fullscreen requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
+        #1 Task=1 type=home mode=fullscreen override-mode=undefined requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
+
+```
+
+此时的层级树构建如下图：      
+
+<img src="/images/android-window-system-build-window-tree/4.png" width="781" height="324"/>
 
 ## 小结
 
 
-
+至此，基本的窗口层级树是构建完了。但是这个层级树和上一篇看不太一样，那是因为 Leaf 下没有内容了，应用层 `DefaultTaskDisplayArea` 下面只是创建了一个 RootTask ，壁纸层也没有内容，那是因为 Leaf 后面的内容都是具体业务添加上去的。比如 Task、ActivityRecord 和非 Activity 窗口的 WindowToken 等等。       
+所以其实对应 Window 的 add 流程，其实也就是真没添加到这个层级树的流程。这些我们后面再分析。      

@@ -13,6 +13,84 @@ date: 2022-11-23 10:00:00
 
 ## Activity 窗口加载
 
+FallbackHome Activty的挂载：     
+众所周知Android系统在启动的时候启动的第一个Activity是Setting中的FallbackHome。下面来看它的调用栈：      
+
+```
+Task{18f3995 #1 type=home}1 addChild child = Task{5b8e5aa #5 type=undefined A=1000:com.android.settings.FallbackHome}
+java.lang.Exception
+at com.android.server.wm.WindowContainer.addChild(WindowContainer.java:697)
+at com.android.server.wm.Task.addChild(Task.java:6191)
+at com.android.server.wm.Task.-$$Nest$maddChild(Unknown Source:0)
+at com.android.server.wm.Task$Builder.build(Task.java:6844)
+at com.android.server.wm.Task.reuseOrCreateTask(Task.java:6080)
+at com.android.server.wm.ActivityStarter.setNewTask(ActivityStarter.java:3532)
+at com.android.server.wm.ActivityStarter.startActivityInner(ActivityStarter.java:2112)
+at com.android.server.wm.ActivityStarter.startActivityUnchecked(ActivityStarter.java:1810)
+at com.android.server.wm.ActivityStarter.executeRequest(ActivityStarter.java:1638)
+at com.android.server.wm.ActivityStarter.execute(ActivityStarter.java:976)
+at com.android.server.wm.ActivityStartController.startHomeActivity(ActivityStartController.java:198)
+at com.android.server.wm.RootWindowContainer.startHomeOnTaskDisplayArea(RootWindowContainer.java:1515)
+at com.android.server.wm.RootWindowContainer.lambda$startHomeOnDisplay$11(RootWindowContainer.java:1448)
+at com.android.server.wm.RootWindowContainer.$r8$lambda$zDbqLY8yVs2-CTsfHP7FhguhRoM(Unknown Source:0)
+at com.android.server.wm.RootWindowContainer$$ExternalSyntheticLambda5.apply(Unknown Source:16)
+at com.android.server.wm.TaskDisplayArea.reduceOnAllTaskDisplayAreas(TaskDisplayArea.java:515)
+at com.android.server.wm.DisplayArea.reduceOnAllTaskDisplayAreas(DisplayArea.java:527)
+at com.android.server.wm.DisplayArea.reduceOnAllTaskDisplayAreas(DisplayArea.java:527)
+at com.android.server.wm.DisplayArea.reduceOnAllTaskDisplayAreas(DisplayArea.java:527)
+at com.android.server.wm.DisplayArea.reduceOnAllTaskDisplayAreas(DisplayArea.java:527)
+at com.android.server.wm.DisplayArea.reduceOnAllTaskDisplayAreas(DisplayArea.java:527)
+at com.android.server.wm.WindowContainer.reduceOnAllTaskDisplayAreas(WindowContainer.java:2450)
+at com.android.server.wm.RootWindowContainer.startHomeOnDisplay(RootWindowContainer.java:1447)
+at com.android.server.wm.RootWindowContainer.startHomeOnDisplay(RootWindowContainer.java:1434)
+at com.android.server.wm.RootWindowContainer.startHomeOnAllDisplays(RootWindowContainer.java:1418)
+at com.android.server.wm.ActivityTaskManagerService$LocalService.startHomeOnAllDisplays(ActivityTaskManagerService.java:6430)
+at com.android.server.am.ActivityManagerService.systemReady(ActivityManagerService.java:9079)
+at com.android.server.SystemServer.startOtherServices(SystemServer.java:2984)
+at com.android.server.SystemServer.run(SystemServer.java:953)
+at com.android.server.SystemServer.main(SystemServer.java:674)
+at java.lang.reflect.Method.invoke(Native Method)
+at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:552)
+at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:955)
+```
+
+```
+Task{5b8e5aa #5 type=undefined A=1000:com.android.settings.FallbackHome} addChild child = ActivityRecord{f696111 u0 com.android.settings/.FallbackHome
+java.lang.Exception
+at com.android.server.wm.WindowContainer.addChild(WindowContainer.java:730)
+at com.android.server.wm.TaskFragment.addChild(TaskFragment.java:2033)
+at com.android.server.wm.Task.addChild(Task.java:1456)
+at com.android.server.wm.ActivityStarter.addOrReparentStartingActivity(ActivityStarter.java:3607)
+at com.android.server.wm.ActivityStarter.setNewTask(ActivityStarter.java:3536)
+at com.android.server.wm.ActivityStarter.startActivityInner(ActivityStarter.java:2112)
+at com.android.server.wm.ActivityStarter.startActivityUnchecked(ActivityStarter.java:1810)
+at com.android.server.wm.ActivityStarter.executeRequest(ActivityStarter.java:1638)
+at com.android.server.wm.ActivityStarter.execute(ActivityStarter.java:976)
+at com.android.server.wm.ActivityStartController.startHomeActivity(ActivityStartController.java:198)
+at com.android.server.wm.RootWindowContainer.startHomeOnTaskDisplayArea(RootWindowContainer.java:1515)
+at com.android.server.wm.RootWindowContainer.lambda$startHomeOnDisplay$11(RootWindowContainer.java:1448)
+at com.android.server.wm.RootWindowContainer.$r8$lambda$zDbqLY8yVs2-CTsfHP7FhguhRoM(Unknown Source:0)
+at com.android.server.wm.RootWindowContainer$$ExternalSyntheticLambda5.apply(Unknown Source:16)
+at com.android.server.wm.TaskDisplayArea.reduceOnAllTaskDisplayAreas(TaskDisplayArea.java:515)
+at com.android.server.wm.DisplayArea.reduceOnAllTaskDisplayAreas(DisplayArea.java:527)
+at com.android.server.wm.DisplayArea.reduceOnAllTaskDisplayAreas(DisplayArea.java:527)
+at com.android.server.wm.DisplayArea.reduceOnAllTaskDisplayAreas(DisplayArea.java:527)
+at com.android.server.wm.DisplayArea.reduceOnAllTaskDisplayAreas(DisplayArea.java:527)
+at com.android.server.wm.DisplayArea.reduceOnAllTaskDisplayAreas(DisplayArea.java:527)
+at com.android.server.wm.WindowContainer.reduceOnAllTaskDisplayAreas(WindowContainer.java:2450)
+at com.android.server.wm.RootWindowContainer.startHomeOnDisplay(RootWindowContainer.java:1447)
+at com.android.server.wm.RootWindowContainer.startHomeOnDisplay(RootWindowContainer.java:1434)
+at com.android.server.wm.RootWindowContainer.startHomeOnAllDisplays(RootWindowContainer.java:1418)
+at com.android.server.wm.ActivityTaskManagerService$LocalService.startHomeOnAllDisplays(ActivityTaskManagerService.java:6430)
+at com.android.server.am.ActivityManagerService.systemReady(ActivityManagerService.java:9079)
+at com.android.server.SystemServer.startOtherServices(SystemServer.java:2984)
+at com.android.server.SystemServer.run(SystemServer.java:953)
+at com.android.server.SystemServer.main(SystemServer.java:674)
+at java.lang.reflect.Method.invoke(Native Method)
+at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:552)
+at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:955)
+```
+
 从桌面启动 Activity 后，通过对比前后的窗口层级树：    
 
 <img src="/images/android-window-system-add-window/1.png" width="893" height="145"/>

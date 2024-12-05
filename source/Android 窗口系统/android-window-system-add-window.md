@@ -13,8 +13,18 @@ date: 2022-11-23 10:00:00
 
 ## Activity 窗口加载
 
-FallbackHome Activty的挂载：     
-众所周知Android系统在启动的时候启动的第一个Activity是Setting中的FallbackHome。下面来看它的调用栈：      
+FallbackHome Activty的挂载。     
+众所周知Android系统在启动的时候启动的第一个Activity是Setting中的FallbackHome。下面来看它的调用栈。      
+在 `WindowContainer` 的两个 `addChild` 方法中加入打印信息，方便跟踪调用流程。    
+
+```
+    void addChild(E child, int index) {
+        if((child instanceof Task) || (child instanceof ActivityRecord) || (child instanceof WindowState)){
+            android.util.Log.i("Test",this + " addChild comparator child = " + child,new Exception());
+        }
+```
+
+添加 Task：     
 
 ```
 Task{18f3995 #1 type=home}1 addChild child = Task{5b8e5aa #5 type=undefined A=1000:com.android.settings.FallbackHome}
@@ -54,6 +64,8 @@ at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:
 at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:955)
 ```
 
+添加 ActivityRecord：     
+
 ```
 Task{5b8e5aa #5 type=undefined A=1000:com.android.settings.FallbackHome} addChild child = ActivityRecord{f696111 u0 com.android.settings/.FallbackHome
 java.lang.Exception
@@ -91,12 +103,29 @@ at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:
 at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:955)
 ```
 
+
+添加 WindowState：     
+
+```
+ActivityRecord{bf714 u0 com.android.settings/.FallbackHome t2}1 addChild comparator child = Window{312c9da u0 com.android.settings/com.android.settings.FallbackHome}
+java.lang.Exception
+at com.android.server.wm.WindowContainer.addChild(WindowContainer.java:697)
+at com.android.server.wm.WindowToken.addWindow(WindowToken.java:333)
+at com.android.server.wm.ActivityRecord.addWindow(ActivityRecord.java:4543)
+at com.android.server.wm.WindowManagerService.addWindow(WindowManagerService.java:1793)
+at com.android.server.wm.Session.addToDisplayAsUser(Session.java:215)
+at android.view.IWindowSession$Stub.onTransact(IWindowSession.java:621)
+at com.android.server.wm.Session.onTransact(Session.java:179)
+at android.os.Binder.execTransactInternal(Binder.java:1339)
+at android.os.Binder.execTransact(Binder.java:1275)
+```
+
 从桌面启动 Activity 后，通过对比前后的窗口层级树：    
 
 <img src="/images/android-window-system-add-window/1.png" width="893" height="145"/>
 
 我们会发现，应用窗口 WindowState 挂载到了 ActivityRecord 下面，ActivityRecord 挂载到了 Task 下面，Task 挂载到了 DefaultTaskDisplayArea。    
-在这个过程分别创建了 WindowState，Task，ActivityRecord。    
+在这个过程分别创建了 ActivityRecord，Task，WindowState。    
 
 
 ```
@@ -229,6 +258,10 @@ WindowManagerService.addWindow
                 WindowContainer.setParent // WindowState 的父节点设置为 WindowToken
 ```
 
+App端在ViewRootImpl中通过Session调用addToDisplayAsUser跨进程到WMS。WMS会先判断要添加的Window有没有WinowToken，没有WinowToken就会new 一个WindowToken，然后new 一个WindowState，把WindowState挂在到WindoToken中。      
+具体的WindowToken该挂在到那一层级是根据add view时设置WindowManager.LayoutParams中的type来决定的。     
+
+
 ## addWindow
 
 ```
@@ -295,6 +328,13 @@ WindowManagerService.addWindow
             final WindowState win = new WindowState(this, session, client, token, parentWindow,
                     appOp[0], attrs, viewVisibility, session.mUid, userId,
                     session.mCanAddInternalSystemWindow);
+            ......
+            //创建与inputdispatcher通信的socketpair
+            final boolean openInputChannels = (outInputChannel != null
+                    && (attrs.inputFeatures & INPUT_FEATURE_NO_INPUT_CHANNEL) == 0);
+            if  (openInputChannels) {
+                win.openInputChannel(outInputChannel);
+            }
             ......
             win.attach();
             //将客户端与WindowState加入到mWindowMap中

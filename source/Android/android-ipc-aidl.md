@@ -192,6 +192,11 @@ aidl E  8954  8954 type_namespace.cpp:130]     'Student' can be an out type, so 
 17:18:23.977 [LIFECYCLE] [org.gradle.BuildResultLogger] 
 ```
 
+### 生成文件
+
+编译 AIDL 文件后，系统会生成一个 Java 接口 IStudentManager 和 IStudent 接口，该接口继承自 IInterface，表示它是一个用于跨进程通信的接口。      
+另外还有对应的 Stub 类，负责实现 Binder 相关的逻辑，Stub 是 IStudentManager 和 IStudent 的抽象类，它继承自 Binder 并实现 IStudentManager 和 IStudent 接口。它用于处理 IPC 相关的细节。      
+
 ### 代码
 
 AndroidManifest.xml

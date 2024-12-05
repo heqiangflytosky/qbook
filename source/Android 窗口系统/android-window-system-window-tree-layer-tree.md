@@ -299,30 +299,174 @@ SurfaceFlinger::createLayer
 
 然后可以根据 `adb shell dumpsys SurfaceFlinger` 可以看到这样的 Layer 信息：     
 
+SurfaceFlinger 端的 Layer 情况，可以看到，基本和 WMS 窗口层级树是对应关系的。      
+
+```
+Visible layers (count = 108)
+Composition layers
+* Layer 0xb400007783e854d0 (Light Sensor Capture#3)
+      ...... 
+* Layer 0xb400007783e7f9b0 (Display 0 name="内置屏幕"#4)
+      isSecure=false geomUsesSourceCrop=false geomBufferUsesDisplayInverseTransform=false geomLayerTransform (ROT_0) (IDENTITY)
+
+      geomBufferSize=[0 0 -1 -1] geomContentCrop=[0 0 -1 -1] geomCrop=[0 0 -1 -1] geomBufferTransform=0 
+        Region transparentRegionHint (this=0xb4000075e3e2c810, count=1)
+    [  0,   0,   0,   0]
+      geomLayerBounds=[0.000000 0.000000 0.000000 0.000000]       shadowRadius=0.000000 
+      blend=INVALID (0) alpha=1.000000 backgroundBlurRadius=0 composition type=INVALID (0) 
+      buffer: buffer=0x0 
+      sideband stream=0x0 
+      color=[0.000000 0.000000 0.000000] 
+      isOpaque=true hasProtectedContent=false isColorspaceAgnostic=false dataspace=UNKNOWN (0) hdr metadata types=0 dimming enabled=true colorTransform=[[1.000,0.000,0.000,0.000][0.000,1.000,0.000,0.000][0.000,0.000,1.000,0.000][0.000,0.000,0.000,1.000]] caching hint=Enabled 
+      internalOnly=false 
+* Layer 0xb400007783eaa520 (WindowedMagnification:0:31#5)
+      isSecure=false geomUsesSourceCrop=false geomBufferUsesDisplayInverseTransform=false geomLayerTransform (ROT_0) (IDENTITY)
+
+      geomBufferSize=[0 0 -1 -1] geomContentCrop=[0 0 -1 -1] geomCrop=[0 0 -1 -1] geomBufferTransform=0 
+        Region transparentRegionHint (this=0xb4000075e3e25570, count=1)
+    [  0,   0,   0,   0]
+      geomLayerBounds=[0.000000 0.000000 0.000000 0.000000]       shadowRadius=0.000000 
+      blend=INVALID (0) alpha=1.000000 backgroundBlurRadius=0 composition type=INVALID (0) 
+      buffer: buffer=0x0 
+      sideband stream=0x0 
+      color=[0.000000 0.000000 0.000000] 
+      isOpaque=true hasProtectedContent=false isColorspaceAgnostic=false dataspace=UNKNOWN (0) hdr metadata types=0 dimming enabled=true colorTransform=[[1.000,0.000,0.000,0.000][0.000,1.000,0.000,0.000][0.000,0.000,1.000,0.000][0.000,0.000,0.000,1.000]] caching hint=Enabled 
+      internalOnly=false 
+* Layer 0xb400007783eb88f0 (HideDisplayCutout:0:14#6)
+      ......
+* Layer 0xb400007783e9eee0 (OneHanded:0:14#7)
+      ......
+* Layer 0xb400007783eb2dd0 (FullscreenMagnification:0:12#8)
+      ...... 
+* Layer 0xb400007783ebb680 (Leaf:0:1#9)
+      ...... 
+......
+* Layer 0xb400007783fcfa10 (Task=13#144)
+      isSecure=false geomUsesSourceCrop=false geomBufferUsesDisplayInverseTransform=false geomLayerTransform (ROT_0) (IDENTITY)
+
+      geomBufferSize=[0 0 -1 -1] geomContentCrop=[0 0 -1 -1] geomCrop=[0 0 -1 -1] geomBufferTransform=0 
+        Region transparentRegionHint (this=0xb4000075e3e6bf50, count=1)
+    [  0,   0,   0,   0]
+      geomLayerBounds=[0.000000 0.000000 0.000000 0.000000]       shadowRadius=0.000000 
+      blend=INVALID (0) alpha=1.000000 backgroundBlurRadius=0 composition type=INVALID (0) 
+      buffer: buffer=0x0 
+      sideband stream=0x0 
+      color=[0.000000 0.000000 0.000000] 
+      isOpaque=true hasProtectedContent=false isColorspaceAgnostic=false dataspace=UNKNOWN (0) hdr metadata types=0 dimming enabled=true colorTransform=[[1.000,0.000,0.000,0.000][0.000,1.000,0.000,0.000][0.000,0.000,1.000,0.000][0.000,0.000,0.000,1.000]] caching hint=Enabled 
+      internalOnly=false 
+* Layer 0xb400007784008950 (94bb650 ActivityRecordInputSink com.hq.android.androiddemo/.MainActivity#154)
+      isSecure=false geomUsesSourceCrop=false geomBufferUsesDisplayInverseTransform=false geomLayerTransform (ROT_0) (IDENTITY)
+
+      geomBufferSize=[0 0 -1 -1] geomContentCrop=[0 0 -1 -1] geomCrop=[0 0 -1 -1] geomBufferTransform=0 
+        Region transparentRegionHint (this=0xb4000075e3e63c50, count=1)
+    [  0,   0,   0,   0]
+      geomLayerBounds=[0.000000 0.000000 0.000000 0.000000]       shadowRadius=0.000000 
+      blend=INVALID (0) alpha=1.000000 backgroundBlurRadius=0 composition type=INVALID (0) 
+      buffer: buffer=0x0 
+      sideband stream=0x0 
+      color=[0.000000 0.000000 0.000000] 
+      isOpaque=true hasProtectedContent=false isColorspaceAgnostic=false dataspace=UNKNOWN (0) hdr metadata types=0 dimming enabled=true colorTransform=[[1.000,0.000,0.000,0.000][0.000,1.000,0.000,0.000][0.000,0.000,1.000,0.000][0.000,0.000,0.000,1.000]] caching hint=Enabled 
+      internalOnly=false 
+* Layer 0xb400007783fddde0 (ActivityRecord{9bde77c u0 com.hq.android.androiddemo/.MainActivity t13}#145)
+      isSecure=false geomUsesSourceCrop=false geomBufferUsesDisplayInverseTransform=false geomLayerTransform (ROT_0) (IDENTITY)
+
+      geomBufferSize=[0 0 -1 -1] geomContentCrop=[0 0 -1 -1] geomCrop=[0 0 -1 -1] geomBufferTransform=0 
+        Region transparentRegionHint (this=0xb4000075e3e70900, count=1)
+    [  0,   0,   0,   0]
+      geomLayerBounds=[0.000000 0.000000 0.000000 0.000000]       shadowRadius=0.000000 
+      blend=INVALID (0) alpha=1.000000 backgroundBlurRadius=0 composition type=INVALID (0) 
+      buffer: buffer=0x0 
+      sideband stream=0x0 
+      color=[0.000000 0.000000 0.000000] 
+      isOpaque=true hasProtectedContent=false isColorspaceAgnostic=false dataspace=UNKNOWN (0) hdr metadata types=0 dimming enabled=true colorTransform=[[1.000,0.000,0.000,0.000][0.000,1.000,0.000,0.000][0.000,0.000,1.000,0.000][0.000,0.000,0.000,1.000]] caching hint=Enabled 
+      internalOnly=false 
+* Layer 0xb40000778400e470 (3812819 com.hq.android.androiddemo/com.hq.android.androiddemo.MainActivity#155)
+      isSecure=false geomUsesSourceCrop=false geomBufferUsesDisplayInverseTransform=false geomLayerTransform (ROT_0) (IDENTITY)
+
+      geomBufferSize=[0 0 -1 -1] geomContentCrop=[0 0 -1 -1] geomCrop=[0 0 -1 -1] geomBufferTransform=0 
+        Region transparentRegionHint (this=0xb4000075e3e6e010, count=1)
+    [  0,   0,   0,   0]
+      geomLayerBounds=[0.000000 0.000000 0.000000 0.000000]       shadowRadius=0.000000 
+      blend=INVALID (0) alpha=1.000000 backgroundBlurRadius=0 composition type=INVALID (0) 
+      buffer: buffer=0x0 
+      sideband stream=0x0 
+      color=[0.000000 0.000000 0.000000] 
+      isOpaque=true hasProtectedContent=false isColorspaceAgnostic=false dataspace=UNKNOWN (0) hdr metadata types=0 dimming enabled=true colorTransform=[[1.000,0.000,0.000,0.000][0.000,1.000,0.000,0.000][0.000,0.000,1.000,0.000][0.000,0.000,0.000,1.000]] caching hint=Enabled 
+      internalOnly=false 
+* Layer 0xb400007783fec1b0 (com.hq.android.androiddemo/com.hq.android.androiddemo.MainActivity#156)
+      isSecure=false geomUsesSourceCrop=true geomBufferUsesDisplayInverseTransform=false geomLayerTransform (ROT_0) (IDENTITY)
+
+      geomBufferSize=[0 0 1080 2340] geomContentCrop=[0 0 1080 2340] geomCrop=[0 0 -1 -1] geomBufferTransform=0 
+        Region transparentRegionHint (this=0xb4000075e3e68e30, count=1)
+    [  0,   0,   0,   0]
+      geomLayerBounds=[0.000000 0.000000 1080.000000 2340.000000]       shadowRadius=0.000000 
+      blend=NONE (1) alpha=1.000000 backgroundBlurRadius=0 composition type=DEVICE (2) 
+      buffer: buffer=0xb4000076a3e36470 
+      sideband stream=0x0 
+      color=[0.000000 0.000000 0.000000] 
+      isOpaque=true hasProtectedContent=false isColorspaceAgnostic=false dataspace=V0_SRGB (142671872) hdr metadata types=0 dimming enabled=true colorTransform=[[1.000,0.000,0.000,0.000][0.000,1.000,0.000,0.000][0.000,0.000,1.000,0.000][0.000,0.000,0.000,1.000]] caching hint=Enabled 
+      internalOnly=false
+```
+
+其中，androiddemo 这个应用的对应的窗口层级为：    
+
+```
+       #1 DefaultTaskDisplayArea type=undefined mode=fullscreen override-mode=fullscreen requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
+        #2 Task=13 type=standard mode=fullscreen override-mode=undefined requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
+         #0 ActivityRecord{9bde77c u0 com.hq.android.androiddemo/.MainActivity t13} type=standard mode=fullscreen override-mode=undefined requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
+          #0 3812819 com.hq.android.androiddemo/com.hq.android.androiddemo.MainActivity type=standard mode=fullscreen override-mode=undefined requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
+```
+
+可以和 sf 的 Layer 对比一下看看。      
+有些 Layer 是不参与绘制的，有的参与绘制，参与绘制的这些 Layer 的 buffer是不为空的：
+```
+      blend=NONE (1) alpha=1.000000 backgroundBlurRadius=0 composition type=DEVICE (2) 
+      buffer: buffer=0xb4000076a3e36470 
+```
+
+hw blend mode 有这几种：
+
+```
+/* Blend modes, settable per layer */
+typedef enum {
+    HWC2_BLEND_MODE_INVALID = 0,
+
+    /* colorOut = colorSrc */
+    HWC2_BLEND_MODE_NONE = 1,
+
+    /* colorOut = colorSrc + colorDst * (1 - alphaSrc) */
+    HWC2_BLEND_MODE_PREMULTIPLIED = 2,
+
+    /* colorOut = colorSrc * alphaSrc + colorDst * (1 - alphaSrc) */
+    HWC2_BLEND_MODE_COVERAGE = 3,
+} hwc2_blend_mode_t;
+```
+
+Display *****(active) HWC layers:
+表示真正参与合成的 layer。
+
 ```
 Display 4630947064936706947 (active) HWC layers:
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
  Layer name
            Z |  Window Type |  Layer Class | Comp Type |  Transform |   Disp Frame (LTRB) |          Source Crop (LTRB) |     Frame Rate (Explicit) (Seamlessness) [Focused]
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- com.hq.android.androiddemo/com.hq.android.androiddemo.wms.WMSTestActivity#455
+ com.hq.android.androiddemo/com.hq.android.androiddemo.MainActivity#156
   rel      0 |            1 |            0 |     DEVICE |          0 |    0    0 1080 2340 |    0.0    0.0 1080.0 2340.0 |                                              [*]
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- StatusBar#108
+ StatusBar#104
   rel      0 |         2000 |            0 |     DEVICE |          0 |    0    0 1080   92 |    0.0    0.0 1080.0   92.0 |                                              [ ]
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- NavigationBar0#104
+ NavigationBar0#100
   rel      0 |         2019 |            0 |     DEVICE |          0 |    0 2271 1080 2340 |    0.0    0.0 1080.0   69.0 |                                              [ ]
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- ScreenDecorOverlay#86
+ ScreenDecorOverlay#77
   rel      0 |         2024 |            0 |     DEVICE |          0 |    0    0 1080  144 |    0.0    0.0 1080.0  144.0 |                                              [ ]
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- ScreenDecorOverlayBottom#87
+ ScreenDecorOverlayBottom#81
   rel      0 |         2024 |            0 |     DEVICE |          0 |    0 2196 1080 2340 |    0.0    0.0 1080.0  144.0 |                                              [ ]
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 ```
-
 
 ## 问题
 

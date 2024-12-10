@@ -7,6 +7,12 @@ description: 介绍添加窗口流程
 date: 2022-11-23 10:00:00
 ---
 
+## 窗口显示流程概览
+
+从本节开始，我们将要从窗口的添加、布局、刷新等流程来介绍窗口的显示过程，大概的流程如下：      
+
+<img src="/images/android-window-system-add-window/over-view.png" width="1083" height="806"/>
+
 ## 窗口加载
 
 添加窗口的流程会根据不同的窗口类型而有所区别，主要设计的窗口容器的创建、WindowState初始化以及把WindowState加入到WIndowToken（或者 ActivityRecord）。    

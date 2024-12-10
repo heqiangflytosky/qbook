@@ -68,6 +68,11 @@ WindowStateAnimator 用来帮助WindowState管理 animator 和 surface 基本操
 
 ```
     private final WallpaperController mWallpaperControllerLocked;
+
+    // 如果在显示窗口时，它应执行 enter 动画，则设置为 true。
+    boolean mEnterAnimationPending;
+    // 用于指示此窗口正在进行 enter 动画。
+    boolean mEnteringAnimation;
     
     // 定义窗口从最初创建到显示在屏幕上的5个状态
     // 窗口刚刚被创建，还没有Surface。
@@ -162,3 +167,19 @@ WindowStateAnimator 用来帮助WindowState管理 animator 和 surface 基本操
 ### TaskLaunchParamsModifier
 
 定义 Task 的默认启动参数的类。      
+
+
+### SurfaceAnimator
+
+Android系统中用于处理窗口动画的核心组件，主要负责管理和执行窗口的动画效果。通过 WindowAnimationRunner 和 WindowAnimationSpec 等组件来具体实现动画效果。      
+可以在具有一组子表面的对象上运行动画的类。我们通过将对象的所有子表面重新设置到一个名为 “Leash” 的新表面上来实现这一点。Leash 将附加到子对象所附加到的 Surface 层次结构中。然后，我们将 Leash 移交给处理动画的组件，该动画由 {@link AnimationAdapter} 指定。当动画完成动画制作后，将调用我们的回调以完成动画，此时我们将子项重新设置为原始父项。      
+
+### SurfaceAnimationRunner
+
+用于管理窗口动画的一个关键组件。它主要负责在窗口动画过程中调度和管理动画任务，确保动画的平滑和高效执行。       
+
+### WindowAnimationSpec
+
+用于定义窗口动画的规格。它允许开发者指定动画的运行时长、当前时间比例等参数，从而控制动画的播放效果。       
+
+

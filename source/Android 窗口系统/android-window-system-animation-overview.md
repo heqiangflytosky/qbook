@@ -10,6 +10,7 @@ date: 2022-11-23 10:00:00
 ## 概述
 
 本节开始介绍一下Android的窗口动画，先来列举一下窗口动画的一些特点：     
+
  - 和App动画一样，窗口动画添加的目的是使得窗口间的切换有更好的视觉效果，从而带来更好的体验。因此他本身不应该干预业务逻辑，也就是说就算把动画这段代码移掉，业务逻辑也应该正在执行。    
  - 虽然窗口动画是 Framework 层的动画，但是它本质上仍然和 App 内写动画一样，要么是加载动画的 xml 文件，要么是通过 Animator 对象。    
  - 因此我们分析窗口动画的重点不是动画本身，而是动画的播放流程和时机。      
@@ -244,3 +245,6 @@ LocalAnimationAdapter.startAnimation.callback
                 SurfaceAnimator.reset()
                     SurfaceAnimator.removeLeash()
 ```
+
+
+

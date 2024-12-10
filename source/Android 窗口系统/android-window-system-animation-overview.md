@@ -1,5 +1,5 @@
 ---
-title:Android 窗口动画概述
+title: Android 窗口动画概述
 categories: Android 窗口系统
 comments: true
 tags: [Android 窗口系统]

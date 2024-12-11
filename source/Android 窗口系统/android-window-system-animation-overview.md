@@ -88,23 +88,23 @@ R.anim.exit
 分析动画的流程，我们从现象到本质来逐步分析，首先来看看动画过程中图层的变化。我们使用 Winscope 工具来观察一下。    
 
 在没有添加窗口时节点情况：    
-<img src="/images/android-window-system-animation-overview/1.png" width="893" height="145"/>
+<img src="/images/android-window-system-animation-overview/1.png" width="596" height="152"/>
 点击添加窗口后，在叶子节点下面创建WindowToken和WindowState对应的图层：    
-<img src="/images/android-window-system-animation-overview/2.png" width="893" height="145"/>
+<img src="/images/android-window-system-animation-overview/2.png" width="707" height="208"/>
 调整窗口图层的层级到最前：    
-<img src="/images/android-window-system-animation-overview/3.png" width="893" height="145"/>
+<img src="/images/android-window-system-animation-overview/3.png" width="707" height="211"/>
 WindowState对应的图层创建可以绘制内容的Layer：    
-<img src="/images/android-window-system-animation-overview/4.png" width="893" height="145"/>
+<img src="/images/android-window-system-animation-overview/4.png" width="716" height="231"/>
 创建动画 leash 图层     
-<img src="/images/android-window-system-animation-overview/5.png" width="893" height="145"/>
+<img src="/images/android-window-system-animation-overview/5.png" width="700" height="333"/>
 
-<img src="/images/android-window-system-animation-overview/6.png" width="893" height="145"/>
+<img src="/images/android-window-system-animation-overview/6.png" width="694" height="271"/>
 开始动画，可以看到窗口透明度的变化：    
-<img src="/images/android-window-system-animation-overview/7.png" width="893" height="145"/>
+<img src="/images/android-window-system-animation-overview/7.png" width="445" height="148"/>
 动画完成，开始移除 leash 图层：   
-<img src="/images/android-window-system-animation-overview/8.png" width="893" height="145"/>
+<img src="/images/android-window-system-animation-overview/8.png" width="706" height="337"/>
 leash 移除完成，添加动画结束。
-<img src="/images/android-window-system-animation-overview/9.png" width="893" height="145"/>
+<img src="/images/android-window-system-animation-overview/9.png" width="706" height="227"/>
 
 窗口移除动画的流程类似，不同的就是透明度的变化是从1到0。    
 整个过程可以简化如下图表示：   

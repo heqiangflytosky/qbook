@@ -6,6 +6,11 @@ tags: [Android性能优化]
 description: 网络文章汇总
 date: 2016-2-20 10:00:00
 ---
+
+## 博客
+
+[Gracker: Android Performance](https://androidperformance.com/#)
+
 ## 汇总文章
 
 [Android 性能优化必知必会](https://www.androidperformance.com/2018/05/07/Android-performance-optimization-skills-and-tools/#)    

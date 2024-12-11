@@ -182,4 +182,13 @@ Android系统中用于处理窗口动画的核心组件，主要负责管理和�
 
 用于定义窗口动画的规格。它允许开发者指定动画的运行时长、当前时间比例等参数，从而控制动画的播放效果。       
 
+### SurfaceFreezer
 
+处理 Surface 冻结操作，比如在动画开始时冻结窗口的更新，以防止在动画过程中窗口的内容闪烁。    
+此类处理 Animatable 的 “冻结”。有问题的 Animatable 应实现 Freezable。这样做的目的是使 WindowContainer 能够各自冻结自身。冻结意味着拍摄快照并将其放置在子层次结构中的所有内容之上。“放置在上方” 要求将父曲面插入到目标曲面的上方，以便目标曲面和快照是同级曲面。    
+使用此功能进行过渡的总体流程为：      
+1. 在 mChangingApps 中设置过渡并录制可动画化的动画     
+2. 调用 {@link freeze} 设置皮带并用快照覆盖。     
+3. 当过渡参与者准备就绪时，以此作为参数启动 SurfaceAnimator      
+4. 然后，SurfaceAnimator 将 {@link takeLeashForAnimation} 而不是创建另一个皮带。     
+5. 动画系统最终应该通过 {@link unfreeze} 来清理它。

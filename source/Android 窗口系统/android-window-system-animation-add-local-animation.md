@@ -70,6 +70,15 @@ WindowSurfacePlacer.performSurfacePlacement()
                                                                                             SurfaceAnimationRunner.applyTransformation()
                                                                                                 // 执行动画的实际逻辑，也就是修改leash的参数
                                                                                                 WindowAnimationSpec.apply()
+                                                                                        // 动画播放结束
+                                                                                        AnimatorListenerAdapter.onAnimationEnd
+                                                                                            SurfaceAnimator.getFinishedCallback()
+                                                                                                SurfaceAnimator.reset()
+                                                                                                    // 删除leash 图层
+                                                                                                    SurfaceAnimator.removeLeash()
+                                                                                                staticAnimationFinishedCallback.onAnimationFinished
+                                                                                                    WindowState.onAnimationFinished()
+                                                                                                        WindowContainer.onAnimationFinished()
                                                                                         ValueAnimator.start()
                                                                             // 初始化动画的状态
                                                                             SurfaceAnimationRunner.applyTransformation()
@@ -566,7 +575,7 @@ SurfaceAnimator的作用主要是控制窗口动画，它是窗口动画的中�
 
 入参：    
 
- - Animatable animatable：当前窗口
+ - Animatable animatable：当前窗口，mAnimatable是Animatable接口的对象，WindowContainer实现了Animatable接口。 可以是 WindowState 或者 ActivityRecord。
  - SurfaceControl surface：当前窗口的surface
  - Transaction t：一个事务对象，用于执行一系列操作
  - @AnimationType int type：动画类型
@@ -1092,7 +1101,300 @@ mAnimationFrameCallback 在构造方法中初始化。
     }
 ```
 
+## Remove Leash
+
+### 回调流程分析
+
+在动画播放流程中，SurfaceAnimationRunner.startAnimationLocked方法里，对动画结束通过onAnimationEnd方法进行了监听。   
+
+```
+    private void startAnimationLocked(RunningAnimation a) {
+    
+       ...
+        anim.addListener(new AnimatorListenerAdapter() {
+            @Override
+            ...
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                synchronized (mLock) {
+                    mRunningAnimations.remove(a.mLeash);
+                    synchronized (mCancelLock) {
+                        if (!a.mCancelled) {
+
+                            // Post on other thread that we can push final state without jank.
+                            mAnimationThreadHandler.post(a.mFinishCallback);
+                        }
+                    }
+                }
+            }
+        });
+```
+
+a.mFinishCallback，在 RunningAnimation 构造方法中对mFinishCallback进行了赋值。    
+
+RunningAnimation 则是在 SurfaceAnimationRunner.startAnimation 进行了初始化。    
+
+```
+//RunningAnimation.java 
+    void startAnimation(AnimationSpec a, SurfaceControl animationLeash, Transaction t,
+            Runnable finishCallback) {
+        synchronized (mLock) {
+            final RunningAnimation runningAnim = new RunningAnimation(a, animationLeash,
+                    finishCallback);
+```
+
+finishCallback 则是在 LocalAnimationAdapter.startAnimation 传入的。     
+LocalAnimationAdapter.startAnimation  在调用传入了参数 OnAnimationFinishedCallback，      
+
+```
+    public void startAnimation(SurfaceControl animationLeash, Transaction t,
+            @AnimationType int type, @NonNull OnAnimationFinishedCallback finishCallback) {
+        mAnimator.startAnimation(mSpec, animationLeash, t,
+                () -> finishCallback.onAnimationFinished(type, this));
+    }
+```
+
+finishCallback是OnAnimationFinishedCallback接口对象。结合前面SurfaceAnimator.startAnimation方法中调用的      
+mAnimation.startAnimation(mLeash, t, type, mInnerAnimationFinishedCallback);     
+即finishCallback的值就是 mInnerAnimationFinishedCallback，这个参数同样是在 SurfaceAnimator 的构造方法中初始化的。     
+
+```
+   SurfaceAnimator(Animatable animatable,
+           @Nullable OnAnimationFinishedCallback staticAnimationFinishedCallback,
+           WindowManagerService service) {
+       mAnimatable = animatable;
+       mService = service;
+       mStaticAnimationFinishedCallback = staticAnimationFinishedCallback;
+       mInnerAnimationFinishedCallback = getFinishedCallback(staticAnimationFinishedCallback);
+   }
+   
+    private OnAnimationFinishedCallback getFinishedCallback(
+            @Nullable OnAnimationFinishedCallback staticAnimationFinishedCallback) {
+        return (type, anim) -> {
+            synchronized (mService.mGlobalLock) {
+                final SurfaceAnimator target = mService.mAnimationTransferMap.remove(anim);
+                if (target != null) {
+                    target.mInnerAnimationFinishedCallback.onAnimationFinished(type, anim);
+                    return;
+                }
+
+                if (anim != mAnimation) {
+                    return;
+                }
+                final Runnable resetAndInvokeFinish = () -> {
+                    // We need to check again if the animation has been replaced with a new
+                    // animation because the animatable may defer to finish.
+                    if (anim != mAnimation) {
+                        return;
+                    }
+                    final OnAnimationFinishedCallback animationFinishCallback =
+                            mSurfaceAnimationFinishedCallback;
+                    // 重置与动画相关的状态，删除 leash，下面详细介绍
+                    reset(mAnimatable.getSyncTransaction(), true /* destroyLeash */);
+                    // 调用WindowState.onAnimationFinished()
+                    if (staticAnimationFinishedCallback != null) {
+                        staticAnimationFinishedCallback.onAnimationFinished(type, anim);
+                    }
+                    //mSurfaceAnimationFinishedCallback的值为null，因此animationFinishCallback的值为null
+                    if (animationFinishCallback != null) {
+                        // 如果 animationFinishCallback 不为空，则回调WindowContainer.onAnimationFinished方法
+                        animationFinishCallback.onAnimationFinished(type, anim);
+                    }
+                };
+                // If both the Animatable and AnimationAdapter requests to be deferred, only the
+                // first one will be called.
+                if (!(mAnimatable.shouldDeferAnimationFinish(resetAndInvokeFinish)
+                        || anim.shouldDeferAnimationFinish(resetAndInvokeFinish))) {
+                    resetAndInvokeFinish.run();
+                }
+                //设置动画完成标志
+                mAnimationFinished = true;
+            }
+        };
+    }
+```
+
+staticAnimationFinishedCallback 是在构造 SurfaceAnimator 传入的，SurfaceAnimator 是在WindowContainer构造方法中实例化的，那么 staticAnimationFinishedCallback 就对应 WindowContainer.onAnimationFinished 方法。      
+
+```
+    WindowContainer(WindowManagerService wms) {
+        mWmService = wms;
+        mTransitionController = mWmService.mAtmService.getTransitionController();
+        mPendingTransaction = wms.mTransactionFactory.get();
+        mSyncTransaction = wms.mTransactionFactory.get();
+        mSurfaceAnimator = new SurfaceAnimator(this, this::onAnimationFinished, wms);
+        mSurfaceFreezer = new SurfaceFreezer(this, wms);
+    }
+```
+
+上面是一连串回调的调用流程。      
+下面再进行一些细节分析。     
+
+### 移除leash
+
+```
+//SurfaceAnimator.java
+    private void reset(Transaction t, boolean destroyLeash) {
+        mService.mAnimationTransferMap.remove(mAnimation);
+        mAnimation = null;
+        mSurfaceAnimationFinishedCallback = null;
+        // 重置动画类型
+        mAnimationType = ANIMATION_TYPE_NONE;
+        // 屏幕冻结时的快照
+        final SurfaceFreezer.Snapshot snapshot = mSnapshot;
+        mSnapshot = null;
+        if (snapshot != null) {
+            // 如果有屏幕冻结时的快照，取消该动画。
+            // 最终会调用到SurfaceAnimationRunner.onAnimationCancelled
+            snapshot.cancelAnimation(t, !destroyLeash);
+        }
+        if (mLeash == null) {
+            return;
+        }
+        SurfaceControl leash = mLeash;
+        mLeash = null;
+        // 移除leash
+        final boolean scheduleAnim = removeLeash(t, mAnimatable, leash, destroyLeash);
+        mAnimationFinished = false;
+        if (scheduleAnim) {
+            mService.scheduleAnimationLocked();
+        }
+    }
+```
+
+```
+    static boolean removeLeash(Transaction t, Animatable animatable, @NonNull SurfaceControl leash,
+            boolean destroy) {
+        boolean scheduleAnim = false;
+        //获取当前窗口的SurfaceControl
+        final SurfaceControl surface = animatable.getSurfaceControl();
+        // 获取当前窗口的父窗口的SurfaceControl
+        final SurfaceControl parent = animatable.getParentSurfaceControl();
+        // 获取当前动画 leash 图层
+        final SurfaceControl curAnimationLeash = animatable.getAnimationLeash();
+
+        // If the surface was destroyed or the leash is invalid, we don't care to reparent it back.
+        // Note that we also set this variable to true even if the parent isn't valid anymore, in
+        // order to ensure onAnimationLeashLost still gets called in this case.
+        // If the animation leash is set, and it is different from the removing leash, it means the
+        // surface now has a new animation surface. We don't want to reparent for that.
+        final boolean reparent = surface != null && (curAnimationLeash == null
+                || curAnimationLeash.equals(leash));
+        if (reparent) {
+            ......
+            if (surface.isValid() && parent != null && parent.isValid()) {
+                //把当前窗口图层和其父窗口的图层重新建立父子关系
+                t.reparent(surface, parent);
+                scheduleAnim = true;
+            }
+        }
+        if (destroy) {
+            //移除图层
+            t.remove(leash);
+            scheduleAnim = true;
+        }
+
+        if (reparent) {
+            // Make sure to inform the animatable after the surface was reparented (or reparent
+            // wasn't possible, but we still need to invoke the callback)
+            animatable.onAnimationLeashLost(t);
+            scheduleAnim = true;
+        }
+        return scheduleAnim;
+    }
+```
+
+
+获取当前窗口的图层:    
+
+
+```
+//WindowContainer.java
+    @Override
+    public SurfaceControl getSurfaceControl() {
+        return mSurfaceControl;
+    }
+
+```
+
+获取当前窗口父窗口的图层，先获取当前窗口的父窗口，在获取父窗口的SurfaceControl。     
+
+```
+//WindowContainer.java
+    public SurfaceControl getParentSurfaceControl() {
+        final WindowContainer parent = getParent();
+        if (parent == null) {
+            return null;
+        }
+        return parent.getSurfaceControl();
+    }
+```
+
+获取动画图层:     
+
+```
+//WindowContainer.java
+    public SurfaceControl getAnimationLeash() {
+        return mAnimationLeash;
+    }
+
+```
+
+mAnimationLeash是前面SurfaceAnimator的startAnimation方法中的mAnimatable.onAnimationLeashCreated(t, mLeash);，把mLeash赋值给了mAnimationLeash，因此这个方法获取的是动画图层。     
+
+```
+//WindowContainer.java
+    public void onAnimationLeashLost(Transaction t) {
+        mLastLayer = -1;
+        mWmService.mSurfaceAnimationRunner.onAnimationLeashLost(mAnimationLeash, t);
+        mAnimationLeash = null;
+        mNeedsZBoost = false;
+        //调整其所有child的z-order
+        reassignLayer(t);
+        updateSurfacePosition(t);
+    }
+```
+
+### 处理和响应动画完成的逻辑
+
+
+前面分析callback 流程时讲过，最终会回调到 WindowContainer.onAnimationFinished()。    
+
+```
+//WindowContainer.java
+    protected void onAnimationFinished(@AnimationType int type, AnimationAdapter anim) {
+        doAnimationFinished(type, anim);
+        //用于唤醒所有等待mGlobalLock对象的线程
+        mWmService.onAnimationFinished();
+        mNeedsZBoost = false;
+    }
+    private void doAnimationFinished(@AnimationType int type, AnimationAdapter anim) {
+        for (int i = 0; i < mSurfaceAnimationSources.size(); ++i) {
+            mSurfaceAnimationSources.valueAt(i).onAnimationFinished(type, anim);
+        }
+        //清除动画源列表
+        mSurfaceAnimationSources.clear();
+        if (mDisplayContent != null) {
+            mDisplayContent.onWindowAnimationFinished(this, type);
+        }
+    }
+```
+
+```
+//WindowManagerService.java
+    void onAnimationFinished() {
+        synchronized (mGlobalLock) {
+            mGlobalLock.notifyAll();
+        }
+    }
+```
+
+## 总结
+
+至此动画从添加到移除的逻辑梳理完成，我们可以发现简单概括就起来动画的显示流程就是：在窗口添加或移除时，添加动画，新增leash图层在当前窗口和其对应WindowToken之间，调整显示层级关系；播放完动画后，移除动画，移除leash图层，再次调整显示层级关系。     
 
 ## 参考
 
 Android T 窗口动画（本地动画）显示流程其二——添加流程 ：https://juejin.cn/post/7365348844992200742
+Android T 窗口动画（本地动画）显示流程其三——移除流程 ：https://juejin.cn/post/7365502637838598154

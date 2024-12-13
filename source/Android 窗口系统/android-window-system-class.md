@@ -50,6 +50,7 @@ Surface的初始化时机在 ViewRootImpl 里，mSurface在初始化时是空的
 ### SurfaceControl
 
 用于管理和控制Surface的创建、显示和销毁。    
+Surface和SurfaceControl的关系是，Surface是图形生产者和图像消费之间传递数据的缓冲区，而SurfaceControl是Surface的控制类，可以实现复杂的Surface操作，如改变位置、缩放、剪切、透明度以及Z序等。所以当我们需要对某个Surface操作时，只需要修改其SurfaceControl即可。      
 
 ### SurfaceControl.Transaction 
 An atomic set of changes to a set of SurfaceControl，控制 `SurfaceControl` 的原子操作    
@@ -192,3 +193,23 @@ Android系统中用于处理窗口动画的核心组件，主要负责管理和�
 3. 当过渡参与者准备就绪时，以此作为参数启动 SurfaceAnimator      
 4. 然后，SurfaceAnimator 将 {@link takeLeashForAnimation} 而不是创建另一个皮带。     
 5. 动画系统最终应该通过 {@link unfreeze} 来清理它。
+
+### LocalAnimationAdapter
+
+执行本地窗口动画，无需持有窗口管理器锁即可执行的动画。    
+
+```
+    private final AnimationSpec mSpec;
+
+    private final SurfaceAnimationRunner mAnimator;
+```
+
+### RemoteAnimationAdapter
+
+描述如何执行一个远程动画，远程动画可以让一个应用控制另一个应用的过渡。     
+
+```
+    private final IRemoteAnimationRunner mRunner;
+    private IApplicationThread mCallingApplication;
+```
+

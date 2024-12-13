@@ -17,8 +17,8 @@ date: 2022-11-23 10:00:00
 
 我们把 Framework 层的窗口动画从动画执行的进程角度来分为两类来介绍：
 
- - 本地动画：动画的播放在 system_server 进程播放。比如，应用内添加一个窗口的动画就是在 system_server 进程内播放的。    
- - 远程动画：动画的播放在非 system_server 进程播放，比如，从桌面点击图标后有个图标开始放大铺满屏幕的动效，就是在 launcher 进程播放的，所以也是远程动画。    
+ - 本地动画：动画的播放在 system_server 进程播放。比如，应用内添加一个窗口的动画、一个Activity普通调起另外一个Activity的跳转动画就是在 system_server 进程内播放的。     
+ - 远程动画：动画的播放在非 system_server 进程播放，比如，从桌面点击图标后有个图标开始放大铺满屏幕的动效，就是在 launcher 进程播放的，所以也是远程动画。     
 
 下面我们首先以本地动画来简单认识一下窗口动画。     
 
@@ -89,27 +89,35 @@ R.anim.exit
 
 在没有添加窗口时节点情况：    
 <img src="/images/android-window-system-animation-overview/1.png" width="596" height="152"/>
+
 点击添加窗口后，在叶子节点下面创建WindowToken和WindowState对应的图层：    
 <img src="/images/android-window-system-animation-overview/2.png" width="707" height="208"/>
-调整窗口图层的层级到最前：    
+
+调整窗口图层的层级到最前：     
 <img src="/images/android-window-system-animation-overview/3.png" width="707" height="211"/>
+
 WindowState对应的图层创建可以绘制内容的Layer：    
 <img src="/images/android-window-system-animation-overview/4.png" width="716" height="231"/>
+
 创建动画 leash 图层     
 <img src="/images/android-window-system-animation-overview/5.png" width="700" height="333"/>
 
+
 <img src="/images/android-window-system-animation-overview/6.png" width="694" height="271"/>
+
 开始动画，可以看到窗口透明度的变化：    
 <img src="/images/android-window-system-animation-overview/7.png" width="445" height="148"/>
-动画完成，开始移除 leash 图层：   
+
+动画完成，开始移除 leash 图层：     
 <img src="/images/android-window-system-animation-overview/8.png" width="706" height="337"/>
+
 leash 移除完成，添加动画结束。
 <img src="/images/android-window-system-animation-overview/9.png" width="706" height="227"/>
 
 窗口移除动画的流程类似，不同的就是透明度的变化是从1到0。    
-整个过程可以简化如下图表示：   
+整个过程可以简化如下图表示：     
 
-<img src="/images/android-window-system-animation-overview/10.png" width="888" height="522"/>
+<img src="/images/android-window-system-animation-overview/10.png" width="852" height="524"/>
 
 动画的显示过程就是为其添加或移除的窗口和这个该窗口的父窗口之前添加一个层级（leash）用于显示动画；动画播放完成后，再移除这个层级（leash）。    
 `Surface(name=89bedf7 WMSTestActivity 测试窗口)/@0x19fcb82 - animation-leash of window_animation#806 ` 中的 `window_animation` 表示动画的类型是窗口动画。还有一种动画类型是 `insets_animation`（一般是输入法、状态栏、导航栏等涉及），流程上大体也相同。     

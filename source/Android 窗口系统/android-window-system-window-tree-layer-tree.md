@@ -195,9 +195,16 @@ SystemServer.main
 
 ## Buffer 类型 Surface的创建和挂载
 
+上面是在构建窗口层级树的过程中构建了Surface树，但是此时还是没有内容显示的，因为这些都是 “容器”类型的Surface，真正的显示需要有Buff类型的Surface。这层的Surface就是我们上面说的WindowState下面对应的那一层多出来的Surface。     
+
+我们来梳理一下这个流程：     
+ 1. 在Activity启动流程中时执行到目标应用进程创建时会触发Task和ActivityRecord创建和挂载。这个时候WindowState还没出现，另外到这一步Activity的onCreate也没执行到，所以界面上肯定是没有UI显示的。    
+ 2. Activity进程创建后，会先执行[addWindow流程]触发 WindowState的创建和挂载，但是这步执行完也还是没有画面的， 因为WindowState也是一个“容器”。    
+ 3. 真正触发显示图层创建的是在【relayoutWindow】流程，在这里进行“Buff”类型图层的创建。
+
 ### 创建带 buffer 的 Surface
 
-那么哪里才是真正的绘制画面的 SurfaceControl 呢？      
+现在来介绍如何创建真正的绘制画面的 SurfaceControl 。      
 App 调用到 WMS 的 relayout 才可以获取可以绘制画面的 SurfaceControl，而且是 WMS 端创建好传递回去的。           
 
 
@@ -421,7 +428,7 @@ Composition layers
 ```
 
 可以和 sf 的 Layer 对比一下看看。      
-有些 Layer 是不参与绘制的，有的参与绘制，参与绘制的这些 Layer 的 buffer是不为空的：
+有些 Layer 是不参与绘制的，有的参与绘制，参与绘制的这些 Layer 的 buffer是不为空的：    
 ```
       blend=NONE (1) alpha=1.000000 backgroundBlurRadius=0 composition type=DEVICE (2) 
       buffer: buffer=0xb4000076a3e36470 
@@ -445,9 +452,9 @@ typedef enum {
 } hwc2_blend_mode_t;
 ```
 
-Display *****(active) HWC layers:
-表示真正参与合成的 layer。
-
+Display *****(active) HWC layers:    
+表示真正参与合成的 layer。    
+ 
 ```
 Display 4630947064936706947 (active) HWC layers:
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------

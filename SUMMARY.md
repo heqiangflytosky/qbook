@@ -72,6 +72,8 @@
     * [SystemUI -- 多媒体通知](source/Android SystemUI/android-systemui-panel-media-controller.md)
     * [SystemUI -- QS Tile](source/Android SystemUI/android-systemui-quick-settings-tile.md)
     * [SystemUI -- Dagger2 的应用](source/Android SystemUI/android-systemui-with-dagger.md)
+* [Android 框架]()
+    * [Android AMS 之 ClientTransaction 生命周期管理机制](source/Android 框架/android-framework-clienttransaction.md)
 * [Android 事件分发体系]()
     * [Android View 事件处理基础知识](source/Android 事件分发体系/android-knowledge-event-transfer-process.md)
     * [Android 事件处理流程源码解析](source/Android 事件分发体系/android-knowledge-event-transfer-process-source-code.md)

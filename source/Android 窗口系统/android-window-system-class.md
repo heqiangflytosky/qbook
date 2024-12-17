@@ -99,6 +99,11 @@ WindowStateAnimator 用来帮助WindowState管理 animator 和 surface 基本操
 
 为WindowStateAnimator对象管理SurfaceControl对象。    
 
+```
+   // 真正用来绘制的带 buffer 的SurfaceControl
+   SurfaceControl mSurfaceControl;
+```
+
 ### WindowSurfacePlacer
 
 定位窗口和Surface的位置。    
@@ -212,4 +217,9 @@ Android系统中用于处理窗口动画的核心组件，主要负责管理和�
     private final IRemoteAnimationRunner mRunner;
     private IApplicationThread mCallingApplication;
 ```
+
+### RemoteAnimationTarget
+
+RemoteAnimationTarget 主要用来存放远程动画图层。     
+
 

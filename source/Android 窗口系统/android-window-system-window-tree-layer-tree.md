@@ -18,6 +18,7 @@ date: 2022-11-23 10:00:00
 
  - 触发创建Surface时就会触发创建出一个Layer，所以Surface和Layer是有着对应关系的，只不过在framework层侧重Surface，在SurfaceFlinger侧重Layer。    
  - 窗口层级树和Layer树基本上可以看做是一一对应，但也有不一致的情况，具体可以看下面“问题”这一章节。    
+ - 在 WindowState 对应的图层下面还多了一级，多出来的这层右边的属性中有一项“activeBuffer  :  w:1080, h:2340, stride:268438272, format:1”。
  - 应用层只要有Surface，就可以将View的数据绘制保存到Surface中，也就可以显示到屏幕上    
  - Layer 有多种类型，有的Layer是有UI数据的，有的Layer是没有UI数据的。    
  - 根据 Layer 显示效果不同，可以分为 Layer(普通的窗口)，LayerDim（后面的窗口产生一个变暗的透明效果），LayerBlur（在LayerDim的基础上，背景会产生模糊的效果）    
@@ -93,8 +94,8 @@ FX_SURFACE_BLAST，结合下面的代码可以看到，FX_SURFACE_BLAST应该是
 ## Surface 创建
 
 SurfaceFlinger没有这么复杂构建 Layer 树的逻辑，因为只要Framework创建一个“容器”类的同时也触发创建一个Surface，这样SurfaceFlinger层就也能同步构造出一个Layer（Surface）树。     
-
-### DisplayContent的Surface构建
+窗口层级树里面介绍的那些类都是容器，作为容器他们本身是没有UI数据的，真正有显示数据的就是带有Buffer的这层Layer。     
+### DisplayContent的 Surface构建
 
 ```
 SystemServer.main
@@ -124,9 +125,7 @@ SystemServer.main
 
 ### 其他容器Surface的创建
 
-#### 创建不带 buffer 的 Surface
-
-层级树其他的各个容器创建的也会触发创建出对应的一个Surface，WindowContainer addChild 时候其实都会触发 WindowContainer.onParentChanged，从而触发 DisplayContent 中创建对应的SurfaceControl，而 setContainerLayer() 创建出来的都是容器，而不是真正可以绘制的SurfaceControl。     
+窗口层级树里面其他各个容器创建的时候也会触发创建出对应的一个Surface，WindowContainer addChild 时候其实都会触发 WindowContainer.onParentChanged，从而触发 DisplayContent 中创建对应的 SurfaceControl，而 setContainerLayer() 创建出来的都是容器，而不是真正可以绘制的SurfaceControl。     
 以 ActivityRecord 的创建为例，具体的调用链如下：     
 
 
@@ -151,11 +150,11 @@ SystemServer.main
 ```
 
 
-#### 创建带 buffer 的 Surface
+### 创建带 buffer 的 Surface
 
 那么哪里才是真正的绘制画面的 SurfaceControl 呢？      
-App 调用到 WMS 的 relayout 才可以获取可以绘制画面的 SurfaceControl，而且是 WMS 端创建好传递回去的。      
-下面以 WindowState 的创建为例来介绍：     
+App 调用到 WMS 的 relayout 才可以获取可以绘制画面的 SurfaceControl，而且是 WMS 端创建好传递回去的。           
+
 
 ```
 WindowManagerService.relayoutWindow
@@ -195,6 +194,7 @@ relayoutWindow 的 outSurfaceControl 参数就是 WMS 端写入数据，然后 a
 
         Trace.traceBegin(TRACE_TAG_WINDOW_MANAGER, "new SurfaceControl");
         final SurfaceControl.Builder b = win.makeSurface()
+                //挂载到 WindowState 下面
                 .setParent(win.getSurfaceControl())
                 .setName(name)
                 .setFormat(format)
@@ -217,6 +217,8 @@ relayoutWindow 的 outSurfaceControl 参数就是 WMS 端写入数据，然后 a
         Trace.traceEnd(TRACE_TAG_WINDOW_MANAGER);
     }
 ```
+
+所以我们才会在上面的 Winscope 抓取的Layer层级里面看到 WindowState 下面多出的一层 Layer，就是我们上面创建的这层。      
 
 ## 挂载 Surface
 

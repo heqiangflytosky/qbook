@@ -94,6 +94,8 @@ WindowSurfacePlacer.performSurfacePlacement()
                                                                                     WindowAnimator.animate()
                                                                                         DisplayContent.updateWindowsForAnimator()
                                                                                         DisplayContent.prepareSurfaces()
+                // App 过渡动画相关
+                RootWindowContainer.checkAppTransitionReady()
 ```
 
 `WindowStateAnimator.applyEnterAnimationLocked()` 之前的流程在前面文章中已经介绍过，现在我们主要介绍从这个方法开始之后的动画流程。     

@@ -91,7 +91,7 @@ FX_SURFACE_BLAST，结合下面的代码可以看到，FX_SURFACE_BLAST应该是
         }
 ```
 
-## Surface 创建
+## 容器类型的 Surface 创建和挂载
 
 SurfaceFlinger没有这么复杂构建 Layer 树的逻辑，因为只要Framework创建一个“容器”类的同时也触发创建一个Surface，这样SurfaceFlinger层就也能同步构造出一个Layer（Surface）树。     
 窗口层级树里面介绍的那些类都是容器，作为容器他们本身是没有UI数据的，真正有显示数据的就是带有Buffer的这层Layer。     
@@ -149,6 +149,51 @@ SystemServer.main
                                         nativeCreate()
 ```
 
+### 挂载 Surface
+
+也就是把前面创建的 Surface 组成 Surface 树。         
+主要通过 WindowContainer 的 makeChildSurface 来完成。        
+
+```
+    Builder makeSurface() {
+        final WindowContainer p = getParent();
+        // 传递当前容器过去
+        return p.makeChildSurface(this);
+    }
+
+    /**
+     * @param child The WindowContainer this child surface is for, or null if the Surface
+     *              is not assosciated with a WindowContainer (e.g. a surface used for Dimming).
+     */
+    Builder makeChildSurface(WindowContainer child) {
+        // 拿到父容器，再调用父容器的 makeChildSurface
+        final WindowContainer p = getParent();
+        return p.makeChildSurface(child)
+                //走完DisplayContent.makeChildSurface后然后层层设置 Parent，
+                //相当于层层移动该 SurfaceControl，直到移动到正确位置
+                .setParent(mSurfaceControl);
+    }
+```
+
+最后递归调用到了 DisplayContent.makeChildSurface     
+
+```
+    SurfaceControl.Builder makeChildSurface(WindowContainer child) {
+        SurfaceSession s = child != null ? child.getSession() : getSession();
+        // 根据当前容器创建一个容器类型 Surface的Builder
+        final SurfaceControl.Builder b = mWmService.makeSurfaceBuilder(s).setContainerLayer();
+        if (child == null) {
+            return b;
+        }
+
+        // 设置名称
+        return b.setName(child.getName())
+        // 这里先设置为 DisplayContent 对应的 mSurfaceControl，后面层层递归调用会经过多次逐步重新设置，然后设置为正确的parent。
+                .setParent(mSurfaceControl);
+    }
+```
+
+## Buffer 类型 Surface的创建和挂载
 
 ### 创建带 buffer 的 Surface
 
@@ -220,52 +265,8 @@ relayoutWindow 的 outSurfaceControl 参数就是 WMS 端写入数据，然后 a
 
 所以我们才会在上面的 Winscope 抓取的Layer层级里面看到 WindowState 下面多出的一层 Layer，就是我们上面创建的这层。      
 
-## 挂载 Surface
 
-也就是把前面创建的 Surface 组成 Surface 树。         
-主要通过 WindowContainer 的 makeChildSurface 来完成。        
-
-```
-    Builder makeSurface() {
-        final WindowContainer p = getParent();
-        // 传递当前容器过去
-        return p.makeChildSurface(this);
-    }
-
-    /**
-     * @param child The WindowContainer this child surface is for, or null if the Surface
-     *              is not assosciated with a WindowContainer (e.g. a surface used for Dimming).
-     */
-    Builder makeChildSurface(WindowContainer child) {
-        // 拿到父容器，再调用父容器的 makeChildSurface
-        final WindowContainer p = getParent();
-        return p.makeChildSurface(child)
-                //走完DisplayContent.makeChildSurface后然后层层设置 Parent，
-                //相当于层层移动该 SurfaceControl，直到移动到正确位置
-                .setParent(mSurfaceControl);
-    }
-```
-
-最后递归调用到了 DisplayContent.makeChildSurface     
-
-```
-    SurfaceControl.Builder makeChildSurface(WindowContainer child) {
-        SurfaceSession s = child != null ? child.getSession() : getSession();
-        // 根据当前容器创建一个容器类型 Surface的Builder
-        final SurfaceControl.Builder b = mWmService.makeSurfaceBuilder(s).setContainerLayer();
-        if (child == null) {
-            return b;
-        }
-
-        // 设置名称
-        return b.setName(child.getName())
-        // 这里先设置为 DisplayContent 对应的 mSurfaceControl，后面层层递归调用会经过多次逐步重新设置，然后设置为正确的parent。
-                .setParent(mSurfaceControl);
-    }
-```
-
-
-## Surface 返回给应用端
+### Surface 返回给应用端
 
 应用端View的绘制信息都是保存到Surface上的，因为必定要有一个"Buff"类型的Surface，也就是上面流程中创建的这个 Surface。     
 应用端的 ViewRootImpl 触发 WMS 的 relayoutWindow 会传递一个出参 ：outSurfaceControl过来， 现在WMS会通过以下方法将刚刚创建好是Surface传递到应用端。     

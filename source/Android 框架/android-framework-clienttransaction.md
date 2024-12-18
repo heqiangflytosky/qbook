@@ -49,6 +49,9 @@ public abstract class ActivityLifecycleItem extends ActivityTransactionItem {
 
 <img src="/images/android-framework-clienttransaction/1.png" width="1009" height="300"/>
 
+Android 10 新增了一项 TopResumedActivityChangeItem 事务，该事务用于向客户端报告在顶层处于已恢复状态的更改。    
+该状态的相关信息存储在客户端，每次 Activity 转换为 RESUMED 或 PAUSED 时，系统还会检查是否应该调用 onTopResumedActivityChanged() 回调。这可以在服务器和客户端之间就生命周期状态和“在顶层处于 RESUMED 状态”这一状态进行通信时实现某些分离。     
+
 ClientLifecycleManager 是管理 Activity 生命周期的，在 ActivityTaskManagerService 里面提供 getLifecycleManager 来获取此对象。     
 TransactionExecutor 用来执行 ClientTransaction，定义在 ActivityThread 应用端。     
 
@@ -445,3 +448,39 @@ ActivityThread是ClientTransactionHandler的子类，所以调用了 ClientTrans
     }
 ```
 
+
+
+
+
+
+<!--
+```
+@startuml
+ObjectPoolItem <|-- BaseClientRequest
+BaseClientRequest <|-- ClientTransactionItem
+Parcelable <|-- ClientTransactionItem
+ClientTransactionItem <|-- ActivityTransactionItem
+ClientTransactionItem <|-- LaunchActivityItem
+
+ActivityTransactionItem <|-- TopResumedActivityChangeItem
+ActivityTransactionItem <|-- RefreshCallbackItem
+ActivityTransactionItem <|-- EnterPipRequestedItem
+ActivityTransactionItem <|-- NewIntentItem
+
+ActivityTransactionItem <|-- ActivityLifecycleItem
+ActivityLifecycleItem <|-- StartActivityItem
+ActivityLifecycleItem <|-- PauseActivityItem
+ActivityLifecycleItem <|-- ResumeActivityItem
+ActivityLifecycleItem <|-- StopActivityItem
+ActivityLifecycleItem <|-- DestroyActivityItem
+
+ActivityTransactionItem <|-- ActivityConfigurationChangeItem
+ActivityTransactionItem <|-- ActivityRelaunchItem
+ActivityTransactionItem <|-- ActivityResultItem
+ActivityTransactionItem <|-- MoveToDisplayItem
+
+
+@enduml
+```
+
+-->

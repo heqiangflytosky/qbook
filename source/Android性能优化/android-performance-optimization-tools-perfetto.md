@@ -27,6 +27,19 @@ adb shell am start com.android.traceur/com.android.traceur.MainActivity
 
 ### 命令行抓取
 
+#### record_android_trace
+
+使用源码里面的工具：`external/perfetto/tools/record_android_trace`     
+
+
+```
+./record_android_trace -o $(date +%Y%m%d_%H%M%S)_trace_file.perfetto-trace -t 5s -b 32mb sched freq idle am wm gfx view binder_driver hal dalvik camera input res memory gfx view wm am ss video camera hal res sync idle binder_driver binder_lock ss
+```
+
+抓取完成后会自动打开浏览器查看trace文件。      
+
+#### perfetto
+
 ````
 adb shell perfetto -o /data/misc/perfetto-traces/trace -t 10s sched freq idle am wm gfx view binder_driver hal dalvik camera input res memory  
 ````
@@ -222,7 +235,7 @@ Frame timeline：对应下面介绍的 Actual timeline。
 
 ### VSYNC-app
 
-相较于 systrace，perfetto 不会直接把 VSync 帧在图形界面标注出来，所以我们第一步最好是直接找到 SurfaceFlinger 进程的 VSYNC-app 数据，并钉在顶部，方便我们能分析出app每一帧的运行时间。    
+相较于 systrace，perfetto 不会直接把 VSync 帧在图形界面标注出来，所以我们第一步最好是直接找到 SurfaceFlinger 进程的 VSYNC-app 数据，通过置顶功能把它钉在顶部，方便我们能分析出app每一帧的运行时间。    
 perfetto 也不会直接高亮显示出应用的问题帧，而需要你通过应用主线程和 RenderThread 线程配合 SurfaceFlinger 的 VSYNC-app 数据配合分析出当前应用的问题帧。    
 
 ### Cpu0--Cpu7
@@ -248,11 +261,21 @@ Android Missed Frames:可以标识出掉帧情况，点击后可以看到掉帧�
 
 ### Slice Details：
 
+### 线程状态
+
+点击线程状态一行，可以在界面的下面看到 Thread State：
+
+ - 深绿色 : 运行中（Running），代表着处于cpu上的运行中。选中可以在Thread State看到该任务是在哪个cpu进行运行的。     
+ - 浅绿色 : 可运行（Runnable），代表线程可以运行但当前没有真正运行中，需要等待 cpu 调度，这个时间长短代表着cpu调度快慢。可以在Thread State看到当前线程唤醒者是谁。    
+ - 白色/无色: 睡眠中（Sleeping），当前线程没有工作可以做，等待事件驱动干活，比如looper就是大部分时间睡眠，小部分时间有消息后处理消息。     
+ - 橙色Uninterruptible Sleep (IO)，代表不可以中断的休眠状态，一般线程在IO操作上阻塞了。不可中断状态实际上是系统对进程和硬件设备的一种保护机制。比如，当一个进程向磁盘读写数据时，为了保证数据的一致性，在得到磁盘回复前，它是不能被其他进程或者中断打断的。    
+ - 紫红色Uninterruptible Sleep (Non IO)，不可中断的休眠状态，非IO导致，在等内核锁。通常是低内存导致等待、各种各样的内核锁。
 
 ### animator
 
 animator:该行表示正在执行动画。可以看出动画执行的开始和结束时间以及执行时长。    
-分别在 ValueAnimator.startAnimation() 和 ValueAnimator.endAnimation() 中加入了 Trace。
+这是一个 async执行块，主要用于跟踪一个动画的开始与结束。    
+它的实现是分别在 ValueAnimator.startAnimation() 和 ValueAnimator.endAnimation() 中加入了 Trace。      
 
 ```
     private void startAnimation() {
@@ -274,7 +297,9 @@ animator:该行表示正在执行动画。可以看出动画执行的开始和�
 
 
 
-## 自定义
+## 自定义TAG
+
+### Java 实现
 
 由于 Systrace 仅仅展示系统级的信息，不会追踪应用的工作，因此我们无法知道在某个时间段应用中方法的执行情况。如果有这个需求的话，在 Android 4.3 及以上的版本中可以通过Trace类来实现这个功能。它能够让你在任何时候跟踪应用的一举一动。    
 可以使用 Trace.beginSection（）与 Trace.endSection（）来追踪它们之间的代码。但是要注意下面两点：    
@@ -303,6 +328,31 @@ animator:该行表示正在执行动画。可以看出动画执行的开始和�
 ```
         Trace.traceCounter(Trace.TRACE_TAG_APP,"test",testInt);
 ```
+
+### native 端实现
+
+native 可以使用atrace相关类方法添加自定义的TAG。    
+
+ATRACE_CALL()：对一个function的开头和结尾进行tag。    
+优点：只需要一个调用既可以实现tag打印，自动跟随作用域进行tag的结束      
+缺点：需要自己熟练掌握好作用域，没有可以手动控制的tag结束的点     
+
+ATRACE_NAME(name): ATRACE_CALL和ATRACE_NAME本质没有区别，只是把名字变成了function的name。      
+ATRACE_INT：Counter值，监控变量的变化。      
+
+atrace_begin和atrace_end：可以灵活控制开始与结束的trace方法。     
+同时也可以使用对应宏定义：     
+ATRACE_BEGIN(name);     
+ATRACE_END();      
+来控制。      
+
+ATRACE_FORMAT：有时候想要Trace上的显示的标签是动态可以变化的比如打印一个数字，或者是某个变量的值。     
+比如：     
+```
+  ATRACE_FORMAT("%s %" PRId64 " vsyncIn %.2fms%s", __func__, vsyncId, vsyncIn,
+                  mExpectedPresentTime == expectedVsyncTime ? "" : " (adjusted)");
+```
+
 
 ## 其他技巧
 

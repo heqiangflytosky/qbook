@@ -57,6 +57,9 @@ system_server 和 App 进程通过 binder 进行通信，这里涉及到两个 b
 
 system_server 和 zygote 进程通过Socket进行通信。    
 
+
+<img src="/images/android-framework-activity-starting-process/1.png" width="722" height="882"/>
+
 ## 桌面启动应用
 
 这里省略调桌面点击应用的启动流程。     

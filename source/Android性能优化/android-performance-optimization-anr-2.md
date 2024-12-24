@@ -37,8 +37,8 @@ date: 2018-01-16 10:00:00
   at com.*.*.launcher.IExternalService$Stub$Proxy.setExternalCallback(IExternalService.java:230)
   at com.*.systemui.fullscreen.misc.LauncherHelper.setExternalCallback(LauncherHelper.java:75)
   at com.*.systemui.fullscreen.SystemUIGestureTouchHanlder.setCallback(SystemUIGestureTouchHanlder.java:160)
-  at com.*.systemui.recents.FlymeRecentsImpl.dismissStage(FlymeRecentsImpl.java:1148)
-  at com.*.systemui.recents.FlymeRecentsImpl$7.onDissmis(FlymeRecentsImpl.java:1052)
+  at com.*.systemui.recents.RecentsImpl.dismissStage(RecentsImpl.java:1148)
+  at com.*.systemui.recents.RecentsImpl$7.onDissmis(RecentsImpl.java:1052)
   at com.*.systemui.recents.RecentsWindow.dismissStage(RecentsWindow.java:216)
   at com.*.systemui.recents.RecentsWindow.onStop(RecentsWindow.java:354)
   at com.*.systemui.recents.RecentsWindow$19$1.run(RecentsWindow.java:1018)
@@ -64,8 +64,8 @@ date: 2018-01-16 10:00:00
   | stack=0x763076e000-0x7630770000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -81,8 +81,8 @@ date: 2018-01-16 10:00:00
   | stack=0x76294f4000-0x76294f6000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -112,15 +112,15 @@ date: 2018-01-16 10:00:00
   at android.database.sqlite.SQLiteSession.beginTransaction(SQLiteSession.java:298)
   at android.database.sqlite.SQLiteDatabase.beginTransaction(SQLiteDatabase.java:549)
   at android.database.sqlite.SQLiteDatabase.beginTransaction(SQLiteDatabase.java:460)
-  at com.meizu.flyme.launcher.LauncherProvider$a.a(SourceFile:1734)
-  - locked <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a)
-  at com.meizu.flyme.launcher.LauncherProvider.a(SourceFile:325)
-  at com.meizu.flyme.launcher.LauncherModel.a(SourceFile:1808)
-  at com.meizu.flyme.launcher.LauncherModel$1.run(SourceFile:884)
+  at com.android.launcher.LauncherProvider$a.a(SourceFile:1734)
+  - locked <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a)
+  at com.android.launcher.LauncherProvider.a(SourceFile:325)
+  at com.android.launcher.LauncherModel.a(SourceFile:1808)
+  at com.android.launcher.LauncherModel$1.run(SourceFile:884)
   - locked <0x02452a71> (a java.lang.Object)
-  at com.meizu.flyme.launcher.LauncherModel.b(SourceFile:510)
-  at com.meizu.flyme.launcher.LauncherModel.a(SourceFile:970)
-  at com.meizu.flyme.launcher.LauncherModel$i.run(SourceFile:4669)
+  at com.android.launcher.LauncherModel.b(SourceFile:510)
+  at com.android.launcher.LauncherModel.a(SourceFile:970)
+  at com.android.launcher.LauncherModel$i.run(SourceFile:4669)
   at android.os.Handler.handleCallback(Handler.java:873)
   at android.os.Handler.dispatchMessage(Handler.java:99)
   at android.os.Looper.loop(Looper.java:193)
@@ -131,13 +131,13 @@ date: 2018-01-16 10:00:00
 再来看一下 event log，在anr时间点附近有一段 am_failed_to_pause 的日志。
 
 ```
-I am_failed_to_pause: [0,326199,com.meizu.flyme.directservice/org.hapjs.LauncherActivity$Launcher0,(none)]
+I am_failed_to_pause: [0,326199,com.android.directservice/org.hapjs.LauncherActivity$Launcher0,(none)]
 ```
 
 在 main log中，也发现
 
 ```
-01-23 15:57:07.044  1380  1420 W ActivityManager: Activity stop timeout for ActivityRecord{4fa37 u0 com.meizu.flyme.directservice/org.hapjs.LauncherActivity$Launcher0 t119}
+01-23 15:57:07.044  1380  1420 W ActivityManager: Activity stop timeout for ActivityRecord{4fa37 u0 com.android.directservice/org.hapjs.LauncherActivity$Launcher0 t119}
 ```
 
 由于发生 anr 之前，我们的应用发生过一段白屏，因此推测，我们的应用启动后在读取桌面数据库的数据，而此时桌面在加载数据库的时候被卡住，此时调起多任务，因为我们应用被卡住，没有正确地pause掉，调起多任务时也需要读取桌面的数据库，会出现前面分析的 binder 现在被 blocked 而出现 anr。    s
@@ -289,14 +289,14 @@ DALVIK THREADS (26):
   native: #05 pc 000cabcf  /system/lib/libandroid_runtime.so (android_os_BinderProxy_transact(_JNIEnv*, _jobject*, int, _jobject*, _jobject*, int)+82)
   at android.os.BinderProxy.transactNative(Native method)
   at android.os.BinderProxy.transact(Binder.java:1146)
-  at com.meizu.flyme.launcher.IExternalService$Stub$Proxy.setExternalCallback(IExternalService.java:230)
-  at com.flyme.systemui.fullscreen.misc.LauncherHelper.setExternalCallback(LauncherHelper.java:75)
-  at com.flyme.systemui.fullscreen.SystemUIGestureTouchHanlder.setCallback(SystemUIGestureTouchHanlder.java:160)
-  at com.flyme.systemui.recents.FlymeRecentsImpl.dismissStage(FlymeRecentsImpl.java:1148)
-  at com.flyme.systemui.recents.FlymeRecentsImpl$7.onDissmis(FlymeRecentsImpl.java:1052)
-  at com.flyme.systemui.recents.RecentsWindow.dismissStage(RecentsWindow.java:216)
-  at com.flyme.systemui.recents.RecentsWindow.onStop(RecentsWindow.java:354)
-  at com.flyme.systemui.recents.RecentsWindow$19$1.run(RecentsWindow.java:1018)
+  at com.android.launcher.IExternalService$Stub$Proxy.setExternalCallback(IExternalService.java:230)
+  at com.android.systemui.fullscreen.misc.LauncherHelper.setExternalCallback(LauncherHelper.java:75)
+  at com.android.systemui.fullscreen.SystemUIGestureTouchHanlder.setCallback(SystemUIGestureTouchHanlder.java:160)
+  at com.android.systemui.recents.RecentsImpl.dismissStage(RecentsImpl.java:1148)
+  at com.android.systemui.recents.RecentsImpl$7.onDissmis(RecentsImpl.java:1052)
+  at com.android.systemui.recents.RecentsWindow.dismissStage(RecentsWindow.java:216)
+  at com.android.systemui.recents.RecentsWindow.onStop(RecentsWindow.java:354)
+  at com.android.systemui.recents.RecentsWindow$19$1.run(RecentsWindow.java:1018)
   at android.os.Handler.handleCallback(Handler.java:873)
   at android.os.Handler.dispatchMessage(Handler.java:99)
   at android.os.Looper.loop(Looper.java:193)
@@ -503,7 +503,7 @@ DALVIK THREADS (26):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.apiWorker" prio=5 tid=15 Native
+"com.android.statsapp.v3.apiWorker" prio=5 tid=15 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x13602c40 self=0xe4f30000
   | sysTid=2494 nice=5 cgrp=default sched=0/0 handle=0xd2585970
   | state=S schedstat=( 23770939 37445153 122 ) utm=2 stm=0 core=6 HZ=100
@@ -539,7 +539,7 @@ DALVIK THREADS (26):
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
 
-"FlymeRecentsProxy-SystemServicesProxy" prio=5 tid=17 Native
+"RecentsProxy-SystemServicesProxy" prio=5 tid=17 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x13603678 self=0xe4f30c00
   | sysTid=2497 nice=10 cgrp=default sched=0/0 handle=0xd2379970
   | state=S schedstat=( 75566455 205603804 265 ) utm=3 stm=3 core=3 HZ=100
@@ -556,16 +556,16 @@ DALVIK THREADS (26):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"FlymeRecentsProxy-TaskResourceLoader" prio=5 tid=18 Waiting
+"RecentsProxy-TaskResourceLoader" prio=5 tid=18 Waiting
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x13603858 self=0xe4f31200
   | sysTid=2498 nice=10 cgrp=default sched=0/0 handle=0xd2273970
   | state=S schedstat=( 29665679 34842142 128 ) utm=0 stm=1 core=2 HZ=100
   | stack=0xd2170000-0xd2172000 stackSize=1042KB
   | held mutexes=
   at java.lang.Object.wait(Native method)
-  - waiting on <0x06819925> (a com.flyme.systemui.recents.model.TaskResourceLoadQueue)
-  at com.flyme.systemui.recents.model.TaskResourceLoader.run(RecentsTaskLoader.java:317)
-  - locked <0x06819925> (a com.flyme.systemui.recents.model.TaskResourceLoadQueue)
+  - waiting on <0x06819925> (a com.android.systemui.recents.model.TaskResourceLoadQueue)
+  at com.android.systemui.recents.model.TaskResourceLoader.run(RecentsTaskLoader.java:317)
+  - locked <0x06819925> (a com.android.systemui.recents.model.TaskResourceLoadQueue)
   at android.os.Handler.handleCallback(Handler.java:873)
   at android.os.Handler.dispatchMessage(Handler.java:99)
   at android.os.Looper.loop(Looper.java:193)
@@ -1436,7 +1436,7 @@ DALVIK THREADS (171):
   native: #02 pc 0000000000355f44  /system/lib64/libart.so (art::JNI::CallStaticObjectMethodV(_JNIEnv*, _jclass*, _jmethodID*, std::__va_list)+484)
   native: #03 pc 00000000000c2748  /system/lib64/libandroid_runtime.so (_JNIEnv::CallStaticObjectMethod(_jclass*, _jmethodID*, ...)+116)
   native: #04 pc 00000000000fe4f8  /system/lib64/libandroid_runtime.so (android::android_view_MotionEvent_obtainAsCopy(_JNIEnv*, android::MotionEvent const*)+44)
-  native: #05 pc 000000000005a878  /system/lib64/libandroid_servers.so (android::NativeInputManager::flymeInterceptMotionBeforeQueueing(android::MotionEvent const*, unsigned int&)+40)
+  native: #05 pc 000000000005a878  /system/lib64/libandroid_servers.so (android::NativeInputManager::InterceptMotionBeforeQueueing(android::MotionEvent const*, unsigned int&)+40)
   native: #06 pc 00000000000382ac  /system/lib64/libinputflinger.so (android::InputDispatcher::notifyMotion(android::NotifyMotionArgs const*)+888)
   native: #07 pc 0000000000046b70  /system/lib64/libinputflinger.so (android::QueuedInputListener::flush()+516)
   native: #08 pc 0000000000048944  /system/lib64/libinputflinger.so (android::InputReader::loopOnce()+732)
@@ -2921,7 +2921,7 @@ DALVIK THREADS (171):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"FlymeSoftSIMController" prio=5 tid=129 Native
+"SoftSIMController" prio=5 tid=129 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x139897f0 self=0x762aa15000
   | sysTid=5463 nice=0 cgrp=default sched=0/0 handle=0x761d2414f0
   | state=S schedstat=( 60070783 12804588 133 ) utm=4 stm=1 core=2 HZ=100
@@ -3807,14 +3807,14 @@ DALVIK THREADS (171):
 ----- end 1380 -----
 
 ----- pid 3016 at 2019-01-23 15:57:21 -----
-Cmd line: com.sohu.inputmethod.sogou.meizu
+Cmd line: com.sohu.inputmethod.sogou
 Build fingerprint: 'alps/m1923/m1923:9/PKQ1.181203.001/1548180174:user/release-keys'
 ABI: 'arm'
 Build type: optimized
 Zygote loaded classes=10673 post zygote classes=1635
 Intern table: 81544 strong; 410 weak
 JNI: CheckJNI is off; globals=689 (plus 41 weak)
-Libraries: /data/user/0/com.sohu.inputmethod.sogou.meizu/files/.dict/sogouime /system/app/SogouInputMz/SogouInputMz.apk!/lib/armeabi/libRSSupport.so /system/app/SogouInputMz/SogouInputMz.apk!/lib/armeabi/libRSSupportIO.so /system/app/SogouInputMz/SogouInputMz.apk!/lib/armeabi/librs.mono.so /system/lib/libandroid.so /system/lib/libcompiler_rt.so /system/lib/libjavacrypto.so /system/lib/libjnigraphics.so /system/lib/libmedia_jni.so /system/lib/libqti_performance.so /system/lib/libsoundpool.so /system/lib/libwebviewchromium_loader.so libjavacore.so libopenjdk.so (14)
+Libraries: /data/user/0/com.sohu.inputmethod.sogou/files/.dict/sogouime /system/app/SogouInputMz/SogouInputMz.apk!/lib/armeabi/libRSSupport.so /system/app/SogouInputMz/SogouInputMz.apk!/lib/armeabi/libRSSupportIO.so /system/app/SogouInputMz/SogouInputMz.apk!/lib/armeabi/librs.mono.so /system/lib/libandroid.so /system/lib/libcompiler_rt.so /system/lib/libjavacrypto.so /system/lib/libjnigraphics.so /system/lib/libmedia_jni.so /system/lib/libqti_performance.so /system/lib/libsoundpool.so /system/lib/libwebviewchromium_loader.so libjavacore.so libopenjdk.so (14)
 Heap: 22% free, 4MB/5MB; 100464 objects
 Dumping cumulative Gc timings
 Start Dumping histograms for 58 iterations for concurrent copying
@@ -5080,7 +5080,7 @@ DALVIK THREADS (13):
 ----- end 2845 -----
 
 ----- pid 2828 at 2019-01-23 15:57:22 -----
-Cmd line: com.meizu.dataservice
+Cmd line: com.android.dataservice
 Build fingerprint: 'alps/m1923/m1923:9/PKQ1.181203.001/1548180174:user/release-keys'
 ABI: 'arm64'
 Build type: optimized
@@ -5386,7 +5386,7 @@ DALVIK THREADS (38):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.SessionControllerWorker" prio=5 tid=14 Native
+"com.android.statsapp.v3.SessionControllerWorker" prio=5 tid=14 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x14400d48 self=0x763e3e8800
   | sysTid=2907 nice=5 cgrp=default sched=0/0 handle=0x762fab74f0
   | state=S schedstat=( 709582 766771 5 ) utm=0 stm=0 core=5 HZ=100
@@ -5594,7 +5594,7 @@ DALVIK THREADS (38):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.apiWorker" prio=5 tid=26 Native
+"com.android.statsapp.v3.apiWorker" prio=5 tid=26 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x14401998 self=0x763fc17400
   | sysTid=3363 nice=5 cgrp=default sched=0/0 handle=0x762ee6f4f0
   | state=S schedstat=( 2874277227 1592637263 30269 ) utm=83 stm=204 core=2 HZ=100
@@ -5610,7 +5610,7 @@ DALVIK THREADS (38):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.ConfigControllerWorker" prio=5 tid=27 Native
+"com.android.statsapp.v3.ConfigControllerWorker" prio=5 tid=27 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x14401a88 self=0x763fd12000
   | sysTid=3365 nice=5 cgrp=default sched=0/0 handle=0x762ed694f0
   | state=S schedstat=( 41054217 30175000 67 ) utm=2 stm=2 core=6 HZ=100
@@ -5818,7 +5818,7 @@ DALVIK THREADS (38):
 ----- end 2828 -----
 
 ----- pid 2809 at 2019-01-23 15:57:22 -----
-Cmd line: com.meizu.alphame
+Cmd line: com.android.alphame
 Build fingerprint: 'alps/m1923/m1923:9/PKQ1.181203.001/1548180174:user/release-keys'
 ABI: 'arm64'
 Build type: optimized
@@ -6104,7 +6104,7 @@ DALVIK THREADS (39):
   at android.os.MessageQueue.nativePollOnce(Native method)
   at android.os.MessageQueue.next(MessageQueue.java:326)
   at android.os.Looper.loop(Looper.java:160)
-  at com.meizu.alphame.ApplicationImpl$1.run(ApplicationImpl.java:101)
+  at com.android.alphame.ApplicationImpl$1.run(ApplicationImpl.java:101)
   at java.lang.Thread.run(Thread.java:764)
 
 "broadcast" prio=5 tid=11 Native
@@ -6223,7 +6223,7 @@ DALVIK THREADS (39):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.SessionControllerWorker" prio=5 tid=20 Native
+"com.android.statsapp.v3.SessionControllerWorker" prio=5 tid=20 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x14141a28 self=0x763fc3ac00
   | sysTid=2984 nice=5 cgrp=default sched=0/0 handle=0x762a2f94f0
   | state=S schedstat=( 776927 48959 2 ) utm=0 stm=0 core=1 HZ=100
@@ -6256,7 +6256,7 @@ DALVIK THREADS (39):
   at android.os.HandlerThread.run(HandlerThread.java:65)
   at com.loc.dz.run(APSManager.java:-1)
 
-"com.meizu.statsapp.v3.apiWorker" prio=5 tid=21 Native
+"com.android.statsapp.v3.apiWorker" prio=5 tid=21 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x14141e28 self=0x762a41e000
   | sysTid=2987 nice=5 cgrp=default sched=0/0 handle=0x7629fe74f0
   | state=S schedstat=( 72818318 32562256 645 ) utm=5 stm=2 core=7 HZ=100
@@ -6291,7 +6291,7 @@ DALVIK THREADS (39):
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
 
-"com.meizu.statsapp.v3.ConfigControllerWorker" prio=5 tid=24 Native
+"com.android.statsapp.v3.ConfigControllerWorker" prio=5 tid=24 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x14142888 self=0x763e348c00
   | sysTid=2991 nice=5 cgrp=default sched=0/0 handle=0x7629ddb4f0
   | state=S schedstat=( 5635367 6391611 23 ) utm=0 stm=0 core=4 HZ=100
@@ -6380,7 +6380,7 @@ DALVIK THREADS (39):
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1152)
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
-  at com.meizu.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
+  at com.android.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
 
 "thread-pool-1" prio=5 tid=29 Waiting
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x13140360 self=0x763e34c800
@@ -6400,7 +6400,7 @@ DALVIK THREADS (39):
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1152)
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
-  at com.meizu.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
+  at com.android.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
 
 "thread-pool-2" prio=5 tid=30 Waiting
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x13140440 self=0x763c81f400
@@ -6420,7 +6420,7 @@ DALVIK THREADS (39):
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1152)
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
-  at com.meizu.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
+  at com.android.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
 
 "thread-pool-3" prio=5 tid=31 Waiting
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x13140520 self=0x763c922000
@@ -6440,7 +6440,7 @@ DALVIK THREADS (39):
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1152)
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
-  at com.meizu.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
+  at com.android.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
 
 "TcmReceiver" prio=5 tid=32 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x136c0040 self=0x7627613000
@@ -7430,7 +7430,7 @@ Total blocking GC time: 0
 Histogram of GC count per 10000 ms: 0:659,1:124,2:20,3:2,7:1,8:2
 Histogram of blocking GC count per 10000 ms: 0:808
 Registered native bytes allocated: 478886
-/system/framework/oat/arm64/meizu-telephony-common.odex: quicken
+/system/framework/oat/arm64/telephony-common.odex: quicken
 /system/framework/oat/arm64/qti-telephony-common.odex: quicken
 /system/app/xdivert/oat/arm64/xdivert.odex: quicken
 /system/framework/oat/arm64/qcrilhook.odex: quicken
@@ -9496,7 +9496,7 @@ Build type: optimized
 Zygote loaded classes=10673 post zygote classes=3425
 Intern table: 83513 strong; 426 weak
 JNI: CheckJNI is off; globals=923 (plus 44 weak)
-Libraries: /system/lib/libandroid.so /system/lib/libcompiler_rt.so /system/lib/libfilterUtils.so /system/lib/libjavacrypto.so /system/lib/libjnigraphics.so /system/lib/libmedia_jni.so /system/lib/libmeizucamera.so /system/lib/libqti_performance.so /system/lib/libsoundpool.so /system/lib/libwebviewchromium_loader.so /system/priv-app/SystemUI/lib/arm/libjni_systemui.so /system/priv-app/SystemUI/lib/arm/libweexjsb.so /system/priv-app/SystemUI/lib/arm/libweexjsc.so libjavacore.so libopenjdk.so (15)
+Libraries: /system/lib/libandroid.so /system/lib/libcompiler_rt.so /system/lib/libfilterUtils.so /system/lib/libjavacrypto.so /system/lib/libjnigraphics.so /system/lib/libmedia_jni.so /system/lib/libcamera.so /system/lib/libqti_performance.so /system/lib/libsoundpool.so /system/lib/libwebviewchromium_loader.so /system/priv-app/SystemUI/lib/arm/libjni_systemui.so /system/priv-app/SystemUI/lib/arm/libweexjsb.so /system/priv-app/SystemUI/lib/arm/libweexjsc.so libjavacore.so libopenjdk.so (15)
 Heap: 15% free, 18MB/21MB; 465141 objects
 Dumping cumulative Gc timings
 Start Dumping histograms for 158 iterations for concurrent copying
@@ -9833,7 +9833,7 @@ DALVIK THREADS (68):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.apiWorker" prio=5 tid=15 Native
+"com.android.statsapp.v3.apiWorker" prio=5 tid=15 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12c41198 self=0xe619d600
   | sysTid=2188 nice=5 cgrp=default sched=0/0 handle=0xd2d0b970
   | state=S schedstat=( 160719834 142252824 835 ) utm=8 stm=7 core=4 HZ=100
@@ -9869,7 +9869,7 @@ DALVIK THREADS (68):
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
 
-"com.meizu.statsapp.v3.ConfigControllerWorker" prio=5 tid=17 Native
+"com.android.statsapp.v3.ConfigControllerWorker" prio=5 tid=17 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12c41410 self=0xe4f4ac00
   | sysTid=2192 nice=5 cgrp=default sched=0/0 handle=0xd2471970
   | state=S schedstat=( 34885209 27093696 62 ) utm=1 stm=1 core=7 HZ=100
@@ -9905,7 +9905,7 @@ DALVIK THREADS (68):
   native: #09 pc 0001e091  /system/lib/libc.so (__start_thread+22)
   (no managed stack frames)
 
-"com.meizu.statsapp.v3.SessionControllerWorker" prio=5 tid=19 Native
+"com.android.statsapp.v3.SessionControllerWorker" prio=5 tid=19 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12c41588 self=0xed26e000
   | sysTid=2358 nice=5 cgrp=default sched=0/0 handle=0xd19ff970
   | state=S schedstat=( 591822 0 1 ) utm=0 stm=0 core=1 HZ=100
@@ -10253,7 +10253,7 @@ DALVIK THREADS (68):
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
 
-"com.meizu.statsapp.v3.ConfigControllerWorker" prio=5 tid=43 Native
+"com.android.statsapp.v3.ConfigControllerWorker" prio=5 tid=43 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12c42c90 self=0xd0f76000
   | sysTid=2630 nice=5 cgrp=default sched=0/0 handle=0xcbf42970
   | state=S schedstat=( 31565835 13852289 57 ) utm=3 stm=0 core=7 HZ=100
@@ -10340,7 +10340,7 @@ DALVIK THREADS (68):
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
 
-"com.meizu.statsapp.v3.SessionControllerWorker" prio=5 tid=48 Native
+"com.android.statsapp.v3.SessionControllerWorker" prio=5 tid=48 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12c431d8 self=0xd0f77800
   | sysTid=2652 nice=5 cgrp=default sched=0/0 handle=0xcb967970
   | state=S schedstat=( 9061095 11488076 42 ) utm=0 stm=0 core=3 HZ=100
@@ -10824,7 +10824,7 @@ DALVIK THREADS (68):
 ----- end 2044 -----
 
 ----- pid 2025 at 2019-01-23 15:57:23 -----
-Cmd line: com.meizu.facerecognition
+Cmd line: com.android.facerecognition
 Build fingerprint: 'alps/m1923/m1923:9/PKQ1.181203.001/1548180174:user/release-keys'
 ABI: 'arm64'
 Build type: optimized
@@ -13325,7 +13325,7 @@ ABI: 'arm'
 ----- end 830 -----
 
 ----- pid 7710 at 2019-01-23 15:57:26 -----
-Cmd line: com.flyme.systemuiex
+Cmd line: com.android.systemuiex
 Build fingerprint: 'alps/m1923/m1923:9/PKQ1.181203.001/1548180174:user/release-keys'
 ABI: 'arm64'
 Build type: optimized
@@ -13644,7 +13644,7 @@ DALVIK THREADS (26):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.apiWorker" prio=5 tid=13 Native
+"com.android.statsapp.v3.apiWorker" prio=5 tid=13 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12d40750 self=0x763e2d2000
   | sysTid=7727 nice=5 cgrp=default sched=0/0 handle=0x762f9c14f0
   | state=S schedstat=( 132646062 24605034 730 ) utm=6 stm=6 core=2 HZ=100
@@ -13660,7 +13660,7 @@ DALVIK THREADS (26):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.ConfigControllerWorker" prio=5 tid=14 Native
+"com.android.statsapp.v3.ConfigControllerWorker" prio=5 tid=14 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12d40840 self=0x76469d6000
   | sysTid=7729 nice=5 cgrp=default sched=0/0 handle=0x762f8bb4f0
   | state=S schedstat=( 45092546 28227866 71 ) utm=2 stm=1 core=2 HZ=100
@@ -13753,7 +13753,7 @@ DALVIK THREADS (26):
   native: #03 pc 000000000035499c  /system/lib64/libhwui.so (???)
   (no managed stack frames)
 
-"com.meizu.statsapp.v3.SessionControllerWorker" prio=5 tid=20 Native
+"com.android.statsapp.v3.SessionControllerWorker" prio=5 tid=20 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12d40d78 self=0x76469d7800
   | sysTid=7742 nice=5 cgrp=default sched=0/0 handle=0x762efff4f0
   | state=S schedstat=( 745469 0 5 ) utm=0 stm=0 core=4 HZ=100
@@ -14994,14 +14994,14 @@ DALVIK THREADS (49):
 
 
 ----- pid 6492 at 2019-01-23 15:57:30 -----
-Cmd line: com.meizu.flyme.launcher
+Cmd line: com.android.launcher
 Build fingerprint: 'alps/m1923/m1923:9/PKQ1.181203.001/1548180174:user/release-keys'
 ABI: 'arm64'
 Build type: optimized
 Zygote loaded classes=10673 post zygote classes=1311
 Intern table: 82067 strong; 368 weak
 JNI: CheckJNI is off; globals=663 (plus 42 weak)
-Libraries: /system/lib64/libandroid.so /system/lib64/libcompiler_rt.so /system/lib64/libfilterUtils.so /system/lib64/libjavacrypto.so /system/lib64/libjnigraphics.so /system/lib64/libmedia_jni.so /system/lib64/libqti_performance.so /system/lib64/libsoundpool.so /system/lib64/libwebviewchromium_loader.so /system/priv-app/Assistant/Assistant.apk!/lib/arm64-v8a/libglrenderer.so /system/priv-app/FlymeLauncher/FlymeLauncher.apk!/lib/arm64-v8a/libblur.so libjavacore.so libopenjdk.so (13)
+Libraries: /system/lib64/libandroid.so /system/lib64/libcompiler_rt.so /system/lib64/libfilterUtils.so /system/lib64/libjavacrypto.so /system/lib64/libjnigraphics.so /system/lib64/libmedia_jni.so /system/lib64/libqti_performance.so /system/lib64/libsoundpool.so /system/lib64/libwebviewchromium_loader.so /system/priv-app/Assistant/Assistant.apk!/lib/arm64-v8a/libglrenderer.so /system/priv-app/Launcher/Launcher.apk!/lib/arm64-v8a/libblur.so libjavacore.so libopenjdk.so (13)
 Heap: 46% free, 6MB/12MB; 126059 objects
 Dumping cumulative Gc timings
 Start Dumping histograms for 43 iterations for concurrent copying
@@ -15068,7 +15068,7 @@ Histogram of blocking GC count per 10000 ms: 0:797,1:1
 Registered native bytes allocated: 18947215
 /system/priv-app/Assistant/oat/arm64/Assistant.odex: quicken
 /system/framework/oat/arm64/org.apache.http.legacy.boot.odex: speed-profile
-/data/dalvik-cache/arm64/system@priv-app@FlymeLauncher@FlymeLauncher.apk@classes.dex: quicken
+/data/dalvik-cache/arm64/system@priv-app@Launcher@Launcher.apk@classes.dex: quicken
 /system/framework/oat/arm64/org.apache.http.legacy.boot.odex: speed-profile
 Current JIT code cache size: 462KB
 Current JIT data cache size: 270KB
@@ -15222,8 +15222,8 @@ DALVIK THREADS (44):
   | stack=0x763076e000-0x7630770000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -15237,8 +15237,8 @@ DALVIK THREADS (44):
   | stack=0x7630670000-0x7630672000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -15252,8 +15252,7 @@ DALVIK THREADS (44):
   | stack=0x7630572000-0x7630574000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -15291,7 +15290,7 @@ DALVIK THREADS (44):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.SessionControllerWorker" prio=5 tid=13 Native
+"com.android.statsapp.v3.SessionControllerWorker" prio=5 tid=13 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x13440748 self=0x76468f0800
   | sysTid=6510 nice=5 cgrp=default sched=0/0 handle=0x762fb424f0
   | state=S schedstat=( 11888338 18495520 93 ) utm=1 stm=0 core=0 HZ=100
@@ -15346,15 +15345,15 @@ DALVIK THREADS (44):
   at android.database.sqlite.SQLiteSession.beginTransaction(SQLiteSession.java:298)
   at android.database.sqlite.SQLiteDatabase.beginTransaction(SQLiteDatabase.java:549)
   at android.database.sqlite.SQLiteDatabase.beginTransaction(SQLiteDatabase.java:460)
-  at com.meizu.flyme.launcher.LauncherProvider$a.a(SourceFile:1734)
-  - locked <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a)
-  at com.meizu.flyme.launcher.LauncherProvider.a(SourceFile:325)
-  at com.meizu.flyme.launcher.LauncherModel.a(SourceFile:1808)
-  at com.meizu.flyme.launcher.LauncherModel$1.run(SourceFile:884)
+  at com.android.launcher.LauncherProvider$a.a(SourceFile:1734)
+  - locked <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a)
+  at com.android.launcher.LauncherProvider.a(SourceFile:325)
+  at com.android.launcher.LauncherModel.a(SourceFile:1808)
+  at com.android.launcher.LauncherModel$1.run(SourceFile:884)
   - locked <0x02452a71> (a java.lang.Object)
-  at com.meizu.flyme.launcher.LauncherModel.b(SourceFile:510)
-  at com.meizu.flyme.launcher.LauncherModel.a(SourceFile:970)
-  at com.meizu.flyme.launcher.LauncherModel$i.run(SourceFile:4669)
+  at com.android.launcher.LauncherModel.b(SourceFile:510)
+  at com.android.launcher.LauncherModel.a(SourceFile:970)
+  at com.android.launcher.LauncherModel$i.run(SourceFile:4669)
   at android.os.Handler.handleCallback(Handler.java:873)
   at android.os.Handler.dispatchMessage(Handler.java:99)
   at android.os.Looper.loop(Looper.java:193)
@@ -15376,7 +15375,7 @@ DALVIK THREADS (44):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.apiWorker" prio=5 tid=22 Native
+"com.android.statsapp.v3.apiWorker" prio=5 tid=22 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x13444ab0 self=0x763e348800
   | sysTid=6538 nice=5 cgrp=default sched=0/0 handle=0x762eced4f0
   | state=S schedstat=( 2968805821 2753250254 30641 ) utm=78 stm=218 core=7 HZ=100
@@ -15409,7 +15408,7 @@ DALVIK THREADS (44):
   at com.qti.tcmclient.DpmTcmClient$TcmReceiver.run(DpmTcmClient.java:146)
   at java.lang.Thread.run(Thread.java:764)
 
-"com.meizu.statsapp.v3.ConfigControllerWorker" prio=5 tid=25 Native
+"com.android.statsapp.v3.ConfigControllerWorker" prio=5 tid=25 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x13444cc8 self=0x763fcb0000
   | sysTid=6545 nice=5 cgrp=default sched=0/0 handle=0x762ca904f0
   | state=S schedstat=( 4446196 31546875 24 ) utm=0 stm=0 core=6 HZ=100
@@ -15517,12 +15516,12 @@ DALVIK THREADS (44):
   | stack=0x762c887000-0x762c889000 stackSize=1041KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.update(SourceFile:292)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.update(SourceFile:292)
   at android.content.ContentProvider$Transport.update(ContentProvider.java:388)
   at android.content.ContentResolver.update(ContentResolver.java:1723)
-  at com.meizu.flyme.launcher.g.b.a(SourceFile:41)
-  at com.meizu.flyme.launcher.g.a$b.run(SourceFile:66)
+  at com.android.launcher.g.b.a(SourceFile:41)
+  at com.android.launcher.g.a$b.run(SourceFile:66)
   at android.os.Handler.handleCallback(Handler.java:873)
   at android.os.Handler.dispatchMessage(Handler.java:99)
   at android.os.Looper.loop(Looper.java:193)
@@ -15535,8 +15534,8 @@ DALVIK THREADS (44):
   | stack=0x762c789000-0x762c78b000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -15550,8 +15549,8 @@ DALVIK THREADS (44):
   | stack=0x762bf60000-0x762bf62000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -15613,8 +15612,8 @@ DALVIK THREADS (44):
   | stack=0x762ed05000-0x762ed07000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -15627,13 +15626,13 @@ DALVIK THREADS (44):
   | state=S schedstat=( 56712280 89332299 58 ) utm=4 stm=0 core=0 HZ=100
   | stack=0x762c09d000-0x762c09f000 stackSize=1041KB
   | held mutexes=
-  at com.meizu.flyme.launcher.LauncherProvider$a.a(SourceFile:-1)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider$a.b(SourceFile:2626)
-  at com.meizu.flyme.launcher.LauncherProvider$a.a(SourceFile:3052)
-  at com.meizu.flyme.launcher.LauncherProvider.a(SourceFile:4304)
-  at com.meizu.flyme.launcher.LauncherProvider.a(SourceFile:101)
-  at com.meizu.flyme.launcher.LauncherProvider$b.doInBackground(SourceFile:3698)
+  at com.android.launcher.LauncherProvider$a.a(SourceFile:-1)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider$a.b(SourceFile:2626)
+  at com.android.launcher.LauncherProvider$a.a(SourceFile:3052)
+  at com.android.launcher.LauncherProvider.a(SourceFile:4304)
+  at com.android.launcher.LauncherProvider.a(SourceFile:101)
+  at com.android.launcher.LauncherProvider$b.doInBackground(SourceFile:3698)
   at android.os.AsyncTask$2.call(AsyncTask.java:333)
   at java.util.concurrent.FutureTask.run(FutureTask.java:266)
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1167)
@@ -15647,8 +15646,8 @@ DALVIK THREADS (44):
   | stack=0x762cab3000-0x762cab5000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -15662,8 +15661,8 @@ DALVIK THREADS (44):
   | stack=0x762bd64000-0x762bd66000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -15677,8 +15676,8 @@ DALVIK THREADS (44):
   | stack=0x762b504000-0x762b506000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -15705,8 +15704,8 @@ DALVIK THREADS (44):
   | stack=0x762a9fe000-0x762aa00000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -15720,8 +15719,8 @@ DALVIK THREADS (44):
   | stack=0x76297fe000-0x7629800000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -15735,8 +15734,8 @@ DALVIK THREADS (44):
   | stack=0x762f3fe000-0x762f400000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -15750,8 +15749,8 @@ DALVIK THREADS (44):
   | stack=0x762a414000-0x762a416000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -15765,8 +15764,8 @@ DALVIK THREADS (44):
   | stack=0x76295f2000-0x76295f4000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -15780,8 +15779,8 @@ DALVIK THREADS (44):
   | stack=0x76294f4000-0x76294f6000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -15795,8 +15794,8 @@ DALVIK THREADS (44):
   | stack=0x76293f6000-0x76293f8000 stackSize=1009KB
   | held mutexes=
   at android.database.sqlite.SQLiteOpenHelper.getWritableDatabase(SQLiteOpenHelper.java:297)
-  - waiting to lock <0x0b7ac58a> (a com.meizu.flyme.launcher.LauncherProvider$a) held by thread 15
-  at com.meizu.flyme.launcher.LauncherProvider.query(SourceFile:202)
+  - waiting to lock <0x0b7ac58a> (a com.android.launcher.LauncherProvider$a) held by thread 15
+  at com.android.launcher.LauncherProvider.query(SourceFile:202)
   at android.content.ContentProvider.query(ContentProvider.java:1140)
   at android.content.ContentProvider.query(ContentProvider.java:1232)
   at android.content.ContentProvider$Transport.query(ContentProvider.java:258)
@@ -18022,7 +18021,7 @@ DALVIK THREADS (172):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"FlymeSoftSIMController" prio=5 tid=129 Native
+"SoftSIMController" prio=5 tid=129 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x139897f0 self=0x762aa15000
   | sysTid=5463 nice=0 cgrp=default sched=0/0 handle=0x761d2414f0
   | state=S schedstat=( 60378908 12853338 136 ) utm=4 stm=1 core=3 HZ=100
@@ -18927,14 +18926,14 @@ DALVIK THREADS (172):
 ----- end 1380 -----
 
 ----- pid 3016 at 2019-01-23 15:57:31 -----
-Cmd line: com.sohu.inputmethod.sogou.meizu
+Cmd line: com.sohu.inputmethod.sogou
 Build fingerprint: 'alps/m1923/m1923:9/PKQ1.181203.001/1548180174:user/release-keys'
 ABI: 'arm'
 Build type: optimized
 Zygote loaded classes=10673 post zygote classes=1635
 Intern table: 81544 strong; 410 weak
 JNI: CheckJNI is off; globals=689 (plus 41 weak)
-Libraries: /data/user/0/com.sohu.inputmethod.sogou.meizu/files/.dict/sogouime /system/app/SogouInputMz/SogouInputMz.apk!/lib/armeabi/libRSSupport.so /system/app/SogouInputMz/SogouInputMz.apk!/lib/armeabi/libRSSupportIO.so /system/app/SogouInputMz/SogouInputMz.apk!/lib/armeabi/librs.mono.so /system/lib/libandroid.so /system/lib/libcompiler_rt.so /system/lib/libjavacrypto.so /system/lib/libjnigraphics.so /system/lib/libmedia_jni.so /system/lib/libqti_performance.so /system/lib/libsoundpool.so /system/lib/libwebviewchromium_loader.so libjavacore.so libopenjdk.so (14)
+Libraries: /data/user/0/com.sohu.inputmethod.sogou/files/.dict/sogouime /system/app/SogouInputMz/SogouInputMz.apk!/lib/armeabi/libRSSupport.so /system/app/SogouInputMz/SogouInputMz.apk!/lib/armeabi/libRSSupportIO.so /system/app/SogouInputMz/SogouInputMz.apk!/lib/armeabi/librs.mono.so /system/lib/libandroid.so /system/lib/libcompiler_rt.so /system/lib/libjavacrypto.so /system/lib/libjnigraphics.so /system/lib/libmedia_jni.so /system/lib/libqti_performance.so /system/lib/libsoundpool.so /system/lib/libwebviewchromium_loader.so libjavacore.so libopenjdk.so (14)
 Heap: 22% free, 4MB/5MB; 100464 objects
 Dumping cumulative Gc timings
 Start Dumping histograms for 58 iterations for concurrent copying
@@ -20200,7 +20199,7 @@ DALVIK THREADS (13):
 ----- end 2845 -----
 
 ----- pid 2828 at 2019-01-23 15:57:32 -----
-Cmd line: com.meizu.dataservice
+Cmd line: com.android.dataservice
 Build fingerprint: 'alps/m1923/m1923:9/PKQ1.181203.001/1548180174:user/release-keys'
 ABI: 'arm64'
 Build type: optimized
@@ -20509,7 +20508,7 @@ DALVIK THREADS (41):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.SessionControllerWorker" prio=5 tid=14 Native
+"com.android.statsapp.v3.SessionControllerWorker" prio=5 tid=14 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x14400d48 self=0x763e3e8800
   | sysTid=2907 nice=5 cgrp=default sched=0/0 handle=0x762fab74f0
   | state=S schedstat=( 947760 766771 8 ) utm=0 stm=0 core=5 HZ=100
@@ -20717,7 +20716,7 @@ DALVIK THREADS (41):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.apiWorker" prio=5 tid=26 Native
+"com.android.statsapp.v3.apiWorker" prio=5 tid=26 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x14401998 self=0x763fc17400
   | sysTid=3363 nice=5 cgrp=default sched=0/0 handle=0x762ee6f4f0
   | state=S schedstat=( 2900580872 1603041018 30529 ) utm=83 stm=206 core=7 HZ=100
@@ -20733,7 +20732,7 @@ DALVIK THREADS (41):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.ConfigControllerWorker" prio=5 tid=27 Native
+"com.android.statsapp.v3.ConfigControllerWorker" prio=5 tid=27 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x14401a88 self=0x763fd12000
   | sysTid=3365 nice=5 cgrp=default sched=0/0 handle=0x762ed694f0
   | state=S schedstat=( 41290050 30738854 70 ) utm=2 stm=2 core=4 HZ=100
@@ -20987,7 +20986,7 @@ DALVIK THREADS (41):
 ----- end 2828 -----
 
 ----- pid 2809 at 2019-01-23 15:57:32 -----
-Cmd line: com.meizu.alphame
+Cmd line: com.android.alphame
 Build fingerprint: 'alps/m1923/m1923:9/PKQ1.181203.001/1548180174:user/release-keys'
 ABI: 'arm64'
 Build type: optimized
@@ -21273,7 +21272,7 @@ DALVIK THREADS (39):
   at android.os.MessageQueue.nativePollOnce(Native method)
   at android.os.MessageQueue.next(MessageQueue.java:326)
   at android.os.Looper.loop(Looper.java:160)
-  at com.meizu.alphame.ApplicationImpl$1.run(ApplicationImpl.java:101)
+  at com.android.alphame.ApplicationImpl$1.run(ApplicationImpl.java:101)
   at java.lang.Thread.run(Thread.java:764)
 
 "broadcast" prio=5 tid=11 Native
@@ -21392,7 +21391,7 @@ DALVIK THREADS (39):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.SessionControllerWorker" prio=5 tid=20 Native
+"com.android.statsapp.v3.SessionControllerWorker" prio=5 tid=20 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x14141a28 self=0x763fc3ac00
   | sysTid=2984 nice=5 cgrp=default sched=0/0 handle=0x762a2f94f0
   | state=S schedstat=( 1312760 48959 5 ) utm=0 stm=0 core=3 HZ=100
@@ -21425,7 +21424,7 @@ DALVIK THREADS (39):
   at android.os.HandlerThread.run(HandlerThread.java:65)
   at com.loc.dz.run(APSManager.java:-1)
 
-"com.meizu.statsapp.v3.apiWorker" prio=5 tid=21 Native
+"com.android.statsapp.v3.apiWorker" prio=5 tid=21 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x14141e28 self=0x762a41e000
   | sysTid=2987 nice=5 cgrp=default sched=0/0 handle=0x7629fe74f0
   | state=S schedstat=( 73126130 33007933 648 ) utm=5 stm=2 core=1 HZ=100
@@ -21460,7 +21459,7 @@ DALVIK THREADS (39):
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
 
-"com.meizu.statsapp.v3.ConfigControllerWorker" prio=5 tid=24 Native
+"com.android.statsapp.v3.ConfigControllerWorker" prio=5 tid=24 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x14142888 self=0x763e348c00
   | sysTid=2991 nice=5 cgrp=default sched=0/0 handle=0x7629ddb4f0
   | state=S schedstat=( 5862501 6624998 26 ) utm=0 stm=0 core=0 HZ=100
@@ -21549,7 +21548,7 @@ DALVIK THREADS (39):
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1152)
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
-  at com.meizu.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
+  at com.android.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
 
 "thread-pool-1" prio=5 tid=29 Waiting
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x13140360 self=0x763e34c800
@@ -21569,7 +21568,7 @@ DALVIK THREADS (39):
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1152)
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
-  at com.meizu.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
+  at com.android.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
 
 "thread-pool-2" prio=5 tid=30 Waiting
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x13140440 self=0x763c81f400
@@ -21589,7 +21588,7 @@ DALVIK THREADS (39):
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1152)
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
-  at com.meizu.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
+  at com.android.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
 
 "thread-pool-3" prio=5 tid=31 Waiting
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x13140520 self=0x763c922000
@@ -21609,7 +21608,7 @@ DALVIK THREADS (39):
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1152)
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
-  at com.meizu.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
+  at com.android.alphame.utils.ThreadPool$PriorityThreadFactory$1.run(ThreadPool.java:134)
 
 "TcmReceiver" prio=5 tid=32 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x136c0040 self=0x7627613000
@@ -22599,7 +22598,7 @@ Total blocking GC time: 0
 Histogram of GC count per 10000 ms: 0:659,1:124,2:20,3:2,7:1,8:2
 Histogram of blocking GC count per 10000 ms: 0:808
 Registered native bytes allocated: 481154
-/system/framework/oat/arm64/meizu-telephony-common.odex: quicken
+/system/framework/oat/arm64/telephony-common.odex: quicken
 /system/framework/oat/arm64/qti-telephony-common.odex: quicken
 /system/app/xdivert/oat/arm64/xdivert.odex: quicken
 /system/framework/oat/arm64/qcrilhook.odex: quicken
@@ -24669,7 +24668,7 @@ Build type: optimized
 Zygote loaded classes=10673 post zygote classes=3425
 Intern table: 83514 strong; 426 weak
 JNI: CheckJNI is off; globals=923 (plus 44 weak)
-Libraries: /system/lib/libandroid.so /system/lib/libcompiler_rt.so /system/lib/libfilterUtils.so /system/lib/libjavacrypto.so /system/lib/libjnigraphics.so /system/lib/libmedia_jni.so /system/lib/libmeizucamera.so /system/lib/libqti_performance.so /system/lib/libsoundpool.so /system/lib/libwebviewchromium_loader.so /system/priv-app/SystemUI/lib/arm/libjni_systemui.so /system/priv-app/SystemUI/lib/arm/libweexjsb.so /system/priv-app/SystemUI/lib/arm/libweexjsc.so libjavacore.so libopenjdk.so (15)
+Libraries: /system/lib/libandroid.so /system/lib/libcompiler_rt.so /system/lib/libfilterUtils.so /system/lib/libjavacrypto.so /system/lib/libjnigraphics.so /system/lib/libmedia_jni.so /system/lib/libcamera.so /system/lib/libqti_performance.so /system/lib/libsoundpool.so /system/lib/libwebviewchromium_loader.so /system/priv-app/SystemUI/lib/arm/libjni_systemui.so /system/priv-app/SystemUI/lib/arm/libweexjsb.so /system/priv-app/SystemUI/lib/arm/libweexjsc.so libjavacore.so libopenjdk.so (15)
 Heap: 10% free, 19MB/21MB; 476086 objects
 Dumping cumulative Gc timings
 Start Dumping histograms for 158 iterations for concurrent copying
@@ -25006,7 +25005,7 @@ DALVIK THREADS (68):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.apiWorker" prio=5 tid=15 Native
+"com.android.statsapp.v3.apiWorker" prio=5 tid=15 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12c41198 self=0xe619d600
   | sysTid=2188 nice=5 cgrp=default sched=0/0 handle=0xd2d0b970
   | state=S schedstat=( 161083740 142930689 838 ) utm=8 stm=7 core=1 HZ=100
@@ -25042,7 +25041,7 @@ DALVIK THREADS (68):
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
 
-"com.meizu.statsapp.v3.ConfigControllerWorker" prio=5 tid=17 Native
+"com.android.statsapp.v3.ConfigControllerWorker" prio=5 tid=17 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12c41410 self=0xe4f4ac00
   | sysTid=2192 nice=5 cgrp=default sched=0/0 handle=0xd2471970
   | state=S schedstat=( 35445887 28928383 65 ) utm=1 stm=1 core=3 HZ=100
@@ -25078,7 +25077,7 @@ DALVIK THREADS (68):
   native: #09 pc 0001e091  /system/lib/libc.so (__start_thread+22)
   (no managed stack frames)
 
-"com.meizu.statsapp.v3.SessionControllerWorker" prio=5 tid=19 Native
+"com.android.statsapp.v3.SessionControllerWorker" prio=5 tid=19 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12c41588 self=0xed26e000
   | sysTid=2358 nice=5 cgrp=default sched=0/0 handle=0xd19ff970
   | state=S schedstat=( 897447 209062 4 ) utm=0 stm=0 core=3 HZ=100
@@ -25426,7 +25425,7 @@ DALVIK THREADS (68):
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
 
-"com.meizu.statsapp.v3.ConfigControllerWorker" prio=5 tid=43 Native
+"com.android.statsapp.v3.ConfigControllerWorker" prio=5 tid=43 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12c42c90 self=0xd0f76000
   | sysTid=2630 nice=5 cgrp=default sched=0/0 handle=0xcbf42970
   | state=S schedstat=( 32357919 14154217 60 ) utm=3 stm=0 core=1 HZ=100
@@ -25513,7 +25512,7 @@ DALVIK THREADS (68):
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
   at java.lang.Thread.run(Thread.java:764)
 
-"com.meizu.statsapp.v3.SessionControllerWorker" prio=5 tid=48 Native
+"com.android.statsapp.v3.SessionControllerWorker" prio=5 tid=48 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12c431d8 self=0xd0f77800
   | sysTid=2652 nice=5 cgrp=default sched=0/0 handle=0xcb967970
   | state=S schedstat=( 9330624 11601097 45 ) utm=0 stm=0 core=0 HZ=100
@@ -25997,7 +25996,7 @@ DALVIK THREADS (68):
 ----- end 2044 -----
 
 ----- pid 2025 at 2019-01-23 15:57:33 -----
-Cmd line: com.meizu.facerecognition
+Cmd line: com.android.facerecognition
 Build fingerprint: 'alps/m1923/m1923:9/PKQ1.181203.001/1548180174:user/release-keys'
 ABI: 'arm64'
 Build type: optimized
@@ -28551,7 +28550,7 @@ ABI: 'arm'
 ----- end 830 -----
 
 ----- pid 7710 at 2019-01-23 15:57:35 -----
-Cmd line: com.flyme.systemuiex
+Cmd line: com.android.systemuiex
 Build fingerprint: 'alps/m1923/m1923:9/PKQ1.181203.001/1548180174:user/release-keys'
 ABI: 'arm64'
 Build type: optimized
@@ -28856,7 +28855,7 @@ DALVIK THREADS (26):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.apiWorker" prio=5 tid=13 Native
+"com.android.statsapp.v3.apiWorker" prio=5 tid=13 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12d40750 self=0x763e2d2000
   | sysTid=7727 nice=5 cgrp=default sched=0/0 handle=0x762f9c14f0
   | state=S schedstat=( 133153978 24649722 733 ) utm=6 stm=6 core=2 HZ=100
@@ -28872,7 +28871,7 @@ DALVIK THREADS (26):
   at android.os.Looper.loop(Looper.java:160)
   at android.os.HandlerThread.run(HandlerThread.java:65)
 
-"com.meizu.statsapp.v3.ConfigControllerWorker" prio=5 tid=14 Native
+"com.android.statsapp.v3.ConfigControllerWorker" prio=5 tid=14 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12d40840 self=0x76469d6000
   | sysTid=7729 nice=5 cgrp=default sched=0/0 handle=0x762f8bb4f0
   | state=S schedstat=( 45577599 28491148 74 ) utm=2 stm=1 core=2 HZ=100
@@ -28965,7 +28964,7 @@ DALVIK THREADS (26):
   native: #03 pc 000000000035499c  /system/lib64/libhwui.so (???)
   (no managed stack frames)
 
-"com.meizu.statsapp.v3.SessionControllerWorker" prio=5 tid=20 Native
+"com.android.statsapp.v3.SessionControllerWorker" prio=5 tid=20 Native
   | group="main" sCount=1 dsCount=0 flags=1 obj=0x12d40d78 self=0x76469d7800
   | sysTid=7742 nice=5 cgrp=default sched=0/0 handle=0x762efff4f0
   | state=S schedstat=( 1174427 1518438 8 ) utm=0 stm=0 core=2 HZ=100

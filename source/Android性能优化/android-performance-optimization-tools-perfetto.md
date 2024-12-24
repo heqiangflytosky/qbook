@@ -8,9 +8,6 @@ date: 2018-10-10 10:00:00
 ---
 
 
-## Perfetto
-
-
 ## 录制trace方法
 
 ### 手机界面抓取
@@ -231,6 +228,25 @@ Frame timeline：对应下面介绍的 Actual timeline。
 完成配置后点击 "Start Recording",点击 Stop 后在配置文件设置的输出目录中找到 trace 文件，从手机 pull 出来后在 https://ui.perfetto.dev/ 中打开。    
 如果遇到 “It looks like you didn't add any probes. Please add at least one to get a non-empty trace.”    可以执行命令：`adb shell setprop persist.traced.enable 1`    
 
+## Perfetto 基本使用
+
+### 快捷键
+
+具体的快捷键可以点击看 Perfetto 界面侧边栏里面的 Support -> Keyboard shortcuts 选项。
+
+W : 放大
+S : 缩小
+A : 左移
+D : 右移
+M : 高亮选中当前鼠标点击的段。如果需要取消选中，可以点击选中块上面的三角，然后在下面面板中点击 REMOVE。
+Ctrl + 鼠标滚轮：放大或者缩小
+Shift + 鼠标点击 + 拖动：左右移动
+
+### 置顶功能
+
+
+### 标记功能
+
 ## 分析
 
 ### VSYNC-app
@@ -322,11 +338,26 @@ animator:该行表示正在执行动画。可以看出动画执行的开始和�
 
 在 Activity 的onCreate 方法中加入一段Trace跟踪的代码。    
 然后命令行抓取 trace 文件，记得要在参数选项中加入 -a <包名>，否则是找不到 HQ 信息的。    
-
-另外，可以使用 `Trace.traceCounter()` 方法来添加对一些属性值的跟踪：    
+因为 Trace.java 这个类中所有开发给三方应用的方法中都加了下面的判断：    
 
 ```
-        Trace.traceCounter(Trace.TRACE_TAG_APP,"test",testInt);
+        if (isTagEnabled(TRACE_TAG_APP)) {
+        
+        }
+```
+
+加了 `-a <包名>` 参数就相当于使能了这个属性。     
+
+如果是在系统中添加 Trace 信息，还可以使用 `Trace.traceBegin()`和 `Trace.traceEnd()`，他们是系统 API，在一般应用中无法使用。     
+
+另外，可以使用 `Trace.setCounter()` 或者 `Trace.traceCounter()`（系统） 方法来添加对一些属性值的跟踪：    
+
+```
+    Trace.setCounter("test",testInt);
+```
+
+```
+    Trace.traceCounter(Trace.TRACE_TAG_APP,"test",testInt);
 ```
 
 ### native 端实现
@@ -337,7 +368,7 @@ ATRACE_CALL()：对一个function的开头和结尾进行tag。
 优点：只需要一个调用既可以实现tag打印，自动跟随作用域进行tag的结束      
 缺点：需要自己熟练掌握好作用域，没有可以手动控制的tag结束的点     
 
-ATRACE_NAME(name): ATRACE_CALL和ATRACE_NAME本质没有区别，只是把名字变成了function的name。      
+ATRACE_NAME(name): ATRACE_CALL和ATRACE_NAME本质没有区别，只是把名字变成了function的name。ATRACE_CALL 内部调的是ATRACE_NAME。       
 ATRACE_INT：Counter值，监控变量的变化。      
 
 atrace_begin和atrace_end：可以灵活控制开始与结束的trace方法。     
@@ -348,6 +379,7 @@ ATRACE_END();
 
 ATRACE_FORMAT：有时候想要Trace上的显示的标签是动态可以变化的比如打印一个数字，或者是某个变量的值。     
 比如：     
+
 ```
   ATRACE_FORMAT("%s %" PRId64 " vsyncIn %.2fms%s", __func__, vsyncId, vsyncIn,
                   mExpectedPresentTime == expectedVsyncTime ? "" : " (adjusted)");
@@ -412,3 +444,10 @@ ID： 1178862
 但是此时sf跑在0，1，2小核。这个问题就可以调整一下 sf 的CPU策略。    
 
 <img src="/images/android-performance-optimization-tools-perfetto/p2.png" width="829" height="333"/>
+
+
+## 相关文章
+
+[perfetto/systrace基础知识讲解](https://blog.csdn.net/learnframework/article/details/135020636)
+
+

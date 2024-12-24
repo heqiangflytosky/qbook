@@ -294,11 +294,6 @@ prepareRecentsUI() 返回AnimationFactory，提供显示多任务的动画，并
             @Override
             protected void createBackgroundToOverviewAnim(BaseQuickstepLauncher activity,
                     PendingAnimation pa) {
-                //Flyme.zhangxin modify {@
-                if (activity.getDeviceProfile().isMultiWindowMode || SysUINavigationMode.getMode(activity) != SysUINavigationMode.Mode.NO_BUTTON) {
-                    super.createBackgroundToOverviewAnim(activity, pa);
-                }
-                //@}
 
                 if (!activity.getDeviceProfile().isVerticalBarLayout()
                         && SysUINavigationMode.getMode(activity) != Mode.NO_BUTTON) {
@@ -364,11 +359,6 @@ prepareRecentsUI() 返回AnimationFactory，提供显示多任务的动画，并
         boolean recentsAttachedToAppWindow;
         if (mGestureState.getEndTarget() != null) {
             recentsAttachedToAppWindow = mGestureState.getEndTarget().recentsAttachedToAppWindow;
-            //Flyme.zhangxin add{@ 从当前卡片回退到应用并且其他卡片没有显示情况下没必要再让多任务显示
-            if (enableCustomScale() && mGestureState.getEndTarget() == LAST_TASK && !mIsShelfPeeking && !mIsLikelyToStartNewTask) {
-                recentsAttachedToAppWindow = false;
-            }
-            //@}
         } else if (mContinuingLastGesture
                 && mRecentsView.getRunningTaskIndex() != mRecentsView.getNextPage()) {
             recentsAttachedToAppWindow = true;
@@ -377,15 +367,7 @@ prepareRecentsUI() 返回AnimationFactory，提供显示多任务的动画，并
             recentsAttachedToAppWindow = true;
         } else {
             recentsAttachedToAppWindow = mIsShelfPeeking || mIsLikelyToStartNewTask;
-            //Flyme.zhangxin add{@
-            if (enableCustomScale() && mShelfState == OVERVIEW && !recentsAttachedToAppWindow) {
-                recentsAttachedToAppWindow = true;
-            }
-            //@}
         }
-        //Flyme.zhangxin add{@
-        mAnimationFactory.setGestureTarget(mShelfState, !mReadyGoToOverView || isQuickStartNewTask());
-        //@}
         mAnimationFactory.setRecentsAttachedToAppWindow(recentsAttachedToAppWindow, animate);
     }
 ```
@@ -394,12 +376,6 @@ prepareRecentsUI() 返回AnimationFactory，提供显示多任务的动画，并
 // BaseActivityInterface.java
         @Override
         public void setRecentsAttachedToAppWindow(boolean attached, boolean animate) {
-            //Flyme.zhangxin add{@
-            if (updatePageAnimation(attached, animate)) {
-                // 如果是滑动过程中切换小窗时需要做的多任务的动画，这里直接返回
-                return;
-            }
-            //@}
             // 后面就做进入多任务时的动画
             if (mIsAttachedToWindow == attached && animate) {
                 return;

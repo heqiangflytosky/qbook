@@ -232,6 +232,8 @@ mLayers 前面说过是一个长度为39的数组，上面列举的方法就是�
             return getMaxWindowLayer();
         }
         // APP图层，对应的值是1-99，如果处于这直接就返回APPLICATION_LAYER =2
+        // 包含 FIRST_APPLICATION_WINDOW、TYPE_BASE_APPLICATION、TYPE_APPLICATION
+        // TYPE_APPLICATION_STARTING、TYPE_DRAWN_APPLICATION 类型的窗口
         if (type >= FIRST_APPLICATION_WINDOW && type <= LAST_APPLICATION_WINDOW) {
             return APPLICATION_LAYER;
         }

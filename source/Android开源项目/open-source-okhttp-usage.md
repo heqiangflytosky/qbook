@@ -177,8 +177,8 @@ api("com.squareup.okhttp3:okhttp-sse:4.12.0")
         }
 
 
-        EventSources.createFactory(flymeAiClient.client)
-            .newEventSource(flymeAiClient.generateStreaming(messages.toString(),accessToken).request(),eventSourceListener)
+        EventSources.createFactory(Client.client)
+            .newEventSource(Client.generateStreaming(messages.toString(),accessToken).request(),eventSourceListener)
 ```
 
 ```

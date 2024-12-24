@@ -307,7 +307,7 @@ Part 为参数：
 ```
     @Multipart
     //@Headers("Content-Type: multipart/form-data")
-    @POST(FlymeAiApi.URL_UPLOAD_FILE)
+    @POST(Api.URL_UPLOAD_FILE)
     fun upLoadFile1(@Part filePart: MultipartBody.Part?,@Part("description") description: RequestBody?): Call<UpLoadResponse>
     
     
@@ -331,7 +331,7 @@ Part 为参数：
 Body 为参数：     
 
 ```
-    @POST(FlymeAiApi.URL_UPLOAD_FILE)
+    @POST(Api.URL_UPLOAD_FILE)
     fun upLoadFile(@Body body:MultipartBody?): Call<UpLoadResponse>
     
     

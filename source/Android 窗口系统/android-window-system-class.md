@@ -218,8 +218,19 @@ Android系统中用于处理窗口动画的核心组件，主要负责管理和�
     private IApplicationThread mCallingApplication;
 ```
 
+### RemoteAnimationController
+
+Helper 类，用于在远程进程中运行应用动画。      
+
+```
+    private final RemoteAnimationAdapter mRemoteAnimationAdapter;
+```
+
 ### RemoteAnimationTarget
 
 RemoteAnimationTarget 主要用来存放远程动画图层。     
 
+### StartingSurfaceController
+
+用来创建和删除 StartingWindow。     
 

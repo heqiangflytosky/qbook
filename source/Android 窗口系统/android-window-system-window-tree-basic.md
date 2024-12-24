@@ -318,6 +318,20 @@ WMS中存放一组相关联的窗口的容器。通常是 ActivityRecord，它�
 
 ```
 public final class ActivityRecord extends WindowToken implements WindowManagerService.AppFreezeListener {
+
+    // starting window 相关的类
+    StartingData mStartingData;
+    // starting window 窗口
+    WindowState mStartingWindow;
+    StartingSurfaceController.StartingSurface mStartingSurface;
+    boolean startingMoved;
+    
+    // 动画相关
+    RemoteAnimationAdapter mPendingRemoteAnimation;
+    private RemoteTransition mPendingRemoteTransition;
+    
+    // 获取 StartingWindow 窗口类型
+    getStartingWindowType()
 ```
 
 ActivityRecord 是 WindowToken 的子类，如上面所说，在 WMS 中一个 ActivityRecord 对象就代表一个 Activity 对象。      

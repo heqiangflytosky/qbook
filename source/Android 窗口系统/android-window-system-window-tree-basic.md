@@ -177,6 +177,15 @@ class WindowContainer<E extends WindowContainer> extends ConfigurationContainer<
             @Nullable ArrayList<WindowContainer> sources)   
             
     getSession()：获取 SurfaceSession，用来连接 SurfaceFlinger。 
+    
+    // 对于该容器所有子节点的窗口类型(实现forAllWindows)，调用回调；
+    forAllWindows()
+    
+    // 对于该容器所有子节点的Task类型(实现forAllTasks)，调用回调；
+    forAllTasks()
+    forAllActivities()
+    forAllLeafTasks()
+    forAllRootTasks()
 }
 ```
 

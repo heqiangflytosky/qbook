@@ -157,6 +157,11 @@ WindowStateAnimator 用来帮助WindowState管理 animator 和 surface 基本操
 
 控制墙纸窗口的可见性、排序等。    
 
+### AppTransition
+
+应用程序状态切换时的状态管理。mNextAppTransition 是将要执行的过渡动画的类型。     
+mAppTransitionState 保存的是当前过渡动画的状态。分别有 APP_STATE_IDLE，APP_STATE_READY，APP_STATE_RUNNING 和 APP_STATE_TIMEOUT 四种状态。     
+
 ### AppTransitionController
 
 检查应用程序过渡准备情况，解析动画属性，并为在应用程序过渡过程中添加动画效果的应用程序执行可见性更改。    
@@ -233,4 +238,21 @@ RemoteAnimationTarget 主要用来存放远程动画图层。
 ### StartingSurfaceController
 
 用来创建和删除 StartingWindow。     
+
+### WindowOrganizerController
+
+服务端用来组织管理窗口的实现
+
+### TaskOrganizer
+
+参考 WM shell
+
+### BLASTSyncEngine
+
+### WindowContainerTransaction
+
+用于存储对WindowContainer修改的集合的类。由于应用层无法直接操作WindowContainer，需要通过系统层进行修改，因此WindowContainerTransaction类实现了Parcelable接口，支持跨进程传输‌。     
+这种机制确保了应用层可以通过系统层安全地修改WindowContainer‌。    
+
+
 

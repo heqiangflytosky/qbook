@@ -135,6 +135,8 @@ mWorkDuration=16.67 mReadyDuration=15.67 last vsync time 19.45ms relative to now
 ```
 
 这里的信息主要是显示是和 app-vsync 信号的 EventThread 连接的 Client 的情况。    
+`Connection{0xb40000795b3a1d90, VSyncRequest::None}` 表示这个连接没有 Vsync 请求。     
+`Connection{0xb40000795b3c29d0, VSyncRequest::Single}` 表示这个连接正在进行 Vsync 请求。      
 具体打印在：
 
 ```

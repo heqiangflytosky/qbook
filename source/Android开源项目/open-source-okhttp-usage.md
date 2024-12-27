@@ -309,6 +309,10 @@ OKHttp 提供了缓存机制以将我们的的 HTTP 和 HTTPS 请求的响应缓
             Log.d(tag,"networkInterceptor")
 
             val request = chain.request()
+            
+            // 也可以在这里添加一下配置，比如 添加 Content-Type
+            //val request = chain.request().newBuilder().addHeader("Content-Type","application/x-www-form-urlencoded").build()
+            
             lateinit var response: Response
             try {
                 response = chain.proceed(request)
@@ -350,7 +354,7 @@ OKHttp 提供了缓存机制以将我们的的 HTTP 和 HTTPS 请求的响应缓
 
 ```
             .addNetworkInterceptor(networkInterceptor)
-            .addInterceptor(logInterceptor)
+            .addInterceptor(connectionInterceptor)
 ```
 
 #### 常见问题

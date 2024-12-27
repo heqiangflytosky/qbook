@@ -31,7 +31,8 @@ public final class ActivityRecord extends WindowToken implements WindowManagerSe
 
 Android 为 SplashScreen 提供了默认的启动动画，也提供了 API 进行自定义。    
 
-国内厂商一般会把 Android 原生的 SplashScreen 效果去掉了，但是自定义的 SplashScreen 效果一般不会去掉。   
+国内厂商一般会把 Android 原生的 SplashScreen 效果去掉了，但是自定义的 SplashScreen 效果一般不会去掉。     
+本文基于 Android 14 分析    
 
 ### 开启相关日志
 
@@ -58,7 +59,7 @@ WmCore侧:
 
  - StartingSurfaceController:
  - TaskOrganizerController: 
- - StartingData：startingwindow的数据模型的抽象。    
+ - StartingData：startingwindow的数据模型的抽象。抽象了关键的方法：`StartingSurface createStartingSurface(ActivityRecord activity)` 以及 mTypeParams。     
   - SplashScreenStartingData：闪屏类型启动窗口的startingData实现，封装了闪屏类型启动窗口所需要的数据，如theme，icon，windowflags等等，这些数据来源于ActivityRecord。     
   - SnapshotStartingData：快照类型启动窗口的startingData实现，持有了TaskSnapshot。     
 
@@ -209,11 +210,13 @@ ActivityTaskManagerService.startActivity
                                         ActivityRecord.addStartingWindow
                                             // 获取 StartingWindow 类型
                                             ActivityRecord.getStartingWindowType()
+                                            // 
+                                            StartingSurfaceController.makeStartingWindowTypeParameter()
                                             // 如果是 SNAPSHOT 类型就走这里
                                             ActivityRecord.createSnapshot()
                                                 // 创建SnapshotStartingData类型的 StartingData
                                                 mStartingData = new SnapshotStartingData
-                                                // 走 scheduleAddStartingWindow 流程，下面介绍
+                                                // 走 scheduleAddStartingWindow 流程，和下面一样
                                                 ActivityRecord.scheduleAddStartingWindow()
                                             // SPLASH_SCREEN 类型 添加 StartingWindow
                                             ActivityRecord.scheduleAddStartingWindow
@@ -221,7 +224,7 @@ ActivityTaskManagerService.startActivity
                                                     SplashScreenStartingData.createStartingSurface
                                                         StartingSurfaceController.createSplashScreenStartingSurface()
                                                             TaskOrganizerController.addStartingWindow()
-                                                                ITaskOrganizer.addStartingWindow
+                                                                ITaskOrganizer.addStartingWindow ----> systemui
 ```
 
 SystemUI:
@@ -230,6 +233,8 @@ SystemUI:
 ITaskOrganizer.Stub().addStartingWindow()
     TaskOrganizer.addStartingWindow()
         StartingWindowController.addStartingWindow()
+            // 获取 StartingWindow 的类型
+            PhoneStartingWindowTypeAlgorithm.getSuggestedWindowType()
             StartingSurfaceDrawer.addSplashScreenStartingWindow()
                 SplashscreenWindowCreator.addSplashScreenStartingWindow()
                     // 生成splashscreen window的配置信息
@@ -257,9 +262,33 @@ ITaskOrganizer.Stub().addStartingWindow()
                         SplashWindowRecord.setSplashScreenView()
 ```
 
+添加完 StartingWindow 窗口后，StartingWindow 执行 relayout 时，由于 window type 是 TYPE_APPLICATION_STARTING，因此在 WindowState.performShowLocked 方法中会执行 ActivityRecord.onStartingWindowDrawn() 来设置 AppTransition 状态。后面就可以开始做窗口动画了。    
+
+```
+WindowSurfacePlacer$Traverser.run
+    WindowSurfacePlacer.performSurfacePlacement
+        WindowSurfacePlacer.performSurfacePlacementLoop
+            RootWindowContainer.performSurfacePlacement
+                RootWindowContainer.performSurfacePlacementNoTrace
+                    RootWindowContainer.applySurfaceChangesTransaction
+                        DisplayContent.applySurfaceChangesTransaction
+                            WindowContainer.forAllWindows
+                                WindowState.forAllWindows
+                                    WindowState.applyInOrderWithImeWindows
+                                        DisplayContent.mApplySurfaceChangesTransaction
+                                            WindowStateAnimator.commitFinishDrawingLocked
+                                                WindowState.performShowLocked
+                                                    ActivityRecord.onStartingWindowDrawn()
+                                                        DisplayContent.executeAppTransition()
+                                                            TransitionController.setReady()
+                                                                AppTransition.setReady()
+                                                                    AppTransition.setAppTransitionState(APP_STATE_READY)
+```
+
 ### 获取 StartingWindow 类型
 
 根据条件返回  StartingWindow 类型。    
+这个方法是在 `system_server` 端调用，获取的类型通过 `makeStartingWindowTypeParameter` 方法转化为 `TYPE_PARAMETER_**` 保存在 StartingWindowInfo 中传到 SystemUI。     
 
 ```
 // ActivityRecord.java
@@ -314,6 +343,81 @@ ITaskOrganizer.Stub().addStartingWindow()
     }
 ```
 
+在 SystemUI 也会根据 PhoneStartingWindowTypeAlgorithm.getSuggestedWindowType() 再次获取 StartingWindow 类型，为什么要获取两次呢？     
+我们来看一下 makeStartingWindowTypeParameter 方法：    
+
+```
+    static int makeStartingWindowTypeParameter(boolean newTask, boolean taskSwitch,
+            boolean processRunning, boolean allowTaskSnapshot, boolean activityCreated,
+            boolean isSolidColor, boolean useLegacy, boolean activityDrawn, int startingWindowType,
+            String packageName, int userId) {
+        int parameter = 0;
+        ......
+        if (activityCreated || startingWindowType == STARTING_WINDOW_TYPE_SNAPSHOT) {
+            parameter |= TYPE_PARAMETER_ACTIVITY_CREATED;
+        }
+        if (isSolidColor) {
+            parameter |= TYPE_PARAMETER_USE_SOLID_COLOR_SPLASH_SCREEN;
+        }
+        if (useLegacy) {
+            parameter |= TYPE_PARAMETER_LEGACY_SPLASH_SCREEN;
+        }
+        if (activityDrawn) {
+            parameter |= TYPE_PARAMETER_ACTIVITY_DRAWN;
+        }
+        if (startingWindowType == STARTING_WINDOW_TYPE_SPLASH_SCREEN
+                && CompatChanges.isChangeEnabled(ALLOW_COPY_SOLID_COLOR_VIEW, packageName,
+                UserHandle.of(userId))) {
+            parameter |= TYPE_PARAMETER_ALLOW_HANDLE_SOLID_COLOR_SCREEN;
+        }
+        return parameter;
+    }
+```
+
+它把 `STARTING_WINDOW_TYPE_*` 转换成 `TYPE_PARAMETER_ACTIVITY_CREATED` 或者 `TYPE_PARAMETER_ALLOW_HANDLE_SOLID_COLOR_SCREEN`，而在 SystemUI 中调用 `PhoneStartingWindowTypeAlgorithm.getSuggestedWindowType()` 中又会根据 server 传来的参数转换成 `STARTING_WINDOW_TYPE_*` 参数。    
+
+```
+    public int getSuggestedWindowType(StartingWindowInfo windowInfo) {
+        ......
+        final boolean allowTaskSnapshot = (parameter & TYPE_PARAMETER_ALLOW_TASK_SNAPSHOT) != 0;
+        final boolean activityCreated = (parameter & TYPE_PARAMETER_ACTIVITY_CREATED) != 0;
+        final boolean isSolidColorSplashScreen =
+                (parameter & TYPE_PARAMETER_USE_SOLID_COLOR_SPLASH_SCREEN) != 0;
+        final boolean legacySplashScreen =
+                ((parameter & TYPE_PARAMETER_LEGACY_SPLASH_SCREEN) != 0);
+        final boolean activityDrawn = (parameter & TYPE_PARAMETER_ACTIVITY_DRAWN) != 0;
+        final boolean windowlessSurface = (parameter & TYPE_PARAMETER_WINDOWLESS) != 0;
+        final boolean topIsHome = windowInfo.taskInfo.topActivityType == ACTIVITY_TYPE_HOME;
+
+        ......
+
+        if (windowlessSurface) {
+            return STARTING_WINDOW_TYPE_WINDOWLESS;
+        }
+        if (!topIsHome) {
+            if (!processRunning || newTask || (taskSwitch && !activityCreated)) {
+                return getSplashscreenType(isSolidColorSplashScreen, legacySplashScreen);
+            }
+        }
+
+        if (taskSwitch) {
+            if (allowTaskSnapshot) {
+                if (windowInfo.taskSnapshot != null) {
+                    return STARTING_WINDOW_TYPE_SNAPSHOT;
+                }
+                if (!topIsHome) {
+                    return STARTING_WINDOW_TYPE_SOLID_COLOR_SPLASH_SCREEN;
+                }
+            }
+            if (!activityDrawn && !topIsHome) {
+                return getSplashscreenType(isSolidColorSplashScreen, legacySplashScreen);
+            }
+        }
+        return STARTING_WINDOW_TYPE_NONE;
+    }
+```
+
+
 ### 从资源文件获取动画属性
 
 SplashscreenContentDrawer.getWindowAttrs()
@@ -347,6 +451,7 @@ SplashscreenContentDrawer.createLayoutParameters
             StartingWindowInfo windowInfo,
             @StartingWindowInfo.StartingWindowType int suggestType,
             CharSequence title, int pixelFormat, IBinder appToken) {
+        // 
         final WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.TYPE_APPLICATION_STARTING);
         params.setFitInsetsSides(0);
@@ -410,6 +515,8 @@ SplashscreenContentDrawer.createLayoutParameters
 
 ## 删除 StartingWindow
 
+当 Activity 的 WindowState 第一帧绘制完成后，它的widow type 为 TYPE_BASE_APPLICATION，因此在 WindowState.performShowLocked() 方法中会执行ActivityRecord.onFirstWindowDrawn() 执行删除逻辑。      
+
 ```
 WindowSurfacePlacer$Traverser.run
     WindowSurfacePlacer.performSurfacePlacement
@@ -430,12 +537,12 @@ WindowSurfacePlacer$Traverser.run
                                                                 ActivityRecord.requestCopySplashScreen()
                                                                     TaskOrganizerController.copySplashScreenView()
                                                                         // copy SplashScreenView 给应用
-                                                                        ITaskOrganizer.copySplashScreenView()
+                                                                        ITaskOrganizer.copySplashScreenView()  ----> systemui
                                                             ActivityRecord.removeStartingWindowAnimation
                                                                 StartingSurfaceController$StartingSurface.remove
                                                                     TaskOrganizerController.removeStartingWindow
                                                                         // 删除 StartingWindow
-                                                                        ITaskOrganizer.removeStartingWindow()
+                                                                        ITaskOrganizer.removeStartingWindow()  ----> systemui
 ```
 
 SystemUI:
@@ -455,7 +562,7 @@ ITaskOrganizer.Stub().removeStartingWindow
                                             // 异步执行
                                             ViewRootImpl.doDie()
                                                 // system_server 执行删除window流程
-                                                WindowSession.remove()
+                                                WindowSession.remove()  ----> system_server
 ```
 
 copySplashScreenView
@@ -500,6 +607,13 @@ TransferSplashScreenViewStateItem.execute()
 
 可以在 `SplashscreenWindowCreator.addSplashScreenStartingWindow()` 和 `SplashscreenContentDrawer.makeSplashScreenContentView()` 方法的流程中实现。        
 在 SplashscreenWindowCreator.addSplashScreenStartingWindow() 方法中根据是否设置了自定义的 Splash Icon 来决定是不是 STARTING_WINDOW_TYPE_LEGACY_SPLASH_SCREEN 类型，而在 SplashscreenContentDrawer.makeSplashScreenContentView() 根据是否是 STARTING_WINDOW_TYPE_LEGACY_SPLASH_SCREEN 决定是否使用 Legacy Drawable。      
+
+## 关于热启动
+
+热启动的 StartingWindow 和冷启动流程类似，不同的有以下几点：   
+
+ - 构造 SnapshotStartingData
+ - 调用 StartingSurfaceController.createTaskSnapshotSurface() 构造 StartingSurface
 
 ## 相关文章
 

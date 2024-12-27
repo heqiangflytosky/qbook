@@ -1,5 +1,5 @@
 ---
-title: Android 远程窗口动画流程
+title: Android 桌面远程窗口动画流程
 categories: Android 窗口系统
 comments: true
 tags: [Android 窗口系统]
@@ -11,8 +11,9 @@ date: 2022-11-23 10:00:00
 
 前面我们介绍了本地动画，那么远程动画和本地动画的区别是什么呢？    
 本地动画的创建和执行都是同一个进程，那么远程动画就不在同一个进程。    
-比如桌面点击应用的启动动画，动画的Surface创建在 system_server 进程，而动画的执行是在 Launcher 进程。    
+比如桌面点击应用的启动动画就是远程动画，动画的 SurfaceControl 创建在 system_server 进程，而动画的执行是在 Launcher 进程。    
 至于这样做的原因应该是更方便 Launcher 来定制启动动画。    
+本文基于 Android 14 分析    
 
 ## 整体流程
 
@@ -64,7 +65,7 @@ date: 2022-11-23 10:00:00
 
 <img src="/images/android-window-system-animation-remote-animation/15.png" width="706" height="278"/>
 
-6.创建 starting_reveal 图层，为WindowState显示做动画准备    
+6.创建 starting_reveal 图层，为 WindowState 显示做动画准备     
 
 <img src="/images/android-window-system-animation-remote-animation/16.png" width="704" height="421"/>
 
@@ -84,6 +85,9 @@ date: 2022-11-23 10:00:00
 
 <img src="/images/android-window-system-animation-remote-animation/20.png" width="715" height="225"/>
 
+与本地动画不同的是，远程动画一般是Activity动画，它的 Leash 图层是加在 Task 之上的。    
+
+
 ## 过程分析
 
 ### 桌面启动应用
@@ -96,10 +100,16 @@ QuickstepLauncher.startActivitySafely()
                 new LauncherAnimationRunner()
                 new RemoteAnimationAdapter()
                 ActivityOptions.makeRemoteAnimation()
+                    // 为 ActivityOptions 的变量赋值
+                    opts.mRemoteAnimationAdapter = remoteAnimationAdapter
+                    opts.mAnimationType = ANIM_REMOTE_ANIMATION;
+                    opts.mRemoteTransition = remoteTransition;
                 Activity.startActivity()
 ```
 
 ### 系统初始化参数
+
+创建 ActivityRecord，Task 以及 AppTransition 执行 prepareAppTransition()    
 
 ```
 ActivityTaskManagerService.startActivity()
@@ -111,14 +121,31 @@ ActivityTaskManagerService.startActivity()
                 ActivityRecord.Builder.build() // 创建 ActivityRecord
                     new ActivityRecord()
                         ActivityRecord.setOptions()
-                            // 初始化
+                            // 初始化动画
                             mPendingRemoteAnimation = options.getRemoteAnimationAdapter()
                             mPendingRemoteTransition = options.getRemoteTransition()
+                ActivityStarter.startActivityUnchecked()
+                    ActivityStarter.getOrCreateRootTask()
+                        RootWindowContainer.getOrCreateRootTask()
+                            TaskDisplayArea.getOrCreateRootTask()
+                                // 创建 Task
+                                new Task.Builder().build()
+                                    new Task()
+                    ActivityStarter.startActivityInner()
+                        Task.startActivityLocked()
+                            // 执行 prepareAppTransition
+                            DisplayContent.prepareAppTransition(TRANSIT_OPEN)
+                                AppTransition.prepareAppTransition()
+                                    mNextAppTransitionRequests.add()
+                            // 添加 StartingWindow 流程
+                            StartingSurfaceController.showStartingWindow()
+                                ActivityRecord.showStartingWindow
+                    
 ```
 
 ### 系统创建 RemoteAnimationController
 
-Launcher 完成 Pause 流程后，系统创建 RemoteAnimationController 准备开始动画。    
+Launcher 完成 Pause 流程后，系统创建 RemoteAnimationController，AppTransition 设置 APP_STATE_READY 状态，准备开始动画。    
 
 ```
 ActivityClientController.activityPaused()
@@ -134,6 +161,15 @@ ActivityClientController.activityPaused()
                                     mRemoteAnimationController = new RemoteAnimationController()
                             // activity 生命周期流程
                             RootWindowContainer.ensureVisibilityAndConfig()
+                            ActivityRecord.completeResumeLocked()
+                                ActivityTaskSupervisor.reportResumedActivityLocked()
+                                    // 判断 所有 Activity 是否已经 resume
+                                    TaskDisplayArea.allResumedActivitiesComplete()
+                                    RootWindowContainer.executeAppTransitionForAllDisplay()
+                                        DisplayContent.executeAppTransition()
+                                            // 修改 AppTransition 状态为 APP_STATE_READY
+                                            AppTransition.setReady()
+                                                AppTransition.setAppTransitionState(APP_STATE_READY)
 ```
 
 ### 系统创建动画
@@ -222,7 +258,16 @@ RemoteAnimationRunnerCompat.onAnimationStart()
         new AnimationResult // 保存 server 端的回调函数
         QuickstepTransitionManager.AppLaunchAnimationRunner.onAnimationStart()
             QuickstepTransitionManager.composeIconLaunchAnimator()
+                // 获取动画
                 QuickstepTransitionManager.getOpeningWindowAnimators()
+                    // 重要方法：在这里更新 leash 的属性，完成动画
+                    new MultiValueUpdateListener().onUpdate()
+                        new SurfaceTransaction()
+                        // 完成事务
+                        SurfaceTransactionApplier.scheduleApply()
+                    MultiAnimationSet.play()
+                        // 将动画添加到列表
+                        mAnimators.add
             LauncherAnimationRunner$AnimationResult.setAnimation()
                 AnimatorSet.addListener()
                     onAnimationEnd()
@@ -231,7 +276,10 @@ RemoteAnimationRunnerCompat.onAnimationStart()
                                 RemoteAnimationRunnerCompat.onAnimationStart.callback.run()
                                     // 重要方法：执行从 system_server 端传的 FinishedCallback
                                     finishedCallback.onAnimationFinished()
+                // 开始做动画
                 AnimatorSet.start()
+                    MultiAnimationSet.start()
+                        mAnimators...start()
     
 ```
 

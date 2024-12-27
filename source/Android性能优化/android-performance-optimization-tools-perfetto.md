@@ -275,6 +275,11 @@ perfetto可以实时记录log，然后将log和trace信息一一对应。
 
 Android Missed Frames:可以标识出掉帧情况，点击后可以看到掉帧的进程。
 
+### SurfaceFlinger
+
+HW_VSYNC_0：硬件 Vsync 校准，一般取6个Vsync 样本。  0 代表display id，       
+HW_VSYNC_ON_0：  代表 HW_VSYNC 开启。  0 代表display id，       
+
 ### Slice Details：
 
 ### 线程状态

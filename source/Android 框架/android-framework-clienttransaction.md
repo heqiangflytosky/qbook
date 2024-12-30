@@ -30,6 +30,7 @@ ClientTransaction 相当于封装一系列消息的容器。 在 Android 系统�
 
 ClientTransactionItem 对象，一个回调消息，实现了 Parcelable 接口，可以被用于进程间传递，`system_server` 创建，App 端执行。      
 ActivityLifecycleItem 继承自 ClientTransctionItem，主要的子类有 ResumeActivityItem、PauseActivityItem、StopActivityItem、DestoryActivityItem。      
+另外介绍一下 LaunchActivityItem，它不是继承自 ActivityLifecycleItem，而是继承自 ClientTransctionItem，顾名思义就是主要是来启动 Activity 的（冷启动）。     
 
 ```
 public abstract class ActivityLifecycleItem extends ActivityTransactionItem {

@@ -1,5 +1,5 @@
 ---
-title: Android SystemUI 远程动画
+title: Android SystemUI 解锁动画
 categories: Android 窗口系统
 comments: true
 tags: [Android 窗口系统]

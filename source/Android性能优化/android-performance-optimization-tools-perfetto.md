@@ -30,7 +30,7 @@ adb shell am start com.android.traceur/com.android.traceur.MainActivity
 
 
 ```
-./record_android_trace -o $(date +%Y%m%d_%H%M%S)_trace_file.perfetto-trace -t 5s -b 32mb sched freq idle am wm gfx view binder_driver hal dalvik camera input res memory gfx view wm am ss video camera hal res sync idle binder_driver binder_lock ss
+./record_android_trace -o $(date +%Y%m%d_%H%M%S)_trace_file.perfetto-trace -t 5s -b 32mb sched freq idle am wm gfx view binder_driver hal dalvik camera input res memory gfx view wm am ss video camera hal res sync idle binder_driver binder_lock ss aidl
 ```
 
 抓取完成后会自动打开浏览器查看trace文件。      
@@ -38,11 +38,11 @@ adb shell am start com.android.traceur/com.android.traceur.MainActivity
 #### perfetto
 
 ````
-adb shell perfetto -o /data/misc/perfetto-traces/trace -t 10s sched freq idle am wm gfx view binder_driver hal dalvik camera input res memory  
+adb shell perfetto -o /data/misc/perfetto-traces/trace -t 10s sched freq idle am wm gfx view binder_driver hal dalvik camera input res memory aidl
 ````
 如果遇到目录权限问题，换个目录试试：    
 ````
-adb shell perfetto -o /data/local/traces/trace_file.perfetto-trace -t 10s sched freq idle am wm gfx view binder_driver hal dalvik camera input res memory  
+adb shell perfetto -o /data/local/traces/trace_file.perfetto-trace -t 10s sched freq idle am wm gfx view binder_driver hal dalvik camera input res memory aidl
 ````
 
 也可以从 https://ui.perfetto.dev/ 复制已经配置好的配置文件，然后到终端执行。    

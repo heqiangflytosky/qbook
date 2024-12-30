@@ -254,5 +254,269 @@ LocalAnimationAdapter.startAnimation.callback
                     SurfaceAnimator.removeLeash()
 ```
 
+## AppTransition过渡类型
 
+在 WindowManager 总还定义了窗口的一些过渡动画类型。    
+
+```
+    /**
+     * Not set up for a transition.
+     * @hide
+     */
+    int TRANSIT_OLD_UNSET = -1;
+
+    /**
+     * No animation for transition.
+     * @hide
+     */
+    int TRANSIT_OLD_NONE = 0;
+
+    /**
+     * A window in a new activity is being opened on top of an existing one in the same task.
+     * @hide
+     */
+    int TRANSIT_OLD_ACTIVITY_OPEN = 6;
+
+    /**
+     * The window in the top-most activity is being closed to reveal the previous activity in the
+     * same task.
+     * @hide
+     */
+    int TRANSIT_OLD_ACTIVITY_CLOSE = 7;
+
+    /**
+     * A window in a new task is being opened on top of an existing one in another activity's task.
+     * @hide
+     */
+    int TRANSIT_OLD_TASK_OPEN = 8;
+
+    /**
+     * A window in the top-most activity is being closed to reveal the previous activity in a
+     * different task.
+     * @hide
+     */
+    int TRANSIT_OLD_TASK_CLOSE = 9;
+
+    /**
+     * A window in an existing task is being displayed on top of an existing one in another
+     * activity's task.
+     * @hide
+     */
+    int TRANSIT_OLD_TASK_TO_FRONT = 10;
+
+    /**
+     * A window in an existing task is being put below all other tasks.
+     * @hide
+     */
+    int TRANSIT_OLD_TASK_TO_BACK = 11;
+
+    /**
+     * A window in a new activity that doesn't have a wallpaper is being opened on top of one that
+     * does, effectively closing the wallpaper.
+     * @hide
+     */
+    int TRANSIT_OLD_WALLPAPER_CLOSE = 12;
+
+    /**
+     * A window in a new activity that does have a wallpaper is being opened on one that didn't,
+     * effectively opening the wallpaper.
+     * @hide
+     */
+    int TRANSIT_OLD_WALLPAPER_OPEN = 13;
+
+    /**
+     * A window in a new activity is being opened on top of an existing one, and both are on top
+     * of the wallpaper.
+     * @hide
+     */
+    int TRANSIT_OLD_WALLPAPER_INTRA_OPEN = 14;
+
+    /**
+     * The window in the top-most activity is being closed to reveal the previous activity, and
+     * both are on top of the wallpaper.
+     * @hide
+     */
+    int TRANSIT_OLD_WALLPAPER_INTRA_CLOSE = 15;
+
+    /**
+     * A window in a new task is being opened behind an existing one in another activity's task.
+     * The new window will show briefly and then be gone.
+     * @hide
+     */
+    int TRANSIT_OLD_TASK_OPEN_BEHIND = 16;
+
+    /**
+     * An activity is being relaunched (e.g. due to configuration change).
+     * @hide
+     */
+    int TRANSIT_OLD_ACTIVITY_RELAUNCH = 18;
+
+    /**
+     * Keyguard is going away.
+     * @hide
+     */
+    int TRANSIT_OLD_KEYGUARD_GOING_AWAY = 20;
+
+    /**
+     * Keyguard is going away with showing an activity behind that requests wallpaper.
+     * @hide
+     */
+    int TRANSIT_OLD_KEYGUARD_GOING_AWAY_ON_WALLPAPER = 21;
+
+    /**
+     * Keyguard is being occluded by non-Dream.
+     * @hide
+     */
+    int TRANSIT_OLD_KEYGUARD_OCCLUDE = 22;
+
+    /**
+     * Keyguard is being occluded by Dream.
+     * @hide
+     */
+    int TRANSIT_OLD_KEYGUARD_OCCLUDE_BY_DREAM = 33;
+
+    /**
+     * Keyguard is being unoccluded.
+     * @hide
+     */
+    int TRANSIT_OLD_KEYGUARD_UNOCCLUDE = 23;
+
+    /**
+     * A translucent activity is being opened.
+     * @hide
+     */
+    int TRANSIT_OLD_TRANSLUCENT_ACTIVITY_OPEN = 24;
+
+    /**
+     * A translucent activity is being closed.
+     * @hide
+     */
+    int TRANSIT_OLD_TRANSLUCENT_ACTIVITY_CLOSE = 25;
+
+    /**
+     * A crashing activity is being closed.
+     * @hide
+     */
+    int TRANSIT_OLD_CRASHING_ACTIVITY_CLOSE = 26;
+
+    /**
+     * A task is changing windowing modes
+     * @hide
+     */
+    int TRANSIT_OLD_TASK_CHANGE_WINDOWING_MODE = 27;
+
+    /**
+     * A window in a new task fragment is being opened.
+     * @hide
+     */
+    int TRANSIT_OLD_TASK_FRAGMENT_OPEN = 28;
+
+    /**
+     * A window in the top-most activity of task fragment is being closed to reveal the activity
+     * below.
+     * @hide
+     */
+    int TRANSIT_OLD_TASK_FRAGMENT_CLOSE = 29;
+
+    /**
+     * A window of task fragment is changing bounds.
+     * @hide
+     */
+    int TRANSIT_OLD_TASK_FRAGMENT_CHANGE = 30;
+
+    /**
+     * A dream activity is being opened.
+     * @hide
+     */
+    int TRANSIT_OLD_DREAM_ACTIVITY_OPEN = 31;
+
+    /**
+     * A dream activity is being closed.
+     * @hide
+     */
+    int TRANSIT_OLD_DREAM_ACTIVITY_CLOSE = 32;
+```
+
+```
+    /** @hide */
+    int TRANSIT_NONE = 0;
+    /**
+     * A window that didn't exist before has been created and made visible.
+     * @hide
+     */
+    int TRANSIT_OPEN = 1;
+    /**
+     * A window that was visible no-longer exists (was finished or destroyed).
+     * @hide
+     */
+    int TRANSIT_CLOSE = 2;
+    /**
+     * A window that already existed but was not visible is made visible.
+     * @hide
+     */
+    int TRANSIT_TO_FRONT = 3;
+    /**
+     * A window that was visible is made invisible but still exists.
+     * @hide
+     */
+    int TRANSIT_TO_BACK = 4;
+    /** @hide */
+    int TRANSIT_RELAUNCH = 5;
+    /**
+     * A window is visible before and after but changes in some way (eg. it resizes or changes
+     * windowing-mode).
+     * @hide
+     */
+    int TRANSIT_CHANGE = 6;
+    /**
+     * The keyguard was visible and has been dismissed.
+     * @deprecated use {@link #TRANSIT_TO_BACK} + {@link #TRANSIT_FLAG_KEYGUARD_GOING_AWAY} for
+     *             keyguard going away with Shell transition.
+     * @hide
+     */
+    @Deprecated
+    int TRANSIT_KEYGUARD_GOING_AWAY = 7;
+    /**
+     * A window is appearing above a locked keyguard.
+     * @deprecated use {@link #TRANSIT_TO_FRONT} + {@link #TRANSIT_FLAG_KEYGUARD_OCCLUDING} for
+     *             keyguard occluding with Shell transition.
+     * @hide
+     */
+    int TRANSIT_KEYGUARD_OCCLUDE = 8;
+    /**
+     * A window is made invisible revealing a locked keyguard.
+     * @deprecated use {@link #TRANSIT_TO_BACK} + {@link #TRANSIT_FLAG_KEYGUARD_UNOCCLUDING} for
+     *             keyguard occluding with Shell transition.
+     * @hide
+     */
+    int TRANSIT_KEYGUARD_UNOCCLUDE = 9;
+    /**
+     * A window is starting to enter PiP.
+     * @hide
+     */
+    int TRANSIT_PIP = 10;
+    /**
+     * The screen is turning on.
+     * @hide
+     */
+    int TRANSIT_WAKE = 11;
+    /**
+     * The screen is turning off. This is used as a message to stop all animations.
+     * @hide
+     */
+    int TRANSIT_SLEEP = 12;
+
+    /**
+     * a visible tasks are removed from the task area
+     *
+     * @hide
+     */
+    int TRANSIT_EXIT = 100;
+    /**
+     * a visible tasks enter the task area
+     *
+     * @hide
+     */
+    int TRANSIT_ENTER = 101;
+```
 

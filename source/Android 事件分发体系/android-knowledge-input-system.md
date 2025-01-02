@@ -11,7 +11,7 @@ date: 2015-11-10 10:00:00
 
 ## 预备知识
 
-首先介绍一下和 Input 系统相关的一些知识，他们属于硬件以及 Linux 底层的一些知识，不属于本文的介绍重点。
+首先介绍一下和 Input 系统相关的一些知识，他们属于硬件以及 Linux 底层的一些知识，不属于本文的介绍重点。      
 
  - 输入设备：常见的输入设备有鼠标、键盘、触摸屏等，用户通过输入设备与系统进行交互。
  - UEVENT机制：Linux 系统中的一种事件通知机制，用于向用户空间发送有关内核和设备状态变化的通知。这种机制通常用于设备驱动程序、热插拔事件以及设备状态变化等场景，以便用户空间应用程序能够在这些事件发生时做出相应的响应。
@@ -86,28 +86,28 @@ enum InputConfig {
 
 ## Input 系统简介
 
-Android 系统是由事件驱动的，而 Input 是最常见的事件之一，用户的点击、滑动、长按等操作，都属于 Input 事件驱动，其中的核心就是 `InputReader` 和 `InputDispatcher`。`InputReader` 和 `InputDispatcher` 是跑在 `system_server` 进程中的两个 Native 循环线程，负责读取和分发 Input 事件。 
+Android 系统是由事件驱动的，而 Input 是最常见的事件之一，用户的点击、滑动、长按等操作，都属于 Input 事件驱动，其中的核心就是 `InputReader` 和 `InputDispatcher`。`InputReader` 和 `InputDispatcher` 是跑在 `system_server` 进程中的两个 Native 循环线程，负责读取和分发 Input 事件。       
 
 <img src="/images/android-knowledge-input-system/1.png" width="750" height="820"/>
 
-下面将简单介绍一个 Input 系统的各个模块，先有个概念认识，后面会按照 Input 系统分发事件的顺序来详细介绍各个模块。
-InputManager 是 `InputReader`和 `InputDispatcher` 的枢纽，类似MVC中到 Controller 作用，并对外提供 `InputManagerService`。   
-Inputflinger input 事件的管理类，数据传递类，也是输入系统native层核心的模块。它包含了 `EventHub`、`InputReader`、`InputDispatcher` 模块。
-EventHub 事件集线器，它将全部的输入事件通过一个接口 `getEvents()` 将从输入设备节点中读取的事件交给`InputReader`，是输入系统最底层的一个组件。
+下面将简单介绍一个 Input 系统的各个模块，先有个概念认识，后面会按照 Input 系统分发事件的顺序来详细介绍各个模块。      
+InputManager 是 `InputReader`和 `InputDispatcher` 的枢纽，类似MVC中到 Controller 作用，并对外提供 `InputManagerService`。     
+Inputflinger input 事件的管理类，数据传递类，也是输入系统native层核心的模块。它包含了 `EventHub`、`InputReader`、`InputDispatcher` 模块。       
+EventHub 事件集线器，它将全部的输入事件通过一个接口 `getEvents()` 将从输入设备节点中读取的事件交给`InputReader`，是输入系统最底层的一个组件。       
 InputReader 负责从输入设备 `EventHub` 获取事件，并将该事件通知给 `QueuedInputListener`，并最终通知到 `InputDispatcher`。     
 InputDispatcher 负责将输入事件分发到正确的窗口上，并会处理ANR问题。    
 InputMapper 在 `InputReader` 中用来将原始的输入事件加工处理转换为处理过的输入数据，一个输入设备可能对应多个 `InputMapper`。`InputMapper`有多个子类，`TouchInputMapper`、`KeyboardInputMapper`、`SensorInputMapper`等等，分配依据是设备类型，用来处理不同类型的输入事件。       
 
-InputDispatcher 的实现主要涉及3个Queue，我们在 perfetto 中经常会看到： 
+InputDispatcher 的实现主要涉及3个Queue，我们在 perfetto 中经常会看到：        
  - InboundQueue: （“iq”）中放着 `InputDispatcher` 从 `InputReader` 中拿到的 input 事件；
  - OutboundQueue：（“oq”）队列里面放的是即将要被派发给各个目标窗口App的事件；
  - WaitQueue：（“wq”）队列里面记录的是已经派发给 App，但是 App还在处理没有返回处理成功的事件；
 另外还有一个事件队列记录：    
- - mPendingInputEventCount（“aq”）中记录的是应用侧需要处理的Input事件，此时input事件已经传递到了应用进程；
+ - mPendingInputEventCount（“aq”）中记录的是应用侧需要处理的Input事件，此时input事件已经传递到了应用进程；       
 
  
-Connection：代表一个 server到app的连接通道。持有 `InputChannel` 和 `InputPublisher`。
-InputTransport 包含下面几个类：
+Connection：代表一个 server到app的连接通道。持有 `InputChannel` 和 `InputPublisher`。       
+InputTransport 包含下面几个类：       
  - InputMessage：通过 `InputChannel`发送的事件的数据封装    
  - InputChannel：`InputChannel` 本质是一对 `Socket`，可以看作是对 `Socket` 做的一层封装。用来实现在进程间传递input事件信息。
  - InputPublisher：事件分发器，最终执行向 APP 传输事件，通过内部的 `InputChannel` 执行。
@@ -221,9 +221,9 @@ IMS启动:
 
 ## NativeInputManager 模块
 
-该模块为 JNI 模块，主要处理 Java 方法与 c++ 方法映射关系，即IMS服务与 `InputFlinger` 模块的通信桥梁。
+该模块为 JNI 模块，主要处理 Java 方法与 c++ 方法映射关系，即IMS服务与 `InputFlinger` 模块的通信桥梁。       
 
-Java 和 native 方法映射表：
+Java 和 native 方法映射表：       
 
 ```
 // com_android_server_input_InputManagerService.cpp
@@ -253,9 +253,9 @@ class NativeInputManager : public virtual InputReaderPolicyInterface,
                            public virtual PointerControllerPolicyInterface {
 ```
 
-`NativeInputManager` 实现了 `InputReaderPolicyInterface`，`InputDispatcherPolicyInterface`，`PointerControllerPolicyInterface` 接口。`InputReaderPolicyInterface` 和 `InputDispatcherPolicyInterface` 通过 `InputManager` 分别传递给 `InputReader` 和 `InputDispatcher`，赋值到各自的 `mPolicy` 变量，通过 `NativeInputManager` 建立和 `InputManagerService` Java 层的联系，通过 `mPolicy` 调用 Java 层 `InputMangerService` 对象方法。
+`NativeInputManager` 实现了 `InputReaderPolicyInterface`，`InputDispatcherPolicyInterface`，`PointerControllerPolicyInterface` 接口。`InputReaderPolicyInterface` 和 `InputDispatcherPolicyInterface` 通过 `InputManager` 分别传递给 `InputReader` 和 `InputDispatcher`，赋值到各自的 `mPolicy` 变量，通过 `NativeInputManager` 建立和 `InputManagerService` Java 层的联系，通过 `mPolicy` 调用 Java 层 `InputMangerService` 对象方法。       
 
-`nativeInit` 方法新建一个 `NativeInputManager` 对象，并将该对象返回给 Java 层，也就是 IMS 中的 `NativeInputManagerService mNative`;
+`nativeInit` 方法新建一个 `NativeInputManager` 对象，并将该对象返回给 Java 层，也就是 IMS 中的 `NativeInputManagerService mNative`;       
 
 ```
 static jlong nativeInit(JNIEnv* env, jclass /* clazz */, jobject serviceObj,
@@ -278,7 +278,7 @@ static jlong nativeInit(JNIEnv* env, jclass /* clazz */, jobject serviceObj,
 }
 ```
 
-创建 `InputManager` 管理类，主要用于管理 Input 事件分发和读取。
+创建 `InputManager` 管理类，主要用于管理 Input 事件分发和读取。       
 
 ```
 NativeInputManager::NativeInputManager(jobject serviceObj, const sp<Looper>& looper)
@@ -315,7 +315,7 @@ static void nativeStart(JNIEnv* env, jobject nativeImplObj) {
 ### InputManager
 
 先来看一下 `InputReader` 和 `InputDispatcher` 的创建和启动流程，主要是通过 `InputManager` 来完成的。`InputManager` 定义了四个重要的变量，也是一个 `InputEvent` 的传递流程。    
-InputReader -> UnwantedInteractionBlocker -> InputProcessor -> InputDispatcher
+InputReader -> UnwantedInteractionBlocker -> InputProcessor -> InputDispatcher       
 
  - mReader：`InputReader` 通过 `EventHub` 监听并读取 `/dev/input` 事件。
  - mBlocker：拦截不需要的事件。
@@ -335,7 +335,7 @@ InputManager::InputManager(const sp<InputReaderPolicyInterface>& readerPolicy,
 }
 ```
 
-`QueuedInputListener`，`UnwantedInteractionBlocker`，`InputProcessor`，`InputDispatcher` 都实现了 `InputListenerInterface` 接口，他们都是输入事件的监听者，输入事件的链式传递就是通过 `QueuedInputListener` 实现的，这里使用了代理设计模式，代理对象是 `InputListenerInterface`。
+`QueuedInputListener`，`UnwantedInteractionBlocker`，`InputProcessor`，`InputDispatcher` 都实现了 `InputListenerInterface` 接口，他们都是输入事件的监听者，输入事件的链式传递就是通过 `QueuedInputListener` 实现的，这里使用了代理设计模式，代理对象是 `InputListenerInterface`。       
 
 ```
 class InputListenerInterface {
@@ -412,10 +412,10 @@ class InputProcessor : public InputProcessorInterface {
 }
 ```
 
-`mQueuedListener` 实例在构造时使用在 `InputManager` 里面创建各自对象时传入参数来实例化内部的 `mInnerListener` 变量。事件传递时先内部处理后再调用 `notifyMotion` 更新 `mArgsQueue` 参数，然后调用 `QueuedInputListener::flush()` 来具体执行下一个环节的方法。
+`mQueuedListener` 实例在构造时使用在 `InputManager` 里面创建各自对象时传入参数来实例化内部的 `mInnerListener` 变量。事件传递时先内部处理后再调用 `notifyMotion` 更新 `mArgsQueue` 参数，然后调用 `QueuedInputListener::flush()` 来具体执行下一个环节的方法。       
 
 `QueuedInputListener` 内部持有一个 `InputListenerInterface` 实例化对象 `mInnerListener`，和一个 `vector mArgsQueue` 管理所有输入事件，`flush()` 方法遍历 `mArgsQueue` 所有输入事件，将其传递给 `mInnerListener`，也就是下一个环节。    
-而`InputReader`，`UnwantedInteractionBlocker`，`InputProcessor` 都只需要持有 `QueuedInputListener` 引用就好了，类设计者不必关心下个环节具体是谁，只需要在处理事件后调用 `QueuedInputListener.flush()` 就可以把任务传递下去。
+而`InputReader`，`UnwantedInteractionBlocker`，`InputProcessor` 都只需要持有 `QueuedInputListener` 引用就好了，类设计者不必关心下个环节具体是谁，只需要在处理事件后调用 `QueuedInputListener.flush()` 就可以把任务传递下去。       
 
 ```
 class QueuedInputListener : public InputListenerInterface {
@@ -481,7 +481,7 @@ status_t InputReader::start() {
 }
 ```
 
-`EventHub` 获取事件队列
+`EventHub` 获取事件队列       
 
 `EventHub`：事件集线器，它将全部的输入事件通过一个接口 `getEvents()`，将从多个输入设备节点中读取的事件交给 `InputReader`，是输入系统最底层的一个组件。    
 `InputReaderFactory` 实例化了一个` EventHub` 对象传递给` InputReader` 构造方法。    
@@ -592,7 +592,7 @@ InputReader::loopOnce()
                             mLooper->wake() // 唤醒InputDispatch线程，进行分发事件
 ```
 
-`InputThread` 线程的 `loopOnce()` 方法包含了 `inputReader` 最主要的运行逻辑，先通过 `EventHub::getEvents()` 读取解析 `/dev/input` 节点下的事件，`processEventsLocked()` 根据类型处理事件，最后通过 `mQueuedListener` 传递给下一环，也就是 `UnwantedInteractionBlocker` 对象。
+`InputThread` 线程的 `loopOnce()` 方法包含了 `inputReader` 最主要的运行逻辑，先通过 `EventHub::getEvents()` 读取解析 `/dev/input` 节点下的事件，`processEventsLocked()` 根据类型处理事件，最后通过 `mQueuedListener` 传递给下一环，也就是 `UnwantedInteractionBlocker` 对象。       
 
 
 ```
@@ -695,7 +695,7 @@ InputThreadImpl::threadLoop()
             InputDispatcher::onAnrLocked() // 有超时事件，上报 ANR
 ```
 
-启动 IMS 服务时启动 InputDispatcher线程：
+启动 IMS 服务时启动 InputDispatcher线程：       
 
 ```
 status_t InputDispatcher::start() {
@@ -707,7 +707,7 @@ status_t InputDispatcher::start() {
 }
 ```
 
-`InputThread` 线程的 loop 方法：
+`InputThread` 线程的 loop 方法：       
 
 ```
 void InputDispatcher::dispatchOnce() {
@@ -745,9 +745,9 @@ void InputDispatcher::dispatchOnce() {
 }
 ```
 
-`mCommandQueue` 队列变量管理 Command 对象，Command 实际指向一个函数 `std::function<void()>`，执行一些必要特殊的操作，通知 Java 层的 `InputMangerService`，比如焦点改变：`sendFocusChangedCommandLocked()`，`notifyNoFocusedWindowAnr`，以及APP处理完事件的反馈等等。
+`mCommandQueue` 队列变量管理 Command 对象，Command 实际指向一个函数 `std::function<void()>`，执行一些必要特殊的操作，通知 Java 层的 `InputMangerService`，比如焦点改变：`sendFocusChangedCommandLocked()`，`notifyNoFocusedWindowAnr`，以及APP处理完事件的反馈等等。       
 
-唤醒 InputDispatch
+唤醒 InputDispatch       
 
 分两种情况，一种是需要检查 ANR 而设置的超时唤醒，另外一种是有事件来时通过 wake 唤醒。通过wake唤醒除了有新事件唤醒外，另外一个值得注意的时看门狗通过调用 `InputDispatcher::monitor()` 每隔30秒会唤醒一次。    
 
@@ -846,14 +846,14 @@ Input事件派发
 
 事件的分发过程也比较冗长，具体流程参考上面的流程图，事件分发最终会下发到 `InputChannel::publishMotionEvent`，然后发送到 APP 进程。    
 
-InputDispatcher中派发input事件时会打印tag为input_interaction的events log，这句log主要包含了一个connection列表，有助于理解当前InputDispatcher把input事件究竟派发给了谁。一般情况下，这个列表会包含若干个窗口，那么是如何找到合适的窗口进行事件接收的呢？下面来介绍。
+InputDispatcher中派发input事件时会打印tag为input_interaction的events log，这句log主要包含了一个connection列表，有助于理解当前InputDispatcher把input事件究竟派发给了谁。一般情况下，这个列表会包含若干个窗口，那么是如何找到合适的窗口进行事件接收的呢？下面来介绍。       
 
-寻找目标窗口
+寻找目标窗口       
 
-https://www.jianshu.com/p/b7cd3799842e
+https://www.jianshu.com/p/b7cd3799842e       
 
-事件的分发首先要找到要分发事件的目标窗口，这里我们看一下如何找到目标窗口，以及这个窗口列表是如何维护的，这部分逻辑主要在 `InputDispatcher::findTouchedWindowTargetsLocked()` 方法中。
-`findTouchedWindowTargetsLocked`方法是通过从 `mWindowHandlesByDisplay` 获取到对应 `dispalyId` 的窗口列表并按照顺序从前到后去遍历确认的目标窗口。当排在前面的窗口被遍历到并被确认为目标派发窗口时，目标派发窗口的寻找流程到此结束，不会再遍历后面的窗口了。
+事件的分发首先要找到要分发事件的目标窗口，这里我们看一下如何找到目标窗口，以及这个窗口列表是如何维护的，这部分逻辑主要在 `InputDispatcher::findTouchedWindowTargetsLocked()` 方法中。       
+`findTouchedWindowTargetsLocked`方法是通过从 `mWindowHandlesByDisplay` 获取到对应 `dispalyId` 的窗口列表并按照顺序从前到后去遍历确认的目标窗口。当排在前面的窗口被遍历到并被确认为目标派发窗口时，目标派发窗口的寻找流程到此结束，不会再遍历后面的窗口了。       
 `findTouchedWindowTargetsLocked` 这个方法特别长，大概有500多行代码，下面简单描述一下这个方法的处理逻辑。    
 
  - 1.从 mTouchStatesByDisplay 中根据 displayId 找到
@@ -896,9 +896,9 @@ https://www.jianshu.com/p/b7cd3799842e
 
 
 
-如何维护：https://juejin.cn/post/6844903519980683271#heading-6
-https://www.jb51.net/program/293560ccy.htm
-https://blog.csdn.net/weixin_44088874/article/details/133845737
+如何维护：https://juejin.cn/post/6844903519980683271#heading-6       
+https://www.jb51.net/program/293560ccy.htm       
+https://blog.csdn.net/weixin_44088874/article/details/133845737       
 
 那么，`InputDispatcher`中的窗口列表是如何确认的呢？    
 
@@ -923,7 +923,7 @@ InputDispatcher::InputDispatcher(InputDispatcherPolicyInterface& policy,
 ```
 
 
-注册流程：
+注册流程：       
 
 ```
 **************************** system_server 进程
@@ -934,8 +934,8 @@ SurfaceFlinger.addWindowInfosListener
     WindowInfosListenerInvoker.addWindowInfosListener
 ```
 
-当窗口信息变化时，`Surfaceflinger` 会回调前面所注册 `listener` 的 `onWindowInfosChanged` 方法并最终通知到 `InputDispatcher`。
-更新流程：
+当窗口信息变化时，`Surfaceflinger` 会回调前面所注册 `listener` 的 `onWindowInfosChanged` 方法并最终通知到 `InputDispatcher`。       
+更新流程：       
 
 ```
 **************************** surfaceflinger 进程
@@ -952,7 +952,7 @@ WindowInfosListenerReporter.onWindowInfosChanged()
 
 
 
-分发事件到目标窗口
+分发事件到目标窗口       
 
 当找到目标窗口 `InputTarget` 后，根据 `InputTarget` 获取当前的 `InputChannel`，根据 `InputChannel` 保存的 `mToken` 从 `mConnectionsByToken` 中获取 `Connection`，然后就可以通过 `Connection` 中对应的 `InputPublisher` 执行分发了。    
 
@@ -1003,7 +1003,7 @@ void InputDispatcher::startDispatchCycleLocked(nsecs_t currentTime,
 }
 ```
 
-从 `connection->outboundQueue` 不断取出 `DispatchEntry`，调用 `connection->inputPublisher.publishMotionEvent()` 发送输入事件，分发完成后在 `outboundQueue` 中擦除对象。`connection` 从 `InputChannel` 对象获取，`InputChannel` 描述了 `inputflinger` 和事件接受对象的连接。下面会介绍 `InputChannel` 是如何建立连接的。
+从 `connection->outboundQueue` 不断取出 `DispatchEntry`，调用 `connection->inputPublisher.publishMotionEvent()` 发送输入事件，分发完成后在 `outboundQueue` 中擦除对象。`connection` 从 `InputChannel` 对象获取，`InputChannel` 描述了 `inputflinger` 和事件接受对象的连接。下面会介绍 `InputChannel` 是如何建立连接的。       
 
 ```
 status_t InputPublisher::publishMotionEvent(
@@ -1064,13 +1064,13 @@ status_t InputPublisher::publishMotionEvent(
 ## WindowManagerService 模块
 
 `InputDispatcher` 通过 `InputChannel` 将事件发送到目标窗口的进程了。那么目标窗口是如何接收传递事件呢？    
-首先在初始化窗口的时候，会创建 `InputChannel` 建立和 `inputflinger` 的联系。
+首先在初始化窗口的时候，会创建 `InputChannel` 建立和 `inputflinger` 的联系。       
 
 ### 创建 App 和 inputflinger 的联系
 
 这种联系是通过创建 `InputChannel` 来实现的。    
 
-在应用创建 Window 过程中，会调用 `ViewRootImpl.setView()` 最终通过WMS将Window添加到WMS管理。
+在应用创建 Window 过程中，会调用 `ViewRootImpl.setView()` 最终通过WMS将Window添加到WMS管理。       
 
 ```
 //frameworks/base/core/java/android/view/ViewRootImpl.java
@@ -1107,9 +1107,9 @@ status_t InputPublisher::publishMotionEvent(
     }
 ```
 
-server端调用流程：
+server端调用流程：       
 
-https://blog.csdn.net/ukynho/article/details/126746327
+https://blog.csdn.net/ukynho/article/details/126746327       
 
 ```
 -------------------------app
@@ -1142,7 +1142,7 @@ ViewRootImpl.setView()
         // 将从native返回的 mPtr 保存到 InputChannel，建立native和java层InputChannel的联系
         mInputChannel.copyTo(outInputChannel);
 ```
-WindowManagerService.addWindow()
+WindowManagerService.addWindow()       
 
 ```
 Result<std::unique_ptr<InputChannel>> InputDispatcher::createInputChannel(const std::string& name) {
@@ -1245,10 +1245,10 @@ std::unique_ptr<InputChannel> InputChannel::create(const std::string& name,
 ```
 
 小结：
-对于每一个新添加的窗口，`InputDispatcher` 为其创建了一对 `socket`，通过一对 `InputChannel` 封装，另外创建了一个 `IBinder` 类型的 `token`，由这两个 `InputChannel` 共同持有。
-对于服务端 `InputChannel`，`InputDispatcher` 创建了一个 `Connection`对象持有这个 `InputChannel`，然后把键值对 `<IBinder token, Connection connection>` 加入到 `InputDispatcher` 的 `mConnectionsByToken` 中，这样后续可以通过 `token` 获取到 `Connection`，进而拿到 `InputChannel`。
-对于客户端 `InputChannel`，除了将该 `InputChannel` 返回给 `ViewRootImpl` 之外，WMS也保存了相应的 `InputChannel` 和 `token`。
-该 `token` 将上层和 `Native` 层的窗口信息串联起来，上层可以根据从 `Native` 层传来的 `token`，获取到相应的 `WindowState` 和客户端 `InputChannel`。Native 层可以根据从上层传来的 `token` 得到 `Connection`，进而得到服务端 `InputChannel`。
+对于每一个新添加的窗口，`InputDispatcher` 为其创建了一对 `socket`，通过一对 `InputChannel` 封装，另外创建了一个 `IBinder` 类型的 `token`，由这两个 `InputChannel` 共同持有。       
+对于服务端 `InputChannel`，`InputDispatcher` 创建了一个 `Connection`对象持有这个 `InputChannel`，然后把键值对 `<IBinder token, Connection connection>` 加入到 `InputDispatcher` 的 `mConnectionsByToken` 中，这样后续可以通过 `token` 获取到 `Connection`，进而拿到 `InputChannel`。       
+对于客户端 `InputChannel`，除了将该 `InputChannel` 返回给 `ViewRootImpl` 之外，WMS也保存了相应的 `InputChannel` 和 `token`。       
+该 `token` 将上层和 `Native` 层的窗口信息串联起来，上层可以根据从 `Native` 层传来的 `token`，获取到相应的 `WindowState` 和客户端 `InputChannel`。Native 层可以根据从上层传来的 `token` 得到 `Connection`，进而得到服务端 `InputChannel`。       
 
 ### InputDispatcher 到 APP 的分发
 
@@ -1557,7 +1557,7 @@ https://juejin.cn/post/7224777406916902973
 另外Google对[批量消费](https://android.googlesource.com/platform/frameworks/base/+/master/core/jni/android_view_InputEventReceiver.md)在这里有个详细的介绍，感兴趣的同学可以仔细阅读一下这篇文档基本会有个了解。    
 下面主要介绍在事件分发流程中如何处理事件的批量消费。    
 
-前面说到当读取 server 端分发的数据时 `NativeInputEventReceiver::handleEvent` 调用 `NativeInputEventReceiver::consumeEvents` 这时传的 `consumeBatches` 参数永远是 false，这时是不进行批处理的。
+前面说到当读取 server 端分发的数据时 `NativeInputEventReceiver::handleEvent` 调用 `NativeInputEventReceiver::consumeEvents` 这时传的 `consumeBatches` 参数永远是 false，这时是不进行批处理的。       
 
 
 ```
@@ -1587,9 +1587,9 @@ NativeInputEventReceiver::consumeEvents
     }
 ```
 
-最终是往 Choreographer 中注册一个 Input Callback 来消费批量的 Input 事件。
-简单来说 MOVE 事件的批处理即是在屏幕触摸采样率高于刷新率的情况下，将一帧内的所有 MOVE 事件合并之后再统一分发给应用侧。MOVE 事件在到达应用进程之后就会被缓存，等 VSync 到来后再在 Input 阶段统一合成一个 MotionEvent 来分发。
-注意到这种情况下 Input 事件最终才是在 VSync 的 Input 阶段分发的。
+最终是往 Choreographer 中注册一个 Input Callback 来消费批量的 Input 事件。       
+简单来说 MOVE 事件的批处理即是在屏幕触摸采样率高于刷新率的情况下，将一帧内的所有 MOVE 事件合并之后再统一分发给应用侧。MOVE 事件在到达应用进程之后就会被缓存，等 VSync 到来后再在 Input 阶段统一合成一个 MotionEvent 来分发。       
+注意到这种情况下 Input 事件最终才是在 VSync 的 Input 阶段分发的。       
 
 
 ```
@@ -1629,17 +1629,17 @@ InputEventReceiver.dispatchInputEvent()
                 ViewRootImpl.deliverInputEvent()
 ```
 
-deliverInputEvent 标识 App UI Thread 被 Input 事件唤醒。InputResponse 标识 Input 事件区域，这里可以看到一个 Input_Down 事件 + 若干个 Input_Move 事件 + 一个 Input_Up 事件的处理阶段都被算到了这里。
+deliverInputEvent 标识 App UI Thread 被 Input 事件唤醒。InputResponse 标识 Input 事件区域，这里可以看到一个 Input_Down 事件 + 若干个 Input_Move 事件 + 一个 Input_Up 事件的处理阶段都被算到了这里。       
 
-见图片
+见图片       
 
 ### App 处理完的反馈
 
-https://blog.csdn.net/rzleilei/article/details/127118071
+https://blog.csdn.net/rzleilei/article/details/127118071       
 
-APP 处理完事件后，把事件处理结果告诉 NativeInputEventReceiver，然后通过 InputChannel 通知 server 端的 InputDispatcher。
+APP 处理完事件后，把事件处理结果告诉 NativeInputEventReceiver，然后通过 InputChannel 通知 server 端的 InputDispatcher。       
 
-APP 进程：
+APP 进程：       
 ```
 **************************** app 进程
 ViewRootImpl.InputStage.onDeliverToNext()
@@ -1666,7 +1666,7 @@ InputDispatcher::handleReceiveCallback()
     InputDispatcher::removeInputChannelLocked()
 ```
 
-postCommandLocked 中就是把任务加入到 mCommandQueue 集合中，这时候，就会回到 InputDispatcher 的线程中去执行了。这里，我们在前面有介绍过，会在 `dispatchOnce` 中的第二步 `haveCommandsLocked()` 方法中去执行该任务。
+postCommandLocked 中就是把任务加入到 mCommandQueue 集合中，这时候，就会回到 InputDispatcher 的线程中去执行了。这里，我们在前面有介绍过，会在 `dispatchOnce` 中的第二步 `haveCommandsLocked()` 方法中去执行该任务。       
 
 ```
 void InputDispatcher::finishDispatchCycleLocked(nsecs_t currentTime,
@@ -1684,9 +1684,9 @@ void InputDispatcher::finishDispatchCycleLocked(nsecs_t currentTime,
 
 ### ANR 的上报流程
 
-https://blog.csdn.net/rzleilei/article/details/127118071
+https://blog.csdn.net/rzleilei/article/details/127118071       
 
-https://www.jianshu.com/p/b8b35d3ee052
+https://www.jianshu.com/p/b8b35d3ee052       
 
 ```
 -------------------------native

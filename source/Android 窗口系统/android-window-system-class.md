@@ -36,7 +36,10 @@ mWindowMap:mWindowMap保存了每个WindowState和客户端窗口的映射关系
 ### Surface
 
 窗口的本质是进行绘制所使用的画布：Surface。    
-在Android中，Window与Surface一一对应，当一块Surface显示在屏幕上时，就是用户所看到的窗口了。客户端向WMS添加一个窗口的过程，就是WMS为其分配一块Surface的过程，一块块Surface在WMS的管理之下有序地排布在屏幕上，Android才得以呈现出各种各样的界面出来。    
+在Android中，Window与Surface一一对应，每个Window都对应一个Surface。当一块Surface显示在屏幕上时，就是用户所看到的窗口了。      
+Window是Android框架中用于定义和管理一个可视区域的抽象概念，代表了应用程序的一个显示窗口。每个应用程序至少有一个Window，通常由Activity、Dialog或Popup创建。Window提供了高级别的API来管理其内容，比如设置布局参数、背景、透明度等，并且可以包含多个View层次结构。      
+Surface则是 Android 底层图形系统中的一个概念，用于存储和展示像素数据，每个Window都有一个与之关联的Surface，由SurfaceFlinger服务管理。      
+客户端向WMS添加一个窗口的过程，就是WMS为其分配一块Surface的过程，一块块Surface在WMS的管理之下有序地排布在屏幕上，Android才得以呈现出各种各样的界面出来。    
 
 Surface的初始化时机在 ViewRootImpl 里，mSurface在初始化时是空的，在relayoutWindow窗口布局阶段时被填充。    
 

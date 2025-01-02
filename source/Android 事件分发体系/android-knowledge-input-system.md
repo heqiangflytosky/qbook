@@ -116,7 +116,7 @@ TouchState：`frameworks/native/services/inputflinger/dispatcher/TouchState.cpp`
 
 整个处理过程大致流程如下：    
 
-<img src="/images/android-knowledge-input-system/2.png" width="1289" height="1110"/>
+<img src="/images/android-knowledge-input-system/2.png" width="645" height="555"/>
 
  - 触摸屏会按照屏幕硬件的触控采样率周期，每隔几毫秒扫描一次，如果有触控事件就会上报到对应的设备驱动；系统封装了一个叫 `EventHub` 的对象，它利用 inotify 和 epoll 机制监听 `/dev/input` 目录下的 input 设备驱动节点，通过 `EventHub` 的 `getEvents` 接口就可以监听并获取到 Input 事件。    
  - `InputReader` 负责从 `EventHub` 里面把 Input 事件读取出来，然后交给` InputDispatcher` 进行事件分发。    
@@ -645,7 +645,7 @@ Input事件处理
 
 先来看一下事件分发的大致流程：    
 
-<img src="/images/android-knowledge-input-system/4.png" width="1526" height="2258"/>
+<img src="/images/android-knowledge-input-system/4.png" width="763" height="1129"/>
 
 ```
 InputThreadImpl::threadLoop()
@@ -1383,7 +1383,7 @@ void NativeInputEventReceiver::setFdEvents(int events) {
 再来看一下事件消费流程：    
 
 
-<img src="/images/android-knowledge-input-system/5.png" width="1732" height="2141"/>
+<img src="/images/android-knowledge-input-system/5.png" width="866" height="1070"/>
 
 
 ```

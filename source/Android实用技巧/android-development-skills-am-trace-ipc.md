@@ -98,7 +98,7 @@ Trace: java.lang.Throwable
 
 <img src="/images/android-development-skills-am-trace-ipc/3.png" width="548" height="216"/>
 
-这时我们可以在开启 perfetto 时添加 aidi 参数，比如：    
+这时我们可以在开启 perfetto 时添加 aidl 参数，比如：    
 
 ```
 ./record_android_trace -o $(date +%Y%m%d_%H%M%S)_trace_file.perfetto-trace -t 5s -b 32mb sched freq idle am wm gfx view binder_driver hal dalvik camera input res memory gfx view wm am ss video camera hal res sync idle binder_driver binder_lock ss aidl
@@ -128,7 +128,7 @@ Trace: java.lang.Throwable
 
 ## 相关文章
 
-https://blog.csdn.net/sinat_20059415/article/details/106158891
+https://blog.csdn.net/sinat_20059415/article/details/106158891    
 
-https://mp.weixin.qq.com/s/MS-TE1Z32F_4QkXm57e2Pg
-https://mp.weixin.qq.com/s/incGzW8yG4nufMIbUm-pLw
+https://mp.weixin.qq.com/s/MS-TE1Z32F_4QkXm57e2Pg    
+https://mp.weixin.qq.com/s/incGzW8yG4nufMIbUm-pLw    

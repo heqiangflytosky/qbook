@@ -7,6 +7,7 @@ description: 介绍卡顿优化工具 Perfetto 的使用
 date: 2018-10-10 10:00:00
 ---
 
+[Perfetto 官方文档](https://perfetto.dev/docs/)     
 
 ## 录制trace方法
 
@@ -35,6 +36,9 @@ adb shell am start com.android.traceur/com.android.traceur.MainActivity
 
 抓取完成后会自动打开浏览器查看trace文件。      
 
+可以通过 `./record_android_trace -h` 来查看支持的参数配置。      
+比如，通过 `./record_android_trace --list` 来查看支持属性配置。    
+
 #### perfetto
 
 ````
@@ -46,7 +50,7 @@ adb shell perfetto -o /data/local/traces/trace_file.perfetto-trace -t 10s sched 
 ````
 
 也可以从 https://ui.perfetto.dev/ 复制已经配置好的配置文件，然后到终端执行。    
-下面是一个默认的配置：    
+比如：    
 
 ```
 adb shell perfetto \
@@ -181,6 +185,138 @@ EOF
 
 ```
 
+另外还可以把上面的命令录制成脚本，存放在电脑上，方便执行录制。      
+
+配置文件：    
+
+config.pbtx：
+
+```
+buffers: {
+    size_kb: 707200
+    fill_policy: RING_BUFFER
+}
+buffers: {
+    size_kb: 707200
+    fill_policy: RING_BUFFER
+}
+data_sources: {
+    config {
+        name: "linux.process_stats"
+        target_buffer: 1
+        process_stats_config {
+            scan_all_processes_on_start: true
+            proc_stats_poll_ms: 1000
+        }
+    }
+}
+data_sources: {
+    config {
+        name: "android.log"
+        android_log_config {
+        }
+    }
+}
+data_sources: {
+    config {
+        name: "android.surfaceflinger.frametimeline"
+    }
+}
+data_sources: {
+    config {
+        name: "linux.sys_stats"
+        sys_stats_config {
+            meminfo_period_ms: 1000
+            vmstat_period_ms: 1000
+            stat_period_ms: 1000
+            stat_counters: STAT_CPU_TIMES
+            stat_counters: STAT_FORK_COUNT
+        }
+    }
+}
+data_sources: {
+    config {
+        name: "android.heapprofd"
+        target_buffer: 0
+        heapprofd_config {
+            sampling_interval_bytes: 4096
+            shmem_size_bytes: 8388608
+            block_client: true
+        }
+    }
+}
+data_sources: {
+    config {
+        name: "android.java_hprof"
+        target_buffer: 0
+        java_hprof_config {
+        }
+    }
+}
+data_sources: {
+    config {
+        name: "linux.ftrace"
+        ftrace_config {
+            ftrace_events: "sched/sched_switch"
+            ftrace_events: "power/suspend_resume"
+            ftrace_events: "sched/sched_wakeup"
+            ftrace_events: "sched/sched_wakeup_new"
+            ftrace_events: "sched/sched_waking"
+            ftrace_events: "power/cpu_frequency"
+            ftrace_events: "power/cpu_idle"
+            ftrace_events: "sched/sched_process_exit"
+            ftrace_events: "sched/sched_process_free"
+            ftrace_events: "task/task_newtask"
+            ftrace_events: "task/task_rename"
+            ftrace_events: "lowmemorykiller/lowmemory_kill"
+            ftrace_events: "oom/oom_score_adj_update"
+            ftrace_events: "ftrace/print"
+            ftrace_events: "binder/*"
+            atrace_categories: "input"
+            atrace_categories: "gfx"
+            atrace_categories: "view"
+            atrace_categories: "webview"
+            atrace_categories: "camera"
+            atrace_categories: "dalvik"
+            atrace_categories: "power"
+            atrace_categories: "wm"
+            atrace_categories: "am"
+            atrace_categories: "ss"
+            atrace_categories: "sched"
+            atrace_categories: "freq"
+            atrace_categories: "binder_driver"
+            atrace_categories: "aidl"
+            atrace_categories: "binder_lock"
+            atrace_apps: "*"
+        }
+    }
+}
+duration_ms: 300000
+flush_period_ms: 30000
+incremental_state_config {
+    clear_period_ms: 5000
+}
+write_into_file: true
+```
+
+脚本：    
+
+start:    
+
+```
+adb push config.pbtx /data/local/tmp/config.pbtx
+adb shell "cat /data/local/tmp/config.pbtx | perfetto --txt -c - -o /data/misc/perfetto-traces/trace.perfetto-trace --detach=HQTest"
+```
+
+stop:
+
+```
+adb shell perfetto --attach=HQTest --stop
+adb pull /data/misc/perfetto-traces/trace.perfetto-trace  trace_`date +%Y%m%d_%H%M%S`.pb
+```
+
+执行 `./start` 就会开始录制，执行 `./stop` 会停止录制，然后把 trace 文件copy到当前目录，并以日期来命名。然后就可以打开来查看了。    
+
 ### Perfetto UI 网站抓取
 
 打开 https://ui.perfetto.dev/ 首先配对设备，如有需要就修改配置问题。下面介绍几个配置选项。  
@@ -247,7 +383,7 @@ Shift + 鼠标点击 + 拖动：左右移动
 
 ### 标记功能
 
-## 分析
+## 分析技巧
 
 ### VSYNC-app
 
@@ -260,12 +396,64 @@ Cpu X Frequency:
 Cpu X Max Freq Limit:    
 Cpu X Min Freq Limit:    
 
+### Expected Timeline 和 Actual Timeline 
+
+我们可以使用 SurfaceFlinger 中的 FrameTimeline 来检测卡顿问题。[Perfetto Doc：Android Jank detection with FrameTimeline](https://perfetto.dev/docs/data-sources/frametimeline)      
+在应用主线程上面有两行数据，分别是 Expected Timeline 和 Actual Timeline 。     
+
+ - Expected Timeline：预期时间线，每个切片表示为应用程序提供的渲染帧的时间。为避免系统卡顿，应用程序应在此时间范围内完成。开始时间是 Choreographer 回调计划运行的时间。
+ - Actual Timeline：实际时间线，这些切片表示应用完成帧（包括 GPU 工作）并将其发送到 SurfaceFlinger 进行合成所用的实际时间。开始时间是 Choreographer#doFrame 或 AChoreographer_vsyncCallback 开始运行的时间。这里切片的结束时间代表 max（gpu time， post time）。post time 是指应用帧发布到 SurfaceFlinger 的时间。
+
+<img src="/images/android-performance-optimization-tools-perfetto/timeline_tracks.png" width="797" height="78"/>
+
+通过看 Expected Timeli 和 Actual Timeline 的差异，我们可以很快速定位到卡顿的点（红色标识的 Actual Timeline 那一帧就是卡顿）。    
+我们通过观察当前时间片的颜色可以得到当前帧的运行情况：    
+
+<img src="/images/android-performance-optimization-tools-perfetto/color-codes.png" width="985" height="248"/>
+
+ - 绿色：正常帧，没有发生卡顿。
+ - 浅绿色：High latency 状态。帧速率很平滑，但帧显示较晚，导致输入延迟增加。
+ - 红色：发生卡顿的帧，时间片所属的进程是卡顿的原因。
+ - 黄色：仅在 App 端使用，发生卡顿，但是原因不在 App，是 SurfaceFlinger 导致了卡顿。
+ - 蓝色：丢帧，和卡顿无关。该帧被 SurfaceFlinger 丢弃，选择更新的帧而不是此帧。
+
+Perfetto 中开启 FrameTimeline 需要进行下面的配置：     
+
+```
+data_sources: {
+    config {
+        name: "android.surfaceflinger.frametimeline"
+    }
+}
+```
+
 ### Android logs
 
 perfetto可以实时记录log，然后将log和trace信息一一对应。    
 生成的perfetto文件，滑动下方的android log，可以看到有一根竖线，对应到trace的tag，日志和trace tag的一一对应。    
 
 <img src="/images/android-performance-optimization-tools-perfetto/p3.png" width="829" height="333"/>
+
+如果需要查看日志，需要添加响应配置如下：    
+
+```
+data_sources: {
+    config {
+        name: "android.log"
+        android_log_config {
+            min_prio: PRIO_VERBOSE
+            filter_tags: "perfetto"
+            filter_tags: "my_tag_2"
+            log_ids: LID_DEFAULT
+            log_ids: LID_RADIO
+            log_ids: LID_EVENTS
+            log_ids: LID_SYSTEM
+            log_ids: LID_CRASH
+            log_ids: LID_KERNEL
+        }
+    }
+}
+```
 
 ### Actual timeline
 
@@ -454,5 +642,5 @@ ID： 1178862
 ## 相关文章
 
 [perfetto/systrace基础知识讲解](https://blog.csdn.net/learnframework/article/details/135020636)
-
+[Android Performance:Perfetto-系列目录](https://www.androidperformance.com/2024/03/27/Android-Perfetto-101/#/Perfetto-%E7%B3%BB%E5%88%97%E7%9B%AE%E5%BD%95)
 

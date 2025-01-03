@@ -313,6 +313,11 @@ WindowContainer 是能够直接或者间接持有 WindowState 的容器类的通
 
 ```
 class WindowToken extends WindowContainer<WindowState> {
+    // 是IBinder对象，具有系统唯一性，因此向WMS的mWindowMap或者mTokenMap中插入对象时都是使用token值作为索引。
+    final IBinder token;
+
+    /** The type of window this token is for, as per {@link WindowManager.LayoutParams} */
+    final int windowType;
 ```
 
 WMS中存放一组相关联的窗口的容器。通常是 ActivityRecord，它是 Activity 在 WMS 的表示。    
@@ -322,6 +327,10 @@ WMS中存放一组相关联的窗口的容器。通常是 ActivityRecord，它�
        #0 WindowToken{1075eb9 type=2000 android.os.BinderProxy@79e9103} type=undefined mode=fullscreen override-mode=undefined requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
         #0 1ef3a5f StatusBar type=undefined mode=fullscreen override-mode=undefined requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
 ```
+
+WindowToken将属于同一个应用组件的窗口组织在了一起。所谓的应用组件可以是Activity、InputMethod、Wallpaper 以及 Dream。在WMS对窗口的管理过程中，用WindowToken指代一个应用组件。例如在进行窗口ZOrder排序时，属于同一个WindowToken的窗口会被安排在一起，而且在其中定义的一些属性将会影响所有属于此WindowToken的窗口。这些都表明了属于同一个WindowToken的窗口之间的紧密联系。     
+WindowToken具有令牌的作用，是对应用组件的行为进行规范管理的一个手段。WindowToken由应用组件或其管理者负责向WMS声明并持有。应用组件在需要新的窗口时，必须提供WindowToken以表明自己的身份，并且窗口的类型必须与所持有的WindowToken的类型一致。在创建系统类型的窗口时不需要提供一个有效的Token，WMS会隐式地为其声明一个WindowToken。       
+
 
 #### ActivityRecord
 

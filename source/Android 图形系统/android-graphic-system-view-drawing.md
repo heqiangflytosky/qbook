@@ -9,10 +9,11 @@ date: 2016-8-2 10:00:00
 
 ## 概述
 
-View 的绘制流程可以分为 measure、layout、draw 三个阶段完成，ViewGroup 和 View 在三个阶段的处理流程又是不一样的，理解这三个阶段的处理流程将会对我们自定义 View 会有很大帮助。本文将对这三个阶段做一下简单介绍。
-View 的绘制流程是从 ViewRootImpl 类的 performTraversals 方法开始的，依次经过 performMeasure、performLayout、performDraw 三个方法，最终分别调用 View 或者 ViewGroup 的 measure/onMeasure、layout/onLayout、draw/onDraw 方法来完成 View 的测量、布局和绘制工作。
-这个流程其实很好理解，我们要绘制一个视图，必须首先知道视图大小，然后知道把它放到什么位置，然后绘制才能在屏幕上显示出来。
-下面来看一下绘制流程的函数调用关系：
+View 的绘制流程可以分为 measure、layout、draw 三个阶段完成，ViewGroup 和 View 在三个阶段的处理流程又是不一样的，理解这三个阶段的处理流程将会对我们自定义 View 会有很大帮助。本文将对这三个阶段做一下简单介绍。      
+View 的绘制流程是从 ViewRootImpl 类的 performTraversals 方法开始的，performTraversals方法是ViewRootImpl的心跳，驱动着控件树的工作。它处理来自WindowManagerService（WMS）的窗口属性变化、控件树的尺寸变化、重绘请求等。      
+View 的绘制依次经过 performMeasure、performLayout、performDraw 三个方法，最终分别调用 View 或者 ViewGroup 的 measure/onMeasure、layout/onLayout、draw/onDraw 方法来完成 View 的测量、布局和绘制工作。       
+这个流程其实很好理解，我们要绘制一个视图，必须首先知道视图大小，然后知道把它放到什么位置，然后绘制才能在屏幕上显示出来。      
+下面来看一下绘制流程的函数调用关系：       
 
 ```
 ViewRootImpl.performTraversals
@@ -30,21 +31,67 @@ ViewRootImpl.performTraversals
 
 ```
 
+## 绘制流程的触发
+
+当 View 完成创建（首次绘制）、View树结构发生变化（如添加、删除View）、View属性变化（如大小、位置、可见性等）、调用‌invalidate方法请求重绘、屏幕方向变化等情况时都会触发View的绘制。所有UI的变化都是走到 ViewRootImpl 的scheduleTraversals() 方法去触发绘制的。      
+
+```
+    void scheduleTraversals() {
+        if (!mTraversalScheduled) {
+            // 设置一个变量，避免重复执行，收到 VSYNC 时，当这个消息为true时，才去调用 performTraversals
+            mTraversalScheduled = true;
+            // 设置同步屏障，挡住同步消息，以保证渲染被主线程优先执行
+            mTraversalBarrier = mHandler.getLooper().getQueue().postSyncBarrier();
+            // 发出一个Vsync请求，当下一个Vsync到来是调用 mTraversalRunnable
+            mChoreographer.postCallback(
+                    Choreographer.CALLBACK_TRAVERSAL, mTraversalRunnable, null);
+            notifyRendererOfFramePending();
+            pokeDrawLockIfNeeded();
+        }
+    }
+```
+
+```
+    final class TraversalRunnable implements Runnable {
+        @Override
+        public void run() {
+            doTraversal();
+        }
+    }
+    
+    void doTraversal() {
+        if (mTraversalScheduled) {
+            mTraversalScheduled = false;
+            mHandler.getLooper().getQueue().removeSyncBarrier(mTraversalBarrier);
+
+            if (mProfile) {
+                Debug.startMethodTracing("ViewAncestor");
+            }
+            // 执行绘制流程
+            performTraversals();
+
+            if (mProfile) {
+                Debug.stopMethodTracing();
+                mProfile = false;
+            }
+        }
+    }
+```
 
 ## 测量
 
-measure 方法是 View 绘制流程的第一步，在测量过程中，measure() 方法被父 View 调用，在 measure() 中做一些优化工作后，就调用 onMeasure() 方法进行自我测量，根据自己的规格来测量出真实尺寸。
-measure()为View的final方法，不可重写。
-对于 onMeasure() 方法，View 和 ViewGroup 的实现会有所区别：
+measure 方法是 View 绘制流程的第一步，在测量过程中，measure() 方法被父 View 调用，在 measure() 中做一些优化工作后，就调用 onMeasure() 方法进行自我测量，根据自己的规格来测量出真实尺寸。    
+measure()为View的final方法，不可重写。    
+对于 onMeasure() 方法，View 和 ViewGroup 的实现会有所区别：      
 
  - View：在 onMeasure() 根据自己的规格来计算自己的尺寸并保存。
- - ViewGroup：在 onMeasure() 中调用所有子 View 的measure() 方法让它们进行自我测量，然后根据子 View  计算出的期望尺寸来计算出它们的时机尺寸和位置并保存。在此过程中，子 View 也完成了自身的测量任务。
+ - ViewGroup：在 onMeasure() 中调用所有子 View 的measure() 方法让它们进行自我测量，然后根据子 View  计算出的期望尺寸来计算出它们的时机尺寸和位置并保存。在此过程中，子 View 也完成了自身的测量任务。      
 
-在学习具体的测量流程之前，我们先学习点有关测量的基础知识。
+在学习具体的测量流程之前，我们先学习点有关测量的基础知识。      
 
 ### MeasureSpec
 
-View 的 onMeasure　方法传入的参数是　`onMeasure(int widthMeasureSpec, int heightMeasureSpec)`，widthMeasureSpec 和 heightMeasureSpec 就代表了两个 MeasureSpec 值，它用来把测量要求从父 View 传递到子 View。子 View 的大小是由父 View 的测量要求和子 View LayoutParams 共同决定的（这个规则会在介绍 getChildMeasureSpec 章节进行详细的介绍），这里父 View 的测量要求就是这个 MeasureSpec，它是一个32位的int值。
+View 的 onMeasure　方法传入的参数是　`onMeasure(int widthMeasureSpec, int heightMeasureSpec)`，widthMeasureSpec 和 heightMeasureSpec 就代表了两个 MeasureSpec 值，它用来把测量要求从父 View 传递到子 View。子 View 的大小是由父 View 的测量要求和子 View LayoutParams 共同决定的（这个规则会在介绍 getChildMeasureSpec 章节进行详细的介绍），这里父 View 的测量要求就是这个 MeasureSpec，它是一个32位的int值。      
 
  - 高2位：SpecMode，测量模式，有三种类型：
   - UNSPECIFIED：父 View 不对子 View 做任何限制，需要多大给多大，这种情况多用于系统内部，表示一种测量状态。
@@ -60,7 +107,7 @@ View 的 onMeasure　方法传入的参数是　`onMeasure(int widthMeasureSpec,
 
 ### 关于测量的几个方法
 
-ViewGroup 提供了几个重要的基础方法来测量子 view，View 提供了 setMeasuredDimension() 来保存测量的宽高结果。
+ViewGroup 提供了几个重要的基础方法来测量子 view，View 提供了 setMeasuredDimension() 来保存测量的宽高结果。      
 
 #### measureChildren()
 
@@ -77,7 +124,7 @@ ViewGroup 提供了几个重要的基础方法来测量子 view，View 提供了
     }
 ```
 
-其实就是遍历子 View，调用 measureChild 方法(显示状态为GONE的view不会测量)。
+其实就是遍历子 View，调用 measureChild 方法(显示状态为GONE的view不会测量)。      
 
 #### measureChild()
 
@@ -95,7 +142,7 @@ ViewGroup 提供了几个重要的基础方法来测量子 view，View 提供了
     }
 ```
 
-调用 child 的 getLayoutParam 方法拿到布局参数，然后结合父view传来的规格(也就是measure时传来的两个参数)调用 getChildMeasureSpec() 方法生成子view的具体宽高规格，并调用 child.measure 方法进行子view的测量；getChildMeasureSpec 方法就是具体规格生成规则的方法。
+调用 child 的 getLayoutParam 方法拿到布局参数，然后结合父view传来的规格(也就是measure时传来的两个参数)调用 getChildMeasureSpec() 方法生成子view的具体宽高规格，并调用 child.measure 方法进行子view的测量；getChildMeasureSpec 方法就是具体规格生成规则的方法。      
 
 #### measureChildWithMargins()
 
@@ -116,7 +163,7 @@ ViewGroup 提供了几个重要的基础方法来测量子 view，View 提供了
     }
 ```
 
-该方法只是在measureChild方法基础上考虑到了子view的margin属性，所以这里需要将child的LayoutParam强转成MarginLayoutParam使用其margin相关属性，一般情况下的ViewGroup都会生产一个继承自MarginLayoutParam的LayoutParam类，所以在测量时可以调用此方法快捷测量，但是如果自定义的某个ViewGroup没有使用继承MarginLayoutParam的LayoutParam，那么就不能调用此方法，否则会强转时异常;
+该方法只是在measureChild方法基础上考虑到了子view的margin属性，所以这里需要将child的LayoutParam强转成MarginLayoutParam使用其margin相关属性，一般情况下的ViewGroup都会生产一个继承自MarginLayoutParam的LayoutParam类，所以在测量时可以调用此方法快捷测量，但是如果自定义的某个ViewGroup没有使用继承MarginLayoutParam的LayoutParam，那么就不能调用此方法，否则会强转时异常;      
 
 #### getChildMeasureSpec(int spec, int padding, int childDimension)
 
@@ -196,8 +243,8 @@ ViewGroup 提供了几个重要的基础方法来测量子 view，View 提供了
     }
 ```
 
-这就是前面说的根据父类要求的规格和自身的 LayoutParams 计算出实际规格的方法，第一个参数是父view要求的规格(宽度或高度的)；第二个参数是在该属性(宽度或高度)上已使用的值，计算时应该刨除；第三个是在该属性上子view自己想要的大小(具体值、MATCH_PARENT、WRAP_CONTENT)。
-这里用一个表格来直观的表示上面的规则：
+这就是前面说的根据父类要求的规格和自身的 LayoutParams 计算出实际规格的方法，第一个参数是父view要求的规格(宽度或高度的)；第二个参数是在该属性(宽度或高度)上已使用的值，计算时应该刨除；第三个是在该属性上子view自己想要的大小(具体值、MATCH_PARENT、WRAP_CONTENT)。      
+这里用一个表格来直观的表示上面的规则：      
 
 | 父View的测量规格 | 子View的宽高属性 | 得到的子控件的测量规格 | 说明 |
 |:-------------:|:-------------:|:-------------:|:-------------:|
@@ -234,7 +281,7 @@ ViewGroup 提供了几个重要的基础方法来测量子 view，View 提供了
     }
 ```
 
-该方法是根据测量得到的尺寸与原有的规格限制，决定最终的尺寸，也就是调整测量得到的尺寸，使其满足原有规格的限制。
+该方法是根据测量得到的尺寸与原有的规格限制，决定最终的尺寸，也就是调整测量得到的尺寸，使其满足原有规格的限制。      
 
 #### setMeasuredDimension()
 
@@ -260,11 +307,11 @@ ViewGroup 提供了几个重要的基础方法来测量子 view，View 提供了
     }
 ```
 
-onMeasure 测量后，一定要记得调用 setMeasuredDimension 来保存测量的宽高结果。
+onMeasure 测量后，一定要记得调用 setMeasuredDimension 来保存测量的宽高结果。      
 
 ### 测量流程
 
-在Andrond常用的几种布局中，FrameLayout 的测量流程是比较简单的，我们先来看一下 FrameLayout 的测量流程，它覆盖了 View 的 onMeasure 方法来实现自己的测量逻辑：
+在Andrond常用的几种布局中，FrameLayout 的测量流程是比较简单的，我们先来看一下 FrameLayout 的测量流程，它覆盖了 View 的 onMeasure 方法来实现自己的测量逻辑：      
 
 ```
 ├── FrameLayout.onMeasure
@@ -374,7 +421,7 @@ onMeasure 测量后，一定要记得调用 setMeasuredDimension 来保存测量
     }
 ```
 
-再来看一下　TextView 的测量流程：
+再来看一下　TextView 的测量流程：      
 
 ```
 ├── TextView.onMeasure
@@ -383,7 +430,7 @@ onMeasure 测量后，一定要记得调用 setMeasuredDimension 来保存测量
     ├── setMeasuredDimension
 ```
 
-下面我们来详细看一下　View 的　onMeasure 方法。
+下面我们来详细看一下　View 的　onMeasure 方法。      
 
 ```
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -413,29 +460,29 @@ onMeasure 测量后，一定要记得调用 setMeasuredDimension 来保存测量
     }
 ```
 
-View 根据自身的测量规格计算自己实际的宽高，并保存宽高数据。
-在默认的实现 getDefaultSize 方法中，如果父 View 的测量要求是 MeasureSpec.AT_MOST 和 MeasureSpec.EXACTLY，子 View 的大小都是父 View 给出的 MeasureSpec 值里面保存的期望值大小，这是如果子 View 的属性设置的是精确值，此时测量结果就是给出的精确值，如果设置的是 match_parent 或者 wrap_content 那么给到子 View 的值就是 MeasureSpec 里面保存的父 View给的一个最大值，那么子 View 的表现就是都会填充父 View。
-根据上面的代码，自定义的 View 如果我们只是要设置具体的宽高，或者是要填充父 View ，这种情况下可以不覆盖 onMeasure 方法，如果要设置 wrap_content ，那么是必须要覆盖一下 onMeasure 方法，为空间设置合适的尺寸，否则 wrap_content 会和 match_parent一样填充父组件。
+View 根据自身的测量规格计算自己实际的宽高，并保存宽高数据。      
+在默认的实现 getDefaultSize 方法中，如果父 View 的测量要求是 MeasureSpec.AT_MOST 和 MeasureSpec.EXACTLY，子 View 的大小都是父 View 给出的 MeasureSpec 值里面保存的期望值大小，这是如果子 View 的属性设置的是精确值，此时测量结果就是给出的精确值，如果设置的是 match_parent 或者 wrap_content 那么给到子 View 的值就是 MeasureSpec 里面保存的父 View给的一个最大值，那么子 View 的表现就是都会填充父 View。      
+根据上面的代码，自定义的 View 如果我们只是要设置具体的宽高，或者是要填充父 View ，这种情况下可以不覆盖 onMeasure 方法，如果要设置 wrap_content ，那么是必须要覆盖一下 onMeasure 方法，为空间设置合适的尺寸，否则 wrap_content 会和 match_parent一样填充父组件。      
 
-在 measure 流程进行完后，我们就可以通过 `getMeasureHeight()/getMeasuredWidth()` 来获取宽高。但是在某些场景下，系统需要进行多次的 measure 才能确定最终的宽高，因此在 onMeasure() 中拿到的宽高很可能是不一样的，比较好的做法是在 measure 进行完后在 onLayout() 方法中再通过 `getMeasureHeight()/getMeasuredWidth()` 获取宽高。
+在 measure 流程进行完后，我们就可以通过 `getMeasureHeight()/getMeasuredWidth()` 来获取宽高。但是在某些场景下，系统需要进行多次的 measure 才能确定最终的宽高，因此在 onMeasure() 中拿到的宽高很可能是不一样的，比较好的做法是在 measure 进行完后在 onLayout() 方法中再通过 `getMeasureHeight()/getMeasuredWidth()` 获取宽高。      
 
 ### 总结
 
-测量控件大小是父控件发起的。
-父控件要测量子控件大小，需要重写onMeasure方法，然后调用 measureChildren 或者 measureChildWithMargins 方法。
-View 的 onMeasure 方法的参数是通过 getChildMeasureSpec 生成的
-如果我们自定义控件需要使用 wrap_content 属性,我们需要重写 onMeasure 方法。
-测量控件的步骤：
-父控件 onMeasure -> measureChildren/measureChildWithMargin -> getChildMeasureSpec -> 子控件的measure -> onMeasure -> setMeasureDimension -> 父控件 onMeasure 结束调用 setMeasureDimension 最后保存自己的大小。
+测量控件大小是父控件发起的。      
+父控件要测量子控件大小，需要重写onMeasure方法，然后调用 measureChildren 或者 measureChildWithMargins 方法。      
+View 的 onMeasure 方法的参数是通过 getChildMeasureSpec 生成的      
+如果我们自定义控件需要使用 wrap_content 属性,我们需要重写 onMeasure 方法。      
+测量控件的步骤：      
+父控件 onMeasure -> measureChildren/measureChildWithMargin -> getChildMeasureSpec -> 子控件的measure -> onMeasure -> setMeasureDimension -> 父控件 onMeasure 结束调用 setMeasureDimension 最后保存自己的大小。      
 
 ## 布局
 
-进行布局的时候，layout() 方法被父 View 调用，在 layout() 方法中它会保存父 View 传递进来的自己的位置和尺寸，并且调用 onLayout() 来进行内部实际的布局操作。对于 onLayout() View 和 ViewGroup 也是有所区别的：
+进行布局的时候，layout() 方法被父 View 调用，在 layout() 方法中它会保存父 View 传递进来的自己的位置和尺寸，并且调用 onLayout() 来进行内部实际的布局操作。对于 onLayout() View 和 ViewGroup 也是有所区别的：      
 
  - View：由于没有子 View，它的　onLayout　方法是个空实现。
- - ViewGroup：它的　onLayout　方法是个抽象方法，继承自　ViewGroup　的类（比如　LinearLayout 和　FrameLayout）　必须实现这个方法。在 onLayout() 方法中会调用自己所有的子 View 的 layout() 方法，把它们的尺寸传递给它们，让它们完成自我的内部布局。
+ - ViewGroup：它的　onLayout　方法是个抽象方法，继承自　ViewGroup　的类（比如　LinearLayout 和　FrameLayout）　必须实现这个方法。在 onLayout() 方法中会调用自己所有的子 View 的 layout() 方法，把它们的尺寸传递给它们，让它们完成自我的内部布局。      
 
-来看一下 View 的 layout() 方法的调用流程：
+来看一下 View 的 layout() 方法的调用流程：      
 
 ```
 ├── View.layout
@@ -444,9 +491,9 @@ View 的 onMeasure 方法的参数是通过 getChildMeasureSpec 生成的
     ├── onLayoutChange
 ```
 
-这个流程其实很简单，首先调用 setFrame 设置View的四个顶点位置，然后调用 onLayout 确定子元素的位置，后面调用 onLayoutChange 回调。
-ViewGroup 的 layout() 方法是个 final 方法，内部实现比较简单，主要调用 `super.layout(l, t, r, b)`。
-onLayout() 依赖于具体的布局，因此 View和ViewGroup都没有实现这个方法，我们来看看 FrameLayout 的实现。
+这个流程其实很简单，首先调用 setFrame 设置View的四个顶点位置，然后调用 onLayout 确定子元素的位置，后面调用 onLayoutChange 回调。      
+ViewGroup 的 layout() 方法是个 final 方法，内部实现比较简单，主要调用 `super.layout(l, t, r, b)`。      
+onLayout() 依赖于具体的布局，因此 View和ViewGroup都没有实现这个方法，我们来看看 FrameLayout 的实现。      
 
 ```
     @Override
@@ -520,13 +567,13 @@ onLayout() 依赖于具体的布局，因此 View和ViewGroup都没有实现这�
     }
 ```
 
-布局子 View 的时候，首先根据 gravity 属性计算出左上角位置，然后调用 chuild 的layout 方法，进行各自的布局。
-FrameLayout 的布局实现其实挺简单的，因为 FrameLayout 的子 View 都是叠加在一起的，不会竞争空间，彼此不存在影响，因此，在支持布局操作时，我们只要考虑子 View 自身相对于 FrameLayout 的举例即可。
+布局子 View 的时候，首先根据 gravity 属性计算出左上角位置，然后调用 chuild 的layout 方法，进行各自的布局。      
+FrameLayout 的布局实现其实挺简单的，因为 FrameLayout 的子 View 都是叠加在一起的，不会竞争空间，彼此不存在影响，因此，在支持布局操作时，我们只要考虑子 View 自身相对于 FrameLayout 的举例即可。      
 
 ## 绘制
 
-在确定好 View 的位置之后，就要就行绘制操作了，我们先看一下 View.draw() 方法的调用流程，ViewGroup没有重写 View 的这个方法。
-draw 方法其实就是在传入的参数 Cavas 上面进行一些绘制。
+在确定好 View 的位置之后，就要就行绘制操作了，我们先看一下 View.draw() 方法的调用流程，ViewGroup没有重写 View 的这个方法。      
+draw 方法其实就是在传入的参数 Cavas 上面进行一些绘制。      
 
 ```
 ├── View.draw
@@ -538,7 +585,7 @@ draw 方法其实就是在传入的参数 Cavas 上面进行一些绘制。
     ├── onDrawForeground
 ```
 
-具体的步骤在源码里面注释里写的非常清楚：
+具体的步骤在源码里面注释里写的非常清楚：      
 
   - Step 1, draw the background, if needed
   - Step 2, save the canvas' layers
@@ -548,12 +595,12 @@ draw 方法其实就是在传入的参数 Cavas 上面进行一些绘制。
   - Step 6, draw decorations (foreground, scrollbars)
   - Step 7, draw the default focus highlight
 
-自定义 View 可以在 onDraw 方法里面自定义自己的实现。
+自定义 View 可以在 onDraw 方法里面自定义自己的实现。      
 
 ### 绘制顺序
 
-另外，我们再介绍一个小技巧：修改子View的绘制顺序。
-这个需求的使用场景是什么呢？比如有时我们想把某个下面的子View全部显示出来，不被其他View遮挡，这时就需要调整绘制顺序了。我们先看一下 `dispatchDraw()` 的源码：
+另外，我们再介绍一个小技巧：修改子View的绘制顺序。      
+这个需求的使用场景是什么呢？比如有时我们想把某个下面的子View全部显示出来，不被其他View遮挡，这时就需要调整绘制顺序了。我们先看一下 `dispatchDraw()` 的源码：      
 
 ```
     @Override
@@ -604,7 +651,7 @@ draw 方法其实就是在传入的参数 Cavas 上面进行一些绘制。
         ......
 ```
 
-我们先来看一下 `buildOrderedChildList ` 方法：
+我们先来看一下 `buildOrderedChildList ` 方法：      
 
 ```
     ArrayList<View> buildOrderedChildList() {
@@ -637,8 +684,8 @@ draw 方法其实就是在传入的参数 Cavas 上面进行一些绘制。
     }
 ```
 
-`buildOrderedChildList` 的逻辑就是按照 Z 轴调整 children 顺序，Z 轴值相同则参考 customOrder 的配置。
-`getAndVerifyPreorderedIndex ` 方法是获取获取需要绘制view的索引
+`buildOrderedChildList` 的逻辑就是按照 Z 轴调整 children 顺序，Z 轴值相同则参考 customOrder 的配置。      
+`getAndVerifyPreorderedIndex ` 方法是获取获取需要绘制view的索引      
 
 ```
     private int getAndVerifyPreorderedIndex(int childrenCount, int i, boolean customOrder) {
@@ -663,12 +710,12 @@ draw 方法其实就是在传入的参数 Cavas 上面进行一些绘制。
     }
 ```
 
-因此，我们可以得到自定义绘制顺序的两种方法：
+因此，我们可以得到自定义绘制顺序的两种方法：      
 
- - 修改子view的Z轴大小，可以通过 `view.setZ(float z);`z值越大，越靠近顶端。只有在不开启硬件加速时才生效
- - 调用 `setChildrenDrawingOrderEnable(true)` 开启自定义绘制顺序，并且重写 `getChildDrawingOrder()` 修改子 View 的取值索引。
+ - 修改子view的Z轴大小，可以通过 `view.setZ(float z);`z值越大，越靠近顶端。只有在不开启硬件加速时才生效      
+ - 调用 `setChildrenDrawingOrderEnable(true)` 开启自定义绘制顺序，并且重写 `getChildDrawingOrder()` 修改子 View 的取值索引。      
 
-其实，还有一种方法，调用 `view.bringToFront()`，但是这种方式是系统先将view移除出当前viewGroup，然后再添加进来，会导致重新绘制当前界面。
+其实，还有一种方法，调用 `view.bringToFront()`，但是这种方式是系统先将view移除出当前viewGroup，然后再添加进来，会导致重新绘制当前界面。      
 
 ```
     @Override
@@ -684,7 +731,7 @@ draw 方法其实就是在传入的参数 Cavas 上面进行一些绘制。
     }
 ```
 
-其实，`RecyclerView` 给我们提供了一个回调来自定义子View的绘制顺序，它就是重写了 `getChildDrawingOrder` 方法：
+其实，`RecyclerView` 给我们提供了一个回调来自定义子View的绘制顺序，它就是重写了 `getChildDrawingOrder` 方法：      
 
 ```
     public interface ChildDrawingOrderCallback {
@@ -715,11 +762,11 @@ draw 方法其实就是在传入的参数 Cavas 上面进行一些绘制。
 
 ### getMeasureHeight 和 getHeight 的区别
 
-关于 View 的宽高，可以由两对值得到：`getMeasureHeight()/getMeasuredWidth()` 和 `getHeight()/getWidth()` 。
-`getMeasureHeight()/getMeasuredWidth()` 表示该view在它的父view里期望的值，在 measure 后可以得到。
-`getHeight()/getWidth()` 表示该 View 在屏幕上的实际大小，在 layout 方法后可以得到。
-实际上在当屏幕可以包裹内容的时候，他们的值相等，只有当 View 超出屏幕后，才能看出他们的区别： `getMeasuredHeight()/getMeasuredWidth()` 是实际 View 的大小，与屏幕无关，而 `getHeight()/getWidth()` 的大小此时则是屏幕的大小。当超出屏幕后，`getMeasureHeight()/getMeasuredWidth()`等于 `getHeight()/getWidth()` 加上屏幕之外没有显示的大小。
+关于 View 的宽高，可以由两对值得到：`getMeasureHeight()/getMeasuredWidth()` 和 `getHeight()/getWidth()` 。      
+`getMeasureHeight()/getMeasuredWidth()` 表示该view在它的父view里期望的值，在 measure 后可以得到。      
+`getHeight()/getWidth()` 表示该 View 在屏幕上的实际大小，在 layout 方法后可以得到。      
+实际上在当屏幕可以包裹内容的时候，他们的值相等，只有当 View 超出屏幕后，才能看出他们的区别： `getMeasuredHeight()/getMeasuredWidth()` 是实际 View 的大小，与屏幕无关，而 `getHeight()/getWidth()` 的大小此时则是屏幕的大小。当超出屏幕后，`getMeasureHeight()/getMeasuredWidth()`等于 `getHeight()/getWidth()` 加上屏幕之外没有显示的大小。      
 
 ## 推荐阅读
 
-[绘制流程小细节，如何修改 View绘制的顺序？](https://mp.weixin.qq.com/s/xAl1yPs4al2czSXsw6__hQ)
+[绘制流程小细节，如何修改 View绘制的顺序？](https://mp.weixin.qq.com/s/xAl1yPs4al2czSXsw6__hQ)      

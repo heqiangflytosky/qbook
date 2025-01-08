@@ -42,7 +42,7 @@ ViewRootImpl.performTraversals
             mTraversalScheduled = true;
             // 设置同步屏障，挡住同步消息，以保证渲染被主线程优先执行
             mTraversalBarrier = mHandler.getLooper().getQueue().postSyncBarrier();
-            // 发出一个Vsync请求，当下一个Vsync到来是调用 mTraversalRunnable
+            // 监听VSYNC信号，下一次VSYNC信号到来时，执行给进去的mTraversalRunnable
             mChoreographer.postCallback(
                     Choreographer.CALLBACK_TRAVERSAL, mTraversalRunnable, null);
             notifyRendererOfFramePending();

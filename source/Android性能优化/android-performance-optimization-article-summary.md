@@ -20,7 +20,7 @@ date: 2016-2-20 10:00:00
 [另一个Android性能剖析工具——simpleperf](https://zhuanlan.zhihu.com/p/25277481)    
 [Simpleperf](https://developer.android.com/ndk/guides/simpleperf?hl=zh-cn)    
 [Android application profiling](https://android.googlesource.com/platform/system/extras/+/refs/heads/main/simpleperf/doc/android_application_profiling.md)    
-[Android Tech And Perf 的 Android Systrace 系列文章](https://www.androidperformance.com/2019/05/28/Android-Systrace-About/#)    
+[Android Tech And Perf 的 Android Systrace 系列文章](https://www.androidperformance.com/2019/05/28/Android-Systrace-About/#)：Systrace 的用法    
 [Where does TransactionTooLargeException come from if I didn’t do anything wrong?](https://proandroiddev.com/where-does-transactiontoolargeexception-come-from-if-i-didnt-do-anything-wrong-792843835d4f)    
 [Android Performance:Perfetto-系列目录](https://www.androidperformance.com/2024/03/27/Android-Perfetto-101/#/Perfetto-%E7%B3%BB%E5%88%97%E7%9B%AE%E5%BD%95)：Perfetto 的用法
 
@@ -48,7 +48,7 @@ ANR 系列：
 
 ## 卡顿优化
 
-[努比亚技术团队：简书](https://www.jianshu.com/u/167b54662111)    
+[努比亚技术团队：简书](https://www.jianshu.com/u/167b54662111)：努比亚Android技术团队博客，涵盖应用启动流程，画面显示流程，Input事件输入流程，卡顿问题分析，本地窗口动画，SurfaceFlinger模块等内容。    
  - [Android卡顿掉帧问题分析之原理篇](https://www.jianshu.com/p/386bbb5fa29a)
  - [Android卡顿掉帧问题分析之工具篇](https://www.jianshu.com/p/cf531a3af828)
  - [Android卡顿掉帧问题分析之实战篇](https://www.jianshu.com/p/f1a777551b70)

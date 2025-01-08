@@ -113,16 +113,16 @@ RootWindowContainer --> WindowContainer
 DisplayArea.Dimmable --> DisplayArea --> WindowContainer
 ```
 
-<img src="/images/android-window-system-window-tree-basic/0.png" width="615" height="324"/>
+<img src="/images/android-window-system-window-tree-basic/0.png" width="780" height="406"/>
 
 ```mermaid
 classDiagram
 ConfigurationContainer <|-- WindowContainer
+WindowContainer <|-- RootWindowContainer
+WindowContainer <|-- TaskFragment
 WindowContainer <|-- DisplayArea
 DisplayArea <|-- TaskDisplayArea
-WindowContainer <|-- TaskFragment
 TaskFragment <|-- Task
-WindowContainer <|-- RootWindowContainer
 DisplayArea <|-- Dimmable
 Dimmable <|-- RootDisplayArea
 RootDisplayArea <|-- DisplayAreaGroup
@@ -139,7 +139,27 @@ class WindowContainer{
     protected final WindowList<WindowContainer> mChildren
 }
 class DisplayContent{
+    private WindowContainer<WindowContainer> mParent
+    protected final WindowList<WindowContainer> mChildren
+    private RootWindowContainer mRootWindowContainer;
+    final ActivityTaskManagerService mAtmService;
     HashMap<IBinder, WindowToken> mTokenMap
+}
+class RootWindowContainer {
+    private WindowContainer<WindowContainer> mParent
+    protected final WindowList<WindowContainer> mChildren
+    private DisplayContent mDefaultDisplay;
+}
+class TaskDisplayArea{
+    DisplayContent mDisplayContent;
+}
+class WindowManagerService {
+    final RootWindowContainer mRoot
+    final ActivityTaskManagerService mAtmService;
+}
+class ActivityTaskManagerService {
+    RootWindowContainer mRootWindowContainer;
+    WindowManagerService mWindowManager;
 }
 ```
 

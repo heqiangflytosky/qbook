@@ -8,7 +8,7 @@ date: 2022-11-23 10:00:00
 ---
 
 
-## 博客
+## 博客和专栏
 
 
 [CSDN：千里马学框架](https://blog.csdn.net/learnframework/category_12210428.html)      
@@ -22,7 +22,14 @@ date: 2022-11-23 10:00:00
 [掘金：利维亚的杰洛特](https://juejin.cn/user/1240706244936952/columns)\:WMS,ShellTransitions,Graphics & SurfaceFlinger,Split-Screen,input      
 [掘金：Android采码蜂](https://juejin.cn/user/1459757308978104/posts) WMS，SurfaceFlinger，      
 
-[CSDN\:Android Input系统](https://blog.csdn.net/wenwang88/category_12712543.html)      
+[CSDN:Android Input系统](https://blog.csdn.net/wenwang88/category_12712543.html)      
+
+[简书：Android图像系统与绘制流程](https://juejin.cn/column/7370244444282814490)
+[CSDN:Android图形/显示系统系列](https://blog.csdn.net/u010164190/category_8115449.html)
+
+## 微信公众号
+
+ - 千里马学框架
 
 ## 文章
 

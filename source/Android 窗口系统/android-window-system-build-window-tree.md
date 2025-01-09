@@ -69,6 +69,7 @@ SystemServer.main
 #### Feature介绍
 
 Feature 代表的是 DisplayArea 的一个特征，可以根据 Feature 来对不同的 DisplayArea 进行划分。      
+这样做主要是为了方便一些共同特性的顶部容器进行统一操作，比如单手模式功能，他就可以只遍历单手相关的容器，然后进行相关操作。这个功能具体可以参考上一篇博客。       
 层级树中一共就出现了5个Feature就是在 `configureTrustedHierarchyBuilder` 方法中配置的，分别如下：    
 
  - WindowedMagnification：支持窗口缩放的一块区域，一般是通过辅助服务进行缩小或放大    

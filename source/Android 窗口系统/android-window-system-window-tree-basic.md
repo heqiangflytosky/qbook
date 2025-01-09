@@ -604,6 +604,9 @@ class DisplayAreaGroup extends RootDisplayArea {
 
 除了WindowState可以显示图像以外，大部分的WindowContainer，如WindowToken、TaskDisplayArea是不会有内容显示的，都只是一个抽象的容器概念。极端点说，WMS如果只为了管理窗口，WMS也可以不创建这些个WindowContainer类，直接用一个类似列表的东西，将屏幕上显示的窗口全部添加到这个列表中，通过这一个列表来对所有的窗口进行管理。但是为了更有逻辑地管理屏幕上显示的窗口，还是需要创建各种各样的窗口容器类，即WindowContainer及其子类，来对WindowState进行分类，从而对窗口进行系统化的管理。      
 这样带来的好处也是显而易见的，如：      
+
+### 方便层级
+
 1）、这些 WindowContainer 类都有着鲜明的上下级关系，一般不能越级处理，比如 DefaultTaskDisplayArea 只用来管理调度 Task，Task 用来管理调度 ActivityRecord，而 DefaultTaskDisplayArea 不能直接越过 Task 去调度 Task 中的 ActivityRecord。这样 TaskDisplayArea 只需要关注它的子容器们，即 Task 的管理，ActivityRecord 相关的事务让 Task 去操心就好，每一级与每一级之间的边界都很清晰，不会在管理逻辑上出现混乱，比如 DefaultTaskDisplayArea 强行去调整一个 ActivityRecord 的位置，导致这个 ActivityRecord 跳出它所在的 Task，变成和 Task 一个层级。      
 2）、保证了每一个 WindowContainer 不会越界，这个重要。      
 比如我在应用界面点击 HOME 键回到Launcher，此时 DefaultTaskDisplayArea 就会把 Launcher 对应的 Task#1，移动到它内部栈的栈顶，把当前应用对应的 Task#133 移动到栈底。 而这仅限于 DefaultTaskDisplayArea 内部的调整，这一点保证了 Launcher 的窗口将永远不可能高于 StatusBar 窗口，也不会低于 Wallpaper 窗口。      
@@ -611,10 +614,14 @@ class DisplayAreaGroup extends RootDisplayArea {
 
 <img src="/images/android-window-system-window-tree-basic/1.png" width="880" height="150"/>
 
-3）、方便功能开发
+### 方便功能开发
 
-层级结构的设计为窗口功能的开发带来了便利，比如小窗和分屏，因为只需要将对应的窗口移动到所在的Task就可以了。    
-像现在的Activity启动，在system_service进程的处理的很多逻辑都是围绕着这个层级树来做的。   
+层级结构的设计为窗口功能的开发带来了便利，比如小窗，分屏，因为只需要将对应的窗口移动到所在的Task就可以了。    
+像现在的Activity启动，在system_service进程的处理的很多逻辑都是围绕着这个层级树来做的。     
+
+
+#### 分屏功能
+
 对比一下对两个应用开启分屏后窗口层级的变化：      
 
 <img src="/images/android-window-system-window-tree-basic/2.png" width="934" height="250"/>
@@ -633,6 +640,8 @@ class DisplayAreaGroup extends RootDisplayArea {
 2）、将两个分屏应用的 Task 分别移到到 Task=4 和 Task=5 下。       
 这样分屏就完成了。      
 
+#### PIP
+
 再来对比一下 Activity 开启PIP模式后窗口层级的变化：      
 
 <img src="/images/android-window-system-window-tree-basic/3.png" width="934" height="100"/>
@@ -649,6 +658,24 @@ class DisplayAreaGroup extends RootDisplayArea {
 3.还有创建了一个PIP控制窗口    
 
 <img src="/images/android-window-system-window-tree-basic/4.png" width="933" height="105"/>
+
+#### 单手模式
+
+再比如单手模式，我们开发这个功能，只需要在 OneHanded 属性的层级做对应的开发就行了，那么在 OneHanded 容器下面的层级都会生效，从而不会影响不支持 OneHanded 属性的层级。     
+下面我们来看一下这个功能在窗口层级树层面是如何体现的。     
+开启单手模式：设置->辅助功能->单手模式。     
+打开开关后，在桌面或者打开一个 Activity，在屏幕下面下拉，就会把当前 Activity 拉倒了屏幕的下半部分，方便单手操作。     
+我们使用 WinScope 查看一下 SurfaceFlinger 的层级结构情况：    
+我们可以看到，单手模式其实是把 Activity 和 StatusBar 等在Y轴方向进行平移了屏幕高度的一般来实现的。它们的宽和高是没有变化的。      
+
+<img src="/images/android-window-system-window-tree-basic/one-hand.png" width="478" height="286"/>
+
+但是这个平移到底是谁设置呢？这个得一直向上找父亲看看具体谁导致的。 最后找到是 OneHanded:0:14 这个顶部节点设置偏移导致，这个就是Activity对应layer的最近的单手模式OneHanded节点。      
+同样 StatusBar 的位移也是它的父节点 OneHanded:15:15 的位移导致的。其实可以看到，所有的 OneHanded 节点都进行了位移。      
+另外，NavigationBar 不在 OneHanded 子节点里面，所以，它是没有这个位移的。     
+这个也就是体现出配置这个Feature时候，其实已就已经充分考虑需求场景，单手模式会影响哪些层级，不会影响哪些层级。     
+上面就可以得出一个结论：    
+单手模式功能中会把屏幕画面整体Y轴向下偏移，这个主要都是靠操作OneHanded节点的向下偏移，这也就是 FEATURE_ONE_HANDED 存在的意义。     
 
 ## 窗口层级树的简单分析
 
@@ -715,7 +742,9 @@ android 14目前一共也只有5个Feature。
 
 
 
+## 相关文章
 
+[重学WMS核心层级结构树之Feature作用-实战案例讲解](https://mp.weixin.qq.com/s/r_1H2tjcAv9RhAWXykhyQQ)
 
 
 

@@ -468,6 +468,8 @@ Android Missed Frames:可以标识出掉帧情况，点击后可以看到掉帧�
 HW_VSYNC_0：硬件 Vsync 校准，一般取6个Vsync 样本。  0 代表display id，       
 HW_VSYNC_ON_0：  代表 HW_VSYNC 开启。  0 代表display id，       
 
+<img src="/images/android-performance-optimization-tools-perfetto/hw-vsync.png" width="483" height="267"/>
+
 ### Slice Details：
 
 ### 线程状态

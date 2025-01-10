@@ -44,5 +44,7 @@ date: 2022-11-23 10:00:00
 
 ### Input 系统
 
+[Android13上两种监控屏幕input输入的方式](https://mp.weixin.qq.com/s/72rPrxVknkpscpv_4XTPVA)
+
 
 

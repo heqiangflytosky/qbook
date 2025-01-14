@@ -102,13 +102,31 @@ RemoteDisplayChangeController.createCallback.continueDisplayChange
                                                     WindowState.setOrientationChanging(true)
                                                         mOrientationChanging = changing;
                                                         mWmService.mRoot.mOrientationChangeComplete = false;
-                                        WindowContainer.onRequestedOverrideConfigurationChanged
-                                            ConfigurationContainer.onRequestedOverrideConfigurationChanged
-                                                DisplayContent.onConfigurationChanged
-                                                    DisplayArea.onConfigurationChanged
-                                                        WindowContainer.onConfigurationChanged
-                                                            ConfigurationContainer.onConfigurationChanged
-                                                                ConfigurationContainer.dispatchConfigurationToChild
+                                            WindowContainer.onRequestedOverrideConfigurationChanged
+                                                ConfigurationContainer.onRequestedOverrideConfigurationChanged
+                                                    DisplayContent.onConfigurationChanged
+                                                        DisplayArea.onConfigurationChanged
+                                                            WindowContainer.onConfigurationChanged
+                                                                ConfigurationContainer.onConfigurationChanged
+                                                                    ConfigurationContainer.dispatchConfigurationToChild
+                                                DisplayContent.onResize()
+                                                    WindowContainer.onParentResize()
+                                                        WindowState.onResize()
+                                                            mWmService.mResizingWindows.add // 后面在 reportResized() 中跨进程更新客户端
+                    ActivityTaskManagerService.ensureConfigAndVisibilityAfterUpdate()
+                        ActivityRecord.ensureActivityConfiguration()
+                            ActivityRecord.scheduleConfigurationChanged()
+                                ActivityConfigurationChangeItem.obtain()
+                                ClientLifecycleManager.scheduleTransaction()  --> App 端onConfigurationChanged和requestLayout
+            ActivityTaskManagerService.continueWindowLayout()
+                WindowSurfacePlacer.continueLayout()
+                    WindowSurfacePlacer.performSurfacePlacement()
+                        WindowSurfacePlacer.performSurfacePlacementLoop()
+                            RootWindowContainer.performSurfacePlacement()
+                                RootWindowContainer.performSurfacePlacementNoTrace()
+                                    RootWindowContainer.handleResizingWindows()
+                                        WindowState.reportResized()
+                                            IWindow.resized()   -->  App 端 handleResized 和 requestLayout
 ```
 
 当所有的窗口都已经根据最新的 configration 准备好了，开始进行解冻，触发旋转动画开启。    
@@ -153,9 +171,40 @@ WindowSurfacePlacer.performSurfacePlacement
 
 使用 Winscop 抓取上面创建的三个图层已经两个leash图层在sf图层中的位置如下图：    
 
-<img src="/images/android-window-system-screen-rotation/overlay-leash-1.png" width="483" height="267"/>
+<img src="/images/android-window-system-screen-rotation/overlay-leash-1.png" width="882" height="237"/>
 
-<img src="/images/android-window-system-screen-rotation/screen-rotation-leash-1.png" width="483" height="267"/>
+<img src="/images/android-window-system-screen-rotation/screen-rotation-leash-1.png" width="904" height="241"/>
+
+
+Activity 不重建时布局更新流程：      
+
+
+
+App:    
+
+```
+ActivityConfigurationChangeItem.execute
+    ActivityThread.handleActivityConfigurationChanged
+        ActivityThread.performConfigurationChangedForActivity
+            ActivityThread.performActivityConfigurationChanged
+                Activity.onConfigurationChanged()
+        ViewRootImpl.updateConfiguration()
+            ViewRootImpl.requestLayout
+```
+
+
+
+App:    
+
+```
+ViewRootImpl.W.resized
+    ViewRootImpl.dispatchResized
+        Handler.sendMessage(MSG_RESIZED_REPORT)
+            ViewRootImpl.ViewRootHandler.handleMessageImpl
+                ViewRootImpl.handleResized
+                    ViewRootImpl.requestLayout()
+```
+
 
 ## 流程详解
 
@@ -426,5 +475,81 @@ WindowSurfacePlacer.performSurfacePlacement
         }
 
         return true;
+    }
+```
+
+### relaunch 相关
+
+如果我们在 AndroidManifest 里面配置Activity 的下面属性：     
+
+```
+android:configChanges="orientation|screenSize"
+```
+
+那么在旋转屏幕时就不会进行 Activity 的销毁和重建，那么流程上的差异主要在：      
+
+
+```
+// ActivityRecord.java
+    boolean ensureActivityConfiguration(int globalChanges, boolean preserveWindow,
+            boolean ignoreVisibility, boolean isRequestedOrientationChanged) {
+            ......
+        boolean shouldRelaunchLocked = shouldRelaunchLocked(changes, mTmpConfig);
+        if (!DeviceIntegrationUtils.DISABLE_DEVICE_INTEGRATION) {
+            shouldRelaunchLocked &= !mAtmService.mRemoteTaskManager.shouldIgnoreRelaunch(task, displayChanged,
+                    lastReportDisplayID, newDisplayId, changes);
+        }
+        if (shouldRelaunchLocked || forceNewConfig) {
+        ......
+                relaunchActivityLocked(preserveWindow);
+            return false;
+        }
+        
+        if (displayChanged) {
+            scheduleActivityMovedToDisplay(newDisplayId, newMergedOverrideConfig);
+        } else {
+            scheduleConfigurationChanged(newMergedOverrideConfig);
+        }
+
+// 是否需要 reLaunche Activity
+    private boolean shouldRelaunchLocked(int changes, Configuration changesConfig) {
+        int configChanged = info.getRealConfigChanged();
+        boolean onlyVrUiModeChanged = onlyVrUiModeChanged(changes, changesConfig);
+
+        // Override for apps targeting pre-O sdks
+        // If a device is in VR mode, and we're transitioning into VR ui mode, add ignore ui mode
+        // to the config change.
+        // For O and later, apps will be required to add configChanges="uimode" to their manifest.
+        if (info.applicationInfo.targetSdkVersion < O
+                && requestedVrComponent != null
+                && onlyVrUiModeChanged) {
+            configChanged |= CONFIG_UI_MODE;
+        }
+        // TODO(b/274944389): remove workaround after long-term solution is implemented
+        // Don't restart due to desk mode change if the app does not have desk resources.
+        if (mWmService.mSkipActivityRelaunchWhenDocking && onlyDeskInUiModeChanged(changesConfig)
+                && !hasDeskResources()) {
+            configChanged |= CONFIG_UI_MODE;
+        }
+
+        return (changes&(~configChanged)) != 0;
+    }
+
+// 创建 ActivityConfigurationChangeItem
+    private void scheduleConfigurationChanged(Configuration config) {
+        if (!attachedToProcess()) {
+            ProtoLog.w(WM_DEBUG_CONFIGURATION, "Can't report activity configuration "
+                    + "update - client not running, activityRecord=%s", this);
+            return;
+        }
+        try {
+            ProtoLog.v(WM_DEBUG_CONFIGURATION, "Sending new config to %s, "
+                    + "config: %s", this, config);
+
+            mAtmService.getLifecycleManager().scheduleTransaction(app.getThread(), token,
+                    ActivityConfigurationChangeItem.obtain(config));
+        } catch (RemoteException e) {
+            // If process died, whatever.
+        }
     }
 ```

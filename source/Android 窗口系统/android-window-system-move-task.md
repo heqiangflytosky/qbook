@@ -61,14 +61,15 @@ ROOT type=undefined mode=fullscreen override-mode=undefined requested-bounds=[0,
 
 原理其实就是把 Task 容器重新挂载到新的 display 的 TaskDisplayArea 上。    
 
-### 创建新的 DisplayContent
+### 绑定Display和TextureView
 
 前面说过，一个 DisplayContent 代表一个屏幕，那么我们创建虚拟屏幕就会创建一个新的 DisplayContent。    
 
 
-在手机上创建一个新的 Window 用来显示虚拟屏幕内容。    
-模拟屏幕其实本质是一个窗口，也是有 view 展示的。具体见 OverlayDisplayWindow 类。   
+因为我们手机就一个屏幕，无法用硬件设备来显示新建的 DisplayContent，那么就在手机上创建一个新的 Window 用来显示虚拟屏幕内容。    
+承载虚拟屏幕显示的是 OverlayDisplayWindow 类。   
 它会在主屏幕上新建一个窗口，布局中的 TextureView 来提供对应的 Surface 来显示对应虚拟屏幕数据。    
+
 ```
 OverlayDisplayAdapter.registerLocked().ContentObserver
     OverlayDisplayAdapter.updateOverlayDisplayDevices()
@@ -81,7 +82,11 @@ OverlayDisplayAdapter.registerLocked().ContentObserver
                                 TextureView.setSurfaceTextureListener
                                     SurfaceTextureListener.onSurfaceTextureAvailable
                                         OverlayDisplayHandle.onWindowCreated()
-                                            new OverlayDisplayDevice
+                                            // 通知 SF 创建 Display
+                                            displayToken = DisplayControl.createDisplay()
+                                                DisplayControl.nativeCreateDisplay
+                                            // 创建 DisplayDevice，传入 displayToken 和 surfaceTexture
+                                            new OverlayDisplayDevice(displayToken,...,surfaceTexture)
                                             sendDisplayDeviceEventLocked(mDevice, DISPLAY_DEVICE_EVENT_ADDED)
                                                 DisplayDeviceRepository.handleDisplayDeviceAdded
                                                     DisplayDeviceRepository.sendEventLocked(device, DISPLAY_DEVICE_EVENT_ADDED)
@@ -98,6 +103,21 @@ OverlayDisplayAdapter.registerLocked().ContentObserver
 
 createWindow() 时为 TextureView 注册监听，当 onSurfaceTextureAvailable 回调时调用 OverlayDisplayHandle.onWindowCreated() 创建一个 OverlayDisplayDevice，把 SurfaceTexture 作为参数传入。来显示对应 DisplayDevice 的内容。        
 
+```
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:background="#000000">
+    <TextureView android:id="@+id/overlay_display_window_texture"
+               android:layout_width="0px"
+               android:layout_height="0px" />
+    <TextView android:id="@+id/overlay_display_window_title"
+               android:layout_width="wrap_content"
+               android:layout_height="wrap_content"
+               android:layout_gravity="top|center_horizontal" />
+</FrameLayout>
+```
+
 
 ```
 //OverlayDisplayAdapter.java
@@ -105,12 +125,13 @@ createWindow() 时为 TextureView 注册监听，当 onSurfaceTextureAvailable �
         public void performTraversalLocked(SurfaceControl.Transaction t) {
             if (mSurfaceTexture != null) {
                 if (mSurface == null) {
+                    // 
                     mSurface = new Surface(mSurfaceTexture);
                 }
                 setSurfaceLocked(t, mSurface);
             }
         }
-
+    // 绑定 Surface 到 SF 创建的 Display，这样前面创建的 TextureView 就会显示虚拟Display的内容    
     public final void setSurfaceLocked(SurfaceControl.Transaction t, Surface surface) {
         if (mCurrentSurface != surface) {
             mCurrentSurface = surface;
@@ -118,6 +139,8 @@ createWindow() 时为 TextureView 注册监听，当 onSurfaceTextureAvailable �
         }
     }
 ```
+
+### 创建新的 DisplayContent
 
 收到创建虚拟设备消息后，RootWindowContainer 创建新的 DisplayContent
 
@@ -189,5 +212,47 @@ ActivityManagerShellCommand.runDisplay
     }
 ```
 
+## 虚拟屏显示内容
 
+我们看到，当虚拟屏里面没有内容显示的时候，它和手机主屏显示的内容是一样的，当把一个task移过去后，它就显示了这个task内容，这部分流程是怎么执行的呢？     
+通过分析可以看到，当 mDisplayContent.getLastHasContent() 判断不成立时，就会开启虚拟屏对主屏的录制，此时虚拟屏显示的是主屏的镜像：    
+
+```
+RootWindowContainer.performSurfacePlacementNoTrace
+    RootWindowContainer.applySurfaceChangesTransaction
+        DisplayContent.applySurfaceChangesTransaction
+            DisplayContent.updateRecording
+                ContentRecorder.updateRecording
+                    ContentRecorder.startRecordingIfNeeded
+                        SurfaceControl.mirrorSurface
+```
+
+```
+    @VisibleForTesting void updateRecording() {
+        if (isCurrentlyRecording() && (mDisplayContent.getLastHasContent()
+                || mDisplayContent.getDisplayInfo().state == Display.STATE_OFF)) {
+            pauseRecording();
+        } else {
+            // Display no longer has content, or now has a surface to write to, so try to start
+            // recording.
+            startRecordingIfNeeded();
+        }
+    }
+```
+
+
+对比 SurfaceFlinger Layer 层级：     
+
+<img src="/images/android-window-system-move-task/no-content.png" width="869" height="401" />
+
+
+<img src="/images/android-window-system-move-task/has-content.png" width="872" height="415" />
+
+如果我们想把录屏显示这里去掉，那么直接把 `startRecordingIfNeeded();` 这里注释掉就行了。      
+
+## 改进
+
+
+上面的移栈方案是使用命令行进行的，我们可以改进成使用手指拖动到另外一个屏幕，并加上响应的衔接动画来实现。      
+参考下面的开源代码：[AndroidT应用双屏间拖拽移动功能实现](https://gitcode.com/open-source-toolkit/ca59c/?utm_source=tools_gitcode&index=top&type=card&&isLogin=1)      
 

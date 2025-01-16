@@ -15,7 +15,9 @@ date: 2022-11-23 10:00:00
 
 <img src="/images/android-graphic-system-vsync/0.png" width="1054" height="392" />
 
-### VSync信号分类
+[Google 官方 VSYNC 文档](https://source.android.google.cn/docs/core/graphics/implement-vsync?authuser=0&hl=fi)
+
+### VSync 信号
 
 VSync信号可以分为分类：
 
@@ -39,7 +41,7 @@ VSync信号可以分为分类：
 如果这样的话会让每个使用的App和Surfacefliner去直接监听硬件vsync会导致上层直接连接到硬件，这样的耦合性太高了，而且App和Surfacefliner去直接监听硬件vsync的话，会导致功耗增大。      
 vsync信号是固定周期的，用软件容易进行模拟。      
 
-### SW-VSync 分类
+### SW-VSync 信号
 
 App的绘制以及SF的合成分别由对应的软件VSYNC来驱动的。      
 SW-VSync信号的分类：      
@@ -54,7 +56,10 @@ VSYNC-app与VSYNC-sf是相互独立的。VSYNC-app触发App的绘制，Vsync-sf�
 
 <img src="/images/android-graphic-system-vsync/app-sf-phase.png" width="972" height="114" />
 
-### appsf-vsync
+在上图中，VSYNC脉冲的上升沿和下降沿都表示一次VSYNC信号。       
+SF进行合成的是App的上一帧，而App当前正在绘制的那一帧，要等到下一个VSYNC-sf来临时再进行合成。     
+
+### appsf-vsync 信号
 
 这里着重介绍一下 appsf-vsync，因为在早期的Android版本中，是没有这个类型的VSync信号的。我们先看看Google在添加这个类型的VSync信号时代码中添加的注释：      
 
@@ -204,3 +209,96 @@ VSYNC-app与VSYNC-sf是相互独立的。VSYNC-app触发App的绘制，Vsync-sf�
 ```
 
 ## Vsync框架
+
+### 相关线程
+
+<img src="/images/android-performance-optimization-tools-perfetto/threads.png" width="802" height="451" />
+
+ - TimerDispatch 线程：
+ 
+ 
+### 线程初始化
+
+```
+SurfaceFlinger::initScheduler
+    Scheduler::createEventThread
+    Scheduler::createEventThread
+    MessageQueue::initVsync
+        MessageQueue::onNewVsyncScheduleLocked
+```
+
+
+```
+void SurfaceFlinger::initScheduler(const sp<const DisplayDevice>& display) {
+    ...
+    mAppConnectionHandle =
+            mScheduler->createEventThread(Scheduler::Cycle::Render,
+                                          mFrameTimeline->getTokenManager(),
+                                          /* workDuration */ configs.late.appWorkDuration,
+                                          /* readyDuration */ configs.late.sfWorkDuration);
+    mSfConnectionHandle =
+            mScheduler->createEventThread(Scheduler::Cycle::LastComposite,
+                                          mFrameTimeline->getTokenManager(),
+                                          /* workDuration */ activeRefreshRate.getPeriod(),
+                                          /* readyDuration */ configs.late.sfWorkDuration);
+
+    mScheduler->initVsync(mScheduler->getVsyncSchedule()->getDispatch(),
+                          *mFrameTimeline->getTokenManager(), configs.late.sfWorkDuration);
+    ...
+}
+```
+
+在 Scheduler::createEventThread 方法中根据 Cycle 类型来判断是创建 app 还是 appSf 线程。      
+
+```
+ConnectionHandle Scheduler::createEventThread(Cycle cycle,
+                                              frametimeline::TokenManager* tokenManager,
+                                              std::chrono::nanoseconds workDuration,
+                                              std::chrono::nanoseconds readyDuration) {
+    auto eventThread = std::make_unique<impl::EventThread>(cycle == Cycle::Render ? "app" : "appSf",
+                                                           getVsyncSchedule(), tokenManager,
+                                                           makeThrottleVsyncCallback(),
+                                                           makeGetVsyncPeriodFunction(),
+                                                           workDuration, readyDuration);
+
+    auto& handle = cycle == Cycle::Render ? mAppConnectionHandle : mSfConnectionHandle;
+    handle = createConnection(std::move(eventThread));
+    return handle;
+}
+```
+MessageQueue::initVsync 方法调用到 onNewVsyncScheduleLocked，绑定一个回调函数到 VsyncDispatch 上面，回调名字是"sf"。    
+```
+std::unique_ptr<scheduler::VSyncCallbackRegistration> MessageQueue::onNewVsyncScheduleLocked(
+        std::shared_ptr<scheduler::VSyncDispatch> dispatch) {
+    const bool reschedule = mVsync.registration &&
+            mVsync.registration->cancel() == scheduler::CancelResult::Cancelled;
+    auto oldRegistration = std::move(mVsync.registration);
+    mVsync.registration = std::make_unique<
+            scheduler::VSyncCallbackRegistration>(std::move(dispatch),
+                                                  std::bind(&MessageQueue::vsyncCallback, this,
+                                                            std::placeholders::_1,
+                                                            std::placeholders::_2,
+                                                            std::placeholders::_3),
+                                                  "sf");
+    if (reschedule) {
+```
+ 
+```
+ Timer::Timer() {
+    reset();
+    mDispatchThread = std::thread([this]() { threadMain(); });
+}
+
+void Timer::threadMain() {
+    while (dispatch()) {
+        reset();
+    }
+}
+
+ bool Timer::dispatch() {
+ 
+     // 设置线程名称
+     if (pthread_setname_np(pthread_self(), "TimerDispatch")) {
+        ALOGW("Failed to set thread name on dispatch thread");
+    }
+ ```

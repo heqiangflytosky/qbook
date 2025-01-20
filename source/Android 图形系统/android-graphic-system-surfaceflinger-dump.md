@@ -107,15 +107,15 @@ ScreenOff: 1d17:28:07.825
 ```
 
 `VSYNC period:  16666666 ns` 代表的就是一个 VSYNC 周期，当前屏幕刷新率是 60 HZ，因此一个 VSYNC 周期是 16666666 ns。    
-`VsyncDispatch` 中：    
- - workduration：代表自身工作的理论耗时    
- - readyduration：代表自身工作完成后，传递给下一模块处理的等待时间    
-
-以sf和app举例：app的workduration代表app绘制渲染一帧的理论耗时，app的readyduration代表app绘制渲染一帧完成后交给surfaceflinger处理的理耗时，sf的workduration代表sf处理这一帧的理论耗时，readyduration代表传递给下一模块处理的等待时间。    
-
-可见 app的readyduration== sf的 workduration，且sf的readyduration=0    
 
 app phase 和 SF phase 指的是 app 和 sf 的相位。    
+hw vsync是硬件产生的。     
+app vsync是基于hw vsync加上一个相位差app phase软件产生的。     
+sf vsync是基于hw vsync加上一个相位差sf phase软件产生的。      
+app phase 和SF phase 就是正常情况下使用的。    
+early app phase 和 early SF phase 是在切换屏幕帧率的时候使用的。    
+GL early app phase 和 GL early SF phase 是在SF使用GPU合成的时候使用的。    
+
 present offset: Vsync Offset ，`VSYNC_APP` 和 `VSYNC_SF` 之间 的相位差（SF phase - app phase）的值。      
 
 #### events
@@ -186,7 +186,13 @@ VsyncDispatch:
 			mLastDispatchTime: -19.37ms ago
 ```
 
+`VsyncDispatch` 中：    
+ - workduration：代表自身工作的理论耗时    
+ - readyduration：代表自身工作完成后，传递给下一模块处理的等待时间    
 
+以sf和app举例：app的workduration代表app绘制渲染一帧的理论耗时，app的readyduration代表app绘制渲染一帧完成后交给surfaceflinger处理的理论耗时，sf的workduration代表sf处理这一帧的理论耗时，readyduration代表传递给下一模块处理的等待时间。    
+
+可见 app的readyduration== sf的 workduration，且sf的readyduration=0    
 
 ### 丢帧统计
 

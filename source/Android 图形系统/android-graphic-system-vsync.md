@@ -9,7 +9,7 @@ date: 2022-11-23 10:00:00
 
 ## VSYNC 基础
 
-在 Android 中，VSYNC（Vertical Synchronization）是一个垂直同步信号，用于协调显示刷新和绘图操作。VSYNC 信号的主要作用是控制屏幕刷新频率与图形渲染的同步，Vsync + TripleBuffer + Choreographer 一起工作，以确保画面显示平滑且没有掉帧和撕裂现象。    
+在 Android 4.1 版本中，Google 提出了著名的 "Project Butter"，引入了 VSYNC（Vertical Synchronization），VSYNC 是一个垂直同步信号，用于协调显示刷新和绘图操作。VSYNC 信号的主要作用是控制屏幕刷新频率与图形渲染的同步，Vsync + TripleBuffer + Choreographer 一起工作，以确保画面显示平滑且没有掉帧和撕裂现象。    
 撕裂现象指的是正在渲染时传入新的图像，这时会导致屏幕上面部分绘制的上一帧图像，下面部分绘制的是下一帧图像导致画面撕裂的问题。也就是说用两帧的部分数据合成一帧。    
 如下图：    
 
@@ -58,6 +58,101 @@ VSYNC-app与VSYNC-sf是相互独立的。VSYNC-app触发App的绘制，Vsync-sf�
 
 在上图中，VSYNC脉冲的上升沿和下降沿都表示一次VSYNC信号。       
 SF进行合成的是App的上一帧，而App当前正在绘制的那一帧，要等到下一个VSYNC-sf来临时再进行合成。     
+
+### Vsync Phase
+
+[一文带你看懂Vsync Phase](https://www.jianshu.com/p/637c3ac93df3)
+[深入研究源码：DispSync详解](https://juejin.cn/post/6844903986194022414#heading-20)
+[DispSync](http://echuang54.blogspot.com/2015/01/dispsync.html)
+
+Vsync Phase就是指app vsync，sf vsync和hw vsync之间的相位差。     
+具体可以通过 `dumpsys SurfaceFlinger` 来查看：    
+
+```
+           app phase:      1000000 ns	         SF phase:      1000000 ns
+           app duration:  16666666 ns	         SF duration:  15666666 ns
+     early app phase:      1000000 ns	   early SF phase:      1000000 ns
+     early app duration:  16666666 ns	   early SF duration:  15666666 ns
+  GL early app phase:      1000000 ns	GL early SF phase:      1000000 ns
+  GL early app duration:  16666666 ns	GL early SF duration:  15666666 ns
+       HWC min duration:         0 ns
+         present offset:         0 ns	        VSYNC period:  16666666 ns
+```
+
+app phase 和 SF phase 指的是 app 和 sf 的相位。    
+hw vsync是硬件产生的。     
+app vsync是基于hw vsync加上一个相位差app phase软件产生的。     
+sf vsync是基于hw vsync加上一个相位差sf phase软件产生的。      
+app phase 和SF phase 就是正常情况下使用的。    
+early app phase 和 early SF phase 是在切换屏幕帧率的时候使用的。    
+GL early app phase 和 GL early SF phase 是在SF使用GPU合成的时候使用的。    
+
+#### 开启相位差的功能
+
+```
+[debug.sf.use_phase_offsets_as_durations]: [1]
+```
+
+#### 调整相位差
+
+调整这6个属性值来调整三组对应的6个相位差：      
+
+```
+[debug.sf.late.app.duration]: [20500000]
+[debug.sf.late.sf.duration]: [10500000]
+[debug.sf.early.app.duration]: [16500000]
+[debug.sf.early.sf.duration]: [16000000]
+[debug.sf.earlyGl.app.duration]: [21000000]
+[debug.sf.earlyGl.sf.duration]: [13500000]
+```
+
+#### 属性值和相位差的关系
+
+```
+//vsyncDuration对应vsync周期，60hz手机就是16666666ns
+//sfDuration就是对应sf.duration
+nsecs_t sfDurationToOffset(std::chrono::nanoseconds sfDuration, nsecs_t vsyncDuration) {
+    return vsyncDuration - sfDuration.count() % vsyncDuration;
+}
+//vsyncDuration对应vsync周期，60hz手机就是16666666（纳秒）
+//sfDuration就是对应sf.duration
+//appDuration就是对应app.duration
+nsecs_t appDurationToOffset(std::chrono::nanoseconds appDuration,
+                            std::chrono::nanoseconds sfDuration, nsecs_t vsyncDuration) {
+    return vsyncDuration - (appDuration + sfDuration).count() % vsyncDuration;
+}
+```
+
+简单计算一下app phase和SF phase：
+
+```
+因为手机是60hz的屏幕，vsyncDuration ：16666667
+appDuration ：[debug.sf.late.app.duration]: [20500000]
+sfDuration ：[debug.sf.late.sf.duration]: [10500000]
+
+app phase计算
+16666667 - (20500000 + 10500000) % 16666667 = 2333334
+
+sf phase计算
+16666667 - 10500000 % 16666667 = 6166667
+```
+
+修改之后可以用这个公式计算后和 dumpsys 出来的数据做个对比。      
+
+#### 调整相位差的好处
+
+如果要知道调整相位差的好处，就要知道三个vsync分别代表什么。      
+app vsync代表软件开始绘制。      
+sf vsync代表sf开始合成。      
+hw vsync代表画面开始输出给屏幕。      
+假如没有相位差，从app开始绘制到显示到屏幕需要3个vsync周期左右。     
+
+如果修改了sf的相位差，可以让app开始绘制到显示到屏幕的时间小于3个vsync周期。但是前提是app绘制要足够快，sf合成要足够快，这样子就提升了跟手性。      
+但是这个修改也量力而行，如果简单粗暴的按图改，万一app绘制超时了，或者sf合成超时了，反而就是副作用了，会引发一系列的丢帧，buffer堆积的问题，最后就是越改越差。     
+
+另外一个问题是可以改善app绘制超时带来的丢帧问题。     
+如果没有相位差，因为app绘制超时了，app绘制到屏幕显示可能需要4帧。适度的通过调整相位差，会减少丢帧问题。       
+
 
 ### appsf-vsync 信号
 
@@ -212,7 +307,7 @@ SF进行合成的是App的上一帧，而App当前正在绘制的那一帧，要
 
 ### 相关线程
 
-<img src="/images/android-performance-optimization-tools-perfetto/threads.png" width="802" height="451" />
+<img src="/images/android-graphic-system-vsync/threads.png" width="802" height="451" />
 
  - TimerDispatch 线程：
  
@@ -266,7 +361,9 @@ ConnectionHandle Scheduler::createEventThread(Cycle cycle,
     return handle;
 }
 ```
+
 MessageQueue::initVsync 方法调用到 onNewVsyncScheduleLocked，绑定一个回调函数到 VsyncDispatch 上面，回调名字是"sf"。    
+
 ```
 std::unique_ptr<scheduler::VSyncCallbackRegistration> MessageQueue::onNewVsyncScheduleLocked(
         std::shared_ptr<scheduler::VSyncDispatch> dispatch) {

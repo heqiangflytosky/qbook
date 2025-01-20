@@ -1553,8 +1553,10 @@ status_t InputConsumer::consume(InputEventFactoryInterface* factory, bool consum
 
 https://juejin.cn/post/7224777406916902973
 
-在前面我们提到了事件的批处理，[MotionEvent 的官方文档](https://developer.android.com/reference/android/view/MotionEvent#batching)上也提到，为了提高效率，多个 ACTION_MOVE 事件可能会被合并为同一个 MotionEvent 对象再回调给应用。这里简单看下具体 Android 系统实现上是怎么做的 MotionEvent 批处理，以及应用侧如何改变这一行为。    
+在前面我们提到了事件的批处理，[MotionEvent 的官方文档](https://developer.android.com/reference/android/view/MotionEvent#batching)上也提到，为了提高效率，多个 ACTION_MOVE 事件可能会被合并为同一个 MotionEvent 对象再回调给应用。
 另外Google对[批量消费](https://android.googlesource.com/platform/frameworks/base/+/master/core/jni/android_view_InputEventReceiver.md)在这里有个详细的介绍，感兴趣的同学可以仔细阅读一下这篇文档基本会有个了解。    
+至于为什么会有批处理这种情况出现，原因是触摸屏幕的采样率可能会大于屏幕的刷新频率，如果对 move 事件不采用批处理的方式，有事件来就直接进行派发主线程处理，那么可能会导致堆积很多事件，而且也没有必要这么做，就算是事件传递给UI线程，屏幕不刷新的话UI也无法多这些事件做出响应。      
+这里简单看下具体 Android 系统实现上是怎么做的 MotionEvent 批处理，以及应用侧如何改变这一行为。    
 下面主要介绍在事件分发流程中如何处理事件的批量消费。    
 
 前面说到当读取 server 端分发的数据时 `NativeInputEventReceiver::handleEvent` 调用 `NativeInputEventReceiver::consumeEvents` 这时传的 `consumeBatches` 参数永远是 false，这时是不进行批处理的。       

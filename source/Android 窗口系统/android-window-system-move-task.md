@@ -254,5 +254,10 @@ RootWindowContainer.performSurfacePlacementNoTrace
 
 
 上面的移栈方案是使用命令行进行的，我们可以改进成使用手指拖动到另外一个屏幕，并加上响应的衔接动画来实现。      
-参考下面的开源代码：[AndroidT应用双屏间拖拽移动功能实现](https://gitcode.com/open-source-toolkit/ca59c/?utm_source=tools_gitcode&index=top&type=card&&isLogin=1)      
+参考下面的博客和开源代码：
+[Android T多屏多显——应用双屏间拖拽移动功能](https://www.jindouyun.cn/document/industry/details/242008)     
+[AndroidT应用双屏间拖拽移动功能实现](https://blog.csdn.net/gitblog_09739/article/details/142943823)     
+[gitcode](https://gitcode.com/open-source-toolkit/ca59c/?utm_source=tools_gitcode&index=top&type=card&&isLogin=1)      
+[车载多屏互动联动动画版本同屏幕大小情况方案设计--众筹项目](https://blog.csdn.net/learnframework/article/details/130507022)     
+[车载多屏互动联动动画版本图层设计--众筹项目](https://blog.csdn.net/learnframework/article/details/130522955)     
 

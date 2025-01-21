@@ -308,9 +308,16 @@ hw vsync代表画面开始输出给屏幕。
 ### 相关类
 
  - Schdueler：负责SurfaceFlinger中VSync信号的注册与分发。
- - VSyncTracker：实现类为VSyncPredictor，负责接收外部VSync采样，计算软件VSync模型的参数。
- - VsyncController：实现类为VSyncReactor，负责约束管理VSyncTracker的行为，控制VSyncTracker的采样。
+ - VsyncSchedule：Scheduler功能实现的核心。保存了 VsyncController、VSyncTracker和VSyncDispatch 对象。
+ - VSyncTracker：实现类为 VSyncPredictor，负责接收外部VSync采样，计算软件VSync模型的参数。
+ - VsyncController：实现类为 VSyncReactor，负责约束管理VSyncTracker的行为，控制VSyncTracker的采样。
  - VSyncDispatch：实现类为VSyncDispatchTimerQueue，负责软件VSync信号的产生和分发。
+
+<img src="/images/android-graphic-system-vsync/class.png" width="958" height="318" />
+
+```
+
+```
 
 ### 相关线程
 
@@ -768,11 +775,245 @@ HW-VSync的开启的时机有如下情况：
  - 连续两次请求VSync-app信号的时间间隔超过750ms。
  - SurfaceFlinger合成后，添加FenceTime到VSyncTracker中导致模型计算误差过大。
 
-在 SurfaceFlinger::setVsyncEnabled 中调用 setHWCVsyncEnabled 开启HW-VSync，在 Trace 中可以看到 `HW_VSYNC_ON_**` 为 1，然后 `HW_VSYNC_*` 有6个上升沿和下降沿，进行了6个周期的采样。     
+
+1.SurfaceFlinger初始化开启：
+
+```
+SurfaceFlinger::initScheduler
+    SurfaceFlinger::setVsyncEnabled
+        SurfaceFlinger::setHWCVsyncEnabled
+            HWComposer::setVsyncEnabled
+```
+
+2.请求VSync-app信号时开启：
+
+```
+void Scheduler::resync() {
+    static constexpr nsecs_t kIgnoreDelay = ms2ns(750);
+
+    const nsecs_t now = systemTime();
+    const nsecs_t last = mLastResyncTime.exchange(now);
+
+    if (now - last > kIgnoreDelay) {
+        resyncAllToHardwareVsync(false /* allowToEnable */);
+    }
+}
+```
+
+在Scheduler的resync方法中，会判断连续两次开启硬件VSync信号的时间间隔是否小于750ms，如果小于，则调用resyncAllToHardwareVsync方法开启硬件VSync信号。    
+
+```
+Scheduler::resync()
+    Scheduler::resyncAllToHardwareVsync
+        //遍历所有的屏幕设备，并调用方法
+        Scheduler::resyncToHardwareVsyncLocked
+            VsyncSchedule::startPeriodTransition
+                // 通知VSyncController更新VSync周期
+                VSyncReactor.startPeriodTransition()
+                //开启硬件VSync信号
+                VsyncSchedule::enableHardwareVsyncLocked
+                    VSyncPredictor.resetModel()
+                    // 通知SurfaceFlinger开启硬件VSync信号。
+                    SurfaceFlinger::setVsyncEnabled
+                        SurfaceFlinger::setHWCVsyncEnabled
+                            HWComposer::setVsyncEnabled
+```
+
+3.添加FenceTime时开启HW-VSync信号
+
+Fence时间是Fence创建时刻的时间戳，由于Fence创建时刻的时间戳比采样HW-VSync信号的时间戳更接近HW-VSync信号实际发出的时间，因此在SurfaceFlinger调用composite方法进行合成时，会对Fence时间进行采样。      
+
+```
+SurfaceFlinger::composite
+    SurfaceFlinger::postComposition
+        Scheduler::addPresentFence
+            // 参与软件VSync模型的计算
+            // 根据返回结果决定是否开启硬件VSync信号
+            // (此时可能开启了HW-VSync信号，也可能没有开启)
+            // 如果计算后得到的误差过大，会重新开启HW-VSync。
+            VSyncReactor.addPresentFence
+                VSyncPredictor::addVsyncTimestamp
+            // 开启HW-VSync信号，和上面流程一样，不再介绍
+            VsyncSchedule.enableHardwareVsync
+            // 关闭 HW-VSync信号
+            VsyncSchedule.disableHardwareVsync
+```
+
+## SW-VSync信号的校准
+
+下面开始介绍开启采样后的 HW-VSync 回调流程。    
+
+在 SurfaceFlinger::setVsyncEnabled 中调用 setHWCVsyncEnabled 开启 HW-VSync，在 Trace 中可以看到 `HW_VSYNC_ON_**` 为 1，然后 `HW_VSYNC_*` 有6个上升沿和下降沿，进行了6个周期的采样。     
 
 <img src="/images/android-graphic-system-vsync/sf-hw-sync-enable-0.png" width="692" height="321" />
 
 <img src="/images/android-graphic-system-vsync/sf-hw-sync-enable-1.png" width="700" height="326" />
+
+在开启HW-VSync信号后，HWComposer会回调SurfaceFlinger的onComposerHalVsync方法接收HW-VSync信号。    
+
+```
+SurfaceFlinger::onComposerHalVsync
+    // 添加硬件VSync信号的时间戳作为采样。
+    VsyncSchedule::addResyncSample
+        // 把硬件VSYNC的时间戳信息添加到VsyncTracker中
+        VSyncReactor::addHwVsyncTimestamp
+            VSyncPredictor::addVsyncTimestamp
+            // 判断要不要更多的样本，这边默认是6个样本，
+            // 所以如果样本个数还没有达到，是需要一直增加样本到6个。
+            VSyncPredictor::needsMoreSamples()
+        // 如果还需要采集样本，就需要继续上报
+        VsyncSchedule::enableHardwareVsync
+            VsyncSchedule::enableHardwareVsyncLocked
+                VSyncPredictor.resetModel()
+                // 需要继续开启HwVsync开关
+                SurfaceFlinger::setVsyncEnabled
+                    SurfaceFlinger::setHWCVsyncEnabled
+                        HWComposer::setVsyncEnabled
+        // 如果样本已经足够了，就关闭HW SYNC的硬件上报开关
+        VsyncSchedule::disableHardwareVsync
+            
+        
+```
+
+```
+void SurfaceFlinger::onComposerHalVsync(hal::HWDisplayId hwcDisplayId, int64_t timestamp,
+                                        std::optional<hal::VsyncPeriodNanos> vsyncPeriod) {
+    ATRACE_NAME(vsyncPeriod
+                        ? ftl::Concat(__func__, ' ', hwcDisplayId, ' ', *vsyncPeriod, "ns").c_str()
+                        : ftl::Concat(__func__, ' ', hwcDisplayId).c_str());
+```
+我们可以通过 onComposerHalVsync 中添加的 Trace 信息来在 Perfetto 上跟踪调用情况。    
+可以看到，每个 HW-VSync 电平变化就伴随着一次 onComposerHalVsync 回调。    
+
+<img src="/images/android-graphic-system-vsync/sample-callback.png" width="701" height="176" />
+
+校准的逻辑主要在 VSyncPredictor的addVsyncTimestamp方法。    
+
+```
+bool VSyncPredictor::addVsyncTimestamp(nsecs_t timestamp) {
+    std::lock_guard lock(mMutex);
+
+    if (!validate(timestamp)) {
+        // VSR could elect to ignore the incongruent timestamp or resetModel(). If ts is ignored,
+        // don't insert this ts into mTimestamps ringbuffer. If we are still
+        // in the learning phase we should just clear all timestamps and start
+        // over.
+        if (mTimestamps.size() < kMinimumSamplesForPrediction) {
+            // Add the timestamp to mTimestamps before clearing it so we could
+            // update mKnownTimestamp based on the new timestamp.
+            mTimestamps.push_back(timestamp);
+            clearTimestamps();
+        } else if (!mTimestamps.empty()) {
+            mKnownTimestamp =
+                    std::max(timestamp, *std::max_element(mTimestamps.begin(), mTimestamps.end()));
+        } else {
+            mKnownTimestamp = timestamp;
+        }
+        return false;
+    }
+
+    if (mTimestamps.size() != kHistorySize) {
+        mTimestamps.push_back(timestamp);
+        mLastTimestampIndex = next(mLastTimestampIndex);
+    } else {
+        mLastTimestampIndex = next(mLastTimestampIndex);
+        mTimestamps[mLastTimestampIndex] = timestamp;
+    }
+
+    traceInt64If("VSP-ts", timestamp);
+
+    const size_t numSamples = mTimestamps.size();
+    if (numSamples < kMinimumSamplesForPrediction) {
+        mRateMap[mIdealPeriod] = {mIdealPeriod, 0};
+        return true;
+    }
+
+    // This is a 'simple linear regression' calculation of Y over X, with Y being the
+    // vsync timestamps, and X being the ordinal of vsync count.
+    // The calculated slope is the vsync period.
+    // Formula for reference:
+    // Sigma_i: means sum over all timestamps.
+    // mean(variable): statistical mean of variable.
+    // X: snapped ordinal of the timestamp
+    // Y: vsync timestamp
+    //
+    //         Sigma_i( (X_i - mean(X)) * (Y_i - mean(Y) )
+    // slope = -------------------------------------------
+    //         Sigma_i ( X_i - mean(X) ) ^ 2
+    //
+    // intercept = mean(Y) - slope * mean(X)
+    //
+    std::vector<nsecs_t> vsyncTS(numSamples);
+    std::vector<nsecs_t> ordinals(numSamples);
+
+    // Normalizing to the oldest timestamp cuts down on error in calculating the intercept.
+    const auto oldestTS = *std::min_element(mTimestamps.begin(), mTimestamps.end());
+    auto it = mRateMap.find(mIdealPeriod);
+    auto const currentPeriod = it->second.slope;
+
+    // The mean of the ordinals must be precise for the intercept calculation, so scale them up for
+    // fixed-point arithmetic.
+    constexpr int64_t kScalingFactor = 1000;
+
+    nsecs_t meanTS = 0;
+    nsecs_t meanOrdinal = 0;
+
+    for (size_t i = 0; i < numSamples; i++) {
+        const auto timestamp = mTimestamps[i] - oldestTS;
+        vsyncTS[i] = timestamp;
+        meanTS += timestamp;
+
+        const auto ordinal = currentPeriod == 0
+                ? 0
+                : (vsyncTS[i] + currentPeriod / 2) / currentPeriod * kScalingFactor;
+        ordinals[i] = ordinal;
+        meanOrdinal += ordinal;
+    }
+
+    meanTS /= numSamples;
+    meanOrdinal /= numSamples;
+
+    for (size_t i = 0; i < numSamples; i++) {
+        vsyncTS[i] -= meanTS;
+        ordinals[i] -= meanOrdinal;
+    }
+
+    nsecs_t top = 0;
+    nsecs_t bottom = 0;
+    for (size_t i = 0; i < numSamples; i++) {
+        top += vsyncTS[i] * ordinals[i];
+        bottom += ordinals[i] * ordinals[i];
+    }
+
+    if (CC_UNLIKELY(bottom == 0)) {
+        it->second = {mIdealPeriod, 0};
+        clearTimestamps();
+        return false;
+    }
+
+    nsecs_t const anticipatedPeriod = top * kScalingFactor / bottom;
+    nsecs_t const intercept = meanTS - (anticipatedPeriod * meanOrdinal / kScalingFactor);
+
+    auto const percent = std::abs(anticipatedPeriod - mIdealPeriod) * kMaxPercent / mIdealPeriod;
+    if (percent >= kOutlierTolerancePercent) {
+        it->second = {mIdealPeriod, 0};
+        clearTimestamps();
+        return false;
+    }
+
+    traceInt64If("VSP-period", anticipatedPeriod);
+    traceInt64If("VSP-intercept", intercept);
+
+    it->second = {anticipatedPeriod, intercept};
+
+    ALOGV("model update ts %" PRIu64 ": %" PRId64 " slope: %" PRId64 " intercept: %" PRId64,
+          mId.value, timestamp, anticipatedPeriod, intercept);
+    return true;
+}
+```
+
+具体的，通过最小二乘法得到一条y=bx+a的拟合曲线。其中，b称为回归系数，a称为截距。SW-VSync模型核心就是这两个参数。     
+
 ## 相关文章
  
 SurfaceFlinger模块-VSYNC研究：https://www.jianshu.com/p/5e9c558d1543

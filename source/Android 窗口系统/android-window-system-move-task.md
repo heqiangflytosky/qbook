@@ -254,6 +254,450 @@ RootWindowContainer.performSurfacePlacementNoTrace
 
 
 上面的移栈方案是使用命令行进行的，我们可以改进成使用手指拖动到另外一个屏幕，并加上响应的衔接动画来实现。      
+
+```
+class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.DisplayContentInfo {
+
+    ......
+    
+    // Multi-screen interaction test start
+    //创建DoubleScreenMovePointerEventListener对象
+    final DoubleScreenMovePointerEventListener mDoubleScreenMovePointerEventListener;
+    // Multi-screen interaction test end
+    
+    ......
+    
+    DisplayContent(Display display, RootWindowContainer root) {
+    
+        ......
+        //Multi-screen interaction test start
+        //创建DoubleScreenMovePointerEventListener对象
+        mDoubleScreenMovePointerEventListener = new DoubleScreenMovePointerEventListener(
+                mWmService, this,mRootWindowContainer);
+        //注册DoubleScreenMovePointerEventListener监听
+        registerPointerEventListener(mDoubleScreenMovePointerEventListener);
+        //Multi-screen interaction test end
+        ......
+    }
+
+}
+```
+
+```
+package com.android.server.wm;
+
+import android.util.Slog;
+import android.view.MotionEvent;
+import android.view.WindowManagerPolicyConstants;
+
+public class DoubleScreenMovePointerEventListener implements WindowManagerPolicyConstants.PointerEventListener {
+
+    private final String TAG = "DoubleScreenMovePointerEventListener";
+    //手指数
+    private final int FINGERS = 2;
+    //移动标志位
+    boolean shouldBeginMove = false;
+
+    //初始双击的两个横坐标点
+    int point1XFirst = 0;
+    int point2XFirst = 0;
+
+    //拖动放手后的两个横坐标点
+    int point1XLast = 0;
+    int point2XLast = 0;
+
+    //动作触发阈值，最少移动为10个像素才可以
+    //移动大于150像素则往对侧移动
+    //在10~150之间回到原来的屏幕
+    final int START_GAP = 10;
+    final int AUTO_MOVE_GAP = 150;
+
+    private final WindowManagerService mService;
+    DoubleScreenMoveController mDoubleScreenMoveController;
+
+    public DoubleScreenMovePointerEventListener(WindowManagerService mService,
+                                                DisplayContent mDisplayContent,
+                                                RootWindowContainer mRootWindowContainer) {
+        this.mService = mService;
+        mDoubleScreenMoveController = new DoubleScreenMoveController(
+        mService, mDisplayContent,mRootWindowContainer);
+    }
+
+    @Override
+    public void onPointerEvent(MotionEvent motionEvent) {
+        //屏幕数小于2，不调用onPointerEvent
+        if (mService.mRoot.getChildCount() != 2) {
+            Slog.i(TAG,"mRootWindowContainer.getChildCount() != 2");
+            return;
+        }
+        switch (motionEvent.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_POINTER_DOWN:
+                //手指数不为FINGERS，则shouldBeginMove标志位置为false
+                if (motionEvent.getPointerCount() != FINGERS) {
+                    shouldBeginMove = false;
+                }
+
+                if (motionEvent.getPointerCount() == FINGERS &&
+                        point1XFirst == 0 && point2XFirst == 0) {
+                    //获取两个手指的初始坐标
+                    point1XFirst = (int) motionEvent.getX(0);
+                    point2XFirst = (int) motionEvent.getX(1);
+                    Slog.i(TAG, "onPointerEvent ACTION_POINTER_DOWN point1XFirst = " +
+                            point1XFirst + " point2XFirst = " + point2XFirst);
+                }
+                break;
+            case MotionEvent.ACTION_MOVE:
+                if (motionEvent.getPointerCount() == FINGERS) {
+                    //获取两个手指在移动后的坐标
+                    point1XLast = (int) motionEvent.getX(0);
+                    point2XLast = (int) motionEvent.getX(1);
+                    //计算移动后的差值
+                    int offsetX1 = point1XLast - point1XFirst;
+                    int offsetX2 = point2XLast - point2XFirst;
+                    Slog.i(TAG, "onPointerEvent ACTION_MOVE " +
+                            "point1XFirst = " + point1XFirst + " point1XLast = " + point1XLast);
+                    if (!shouldBeginMove &&
+                            //取两手指移动距离的绝对值，其中一个手指移动距离大于10即可
+                            ((Math.abs(offsetX1) > START_GAP) || (Math.abs(offsetX2) > START_GAP)) &&
+                            //判断两手指移动的方向是否相等，保证两手指移动的方向一致
+                            (getMovingOrientation(offsetX1, 0).equals(
+                                    getMovingOrientation(offsetX2, 0)))) {
+                        Slog.i(TAG, "onPointerEvent ACTION_MOVE start moving");
+                        shouldBeginMove = true;
+                        //调用doTestMoveTaskToOtherDisplay移动Task到另一屏
+                        mDoubleScreenMoveController.doTestMoveTaskToOtherDisplay();
+                    }
+                    Slog.i(TAG, "onPointerEvent ACTION_MOVE shouldBeginMove=" + shouldBeginMove);
+                    if (shouldBeginMove) {
+                        int offsetX = Math.abs(point1XLast - point1XFirst);
+                        //调用startMoveCurrentScreenTask，使手拖动时移动过程平滑显示
+                        mDoubleScreenMoveController.startMoveCurrentScreenTask(offsetX, 0);
+                    }
+                } else {
+                    Slog.i(TAG, "onPointerEvent ACTION_MOVE forbid moving!");
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_POINTER_UP:
+            case MotionEvent.ACTION_CANCEL:
+                if (shouldBeginMove) {
+                    int offsetX = Math.abs(point1XLast - point1XFirst);
+                    Slog.i(TAG, "onPointerEvent ACTION_POINTER_UP point1XLast = " + point1XLast
+                            + " point1XFirst = " + point1XFirst + "offsetX = " + offsetX);
+                    //调用startAutoMove，在放手后播放Task自动移动的动画
+                    mDoubleScreenMoveController.startAutoMove(offsetX, offsetX > AUTO_MOVE_GAP);
+                }
+                shouldBeginMove = false;
+                point1XFirst = 0;
+                point2XFirst = 0;
+                break;
+        }
+    }
+
+    /**
+     * 根据距离差判断 滑动方向
+     *
+     * @param dx X轴的距离差
+     * @param dy Y轴的距离差
+     * @return 滑动的方向
+     */
+    private String getMovingOrientation(float dx, float dy) {
+        String orientation = null;
+        Slog.i(TAG, "========X轴距离差：" + dx);
+        Slog.i(TAG, "========Y轴距离差：" + dy);
+        if (Math.abs(dx) >= Math.abs(dy)) {
+            //X轴移动
+            if (dx > 0) {
+                orientation = "right";
+            } else {
+                orientation = "left";
+            }
+        } else {
+            //Y轴移动
+            if (dy > 0) {
+                orientation = "up";
+            } else {
+                orientation = "down";
+            }
+        }
+        return orientation;
+    }
+
+}
+```
+
+```
+package com.android.server.wm;
+
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
+import android.annotation.NonNull;
+import android.graphics.Matrix;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Slog;
+import android.view.SurfaceControl;
+import android.view.animation.AccelerateInterpolator;
+
+public class DoubleScreenMoveController {
+
+    /**
+     * Multi-screen interaction test start
+     */
+    private final static String TAG = "DoubleScreenMoveController";
+    //移动时根节点图层，镜像图层的父图层
+    private SurfaceControl copyTaskSc = null;
+    //镜像图层
+    private SurfaceControl copyTaskBuffer = null;
+    //应用的图层
+    private SurfaceControl realWindowStateBuffer = null;
+    //保存当前TaskId
+    private int mCurrentTaskId = -1;
+    //保存另一屏
+    private DisplayContent mOtherDisplay = null;
+    //保存当前Activity
+    private ActivityRecord mCurrentRecord = null;
+
+    private final DisplayContent mDisplayContent;
+    private final WindowManagerService mWmService;
+    private final RootWindowContainer mRootWindowContainer;
+
+    public DoubleScreenMoveController(WindowManagerService mWmService,
+                                      DisplayContent mDisplayContent,
+                                      RootWindowContainer mRootWindowContainer) {
+        this.mWmService = mWmService;
+        this.mDisplayContent = mDisplayContent;
+        this.mRootWindowContainer = mRootWindowContainer;
+    }
+
+
+    public void doTestMoveTaskToOtherDisplay() {
+        Slog.i(TAG, "doTestMoveTaskToOtherDisplay " +
+                "mRootWindowContainer.getChildCount() = " + mRootWindowContainer.getChildCount());
+        if (mRootWindowContainer.getChildCount() == 2) {
+            //获取另一个屏幕，mRootWindowContainer.getChildAt(0)获取需要移动应用的屏幕
+            //判断是否和当前屏幕相等，mRootWindowContainer.getChildAt(1)表示另一屏
+            mOtherDisplay = mRootWindowContainer.getChildAt(0) == mDisplayContent ?
+                    mRootWindowContainer.getChildAt(1) :
+                    mRootWindowContainer.getChildAt(0);
+        } else {
+            Slog.i(TAG, "mRootWindowContainer.getChildCount() is not 2!");
+        }
+        //判断另一屏和当前屏幕是否是同一个屏幕
+        if (mOtherDisplay != mDisplayContent && mOtherDisplay != null) {
+            try {
+                //获取当前屏幕上最顶层的应用Task
+                Task rootTask = mDisplayContent.getTopRootTask();
+                //判断Task是否是桌面
+                if (rootTask.isActivityTypeHome()) {
+                    return;
+                }
+                //获取TaskId
+                int rootTaskId = rootTask.getRootTaskId();
+                mCurrentTaskId = rootTaskId;
+                if (copyTaskSc == null) {
+                    //创建图层，并使其父节点为WindowedMagnification
+                    //这个图层为移动时根节点图层，镜像图层的父图层
+                    copyTaskSc = mDisplayContent.makeChildSurface(null)
+                            .setName("copyTaskSc")
+                            .setParent(mDisplayContent.getWindowingLayer())
+                            .build();
+                    Slog.i(TAG, "doTestMoveTaskToOtherDisplay mDisplayContent.getWindowingLayer() = "
+                            + mDisplayContent.getWindowingLayer());
+                }
+
+                if (copyTaskBuffer == null) {
+                    //创建当前应用Task的镜像图层
+                    copyTaskBuffer = SurfaceControl.mirrorSurface(rootTask.getSurfaceControl());
+                }
+                //获取当前应用的图层
+                realWindowStateBuffer = rootTask.getSurfaceControl();
+                SurfaceControl.Transaction transaction = mWmService.mTransactionFactory.get();
+                //把镜像图层copyTaskBuffer挂载到copyTaskSc图层节点上
+                transaction.reparent(copyTaskBuffer, copyTaskSc);
+                transaction.show(copyTaskSc);
+                transaction.show(copyTaskBuffer);
+                transaction.apply();
+
+                Slog.i(TAG, "doTestMoveTaskToOtherDisplay " +
+                        "moveRootTaskToDisplay  rootTask = " + rootTask + " rootTaskId = "
+                        + rootTaskId + " otherDisplay.mDisplayId = " + mOtherDisplay.mDisplayId);
+                //保证底部activity显示
+                ensureOtherDisplayActivityVisible(mOtherDisplay);
+                //防止另一屏闪烁Task
+                //移动前需要调用一下startMoveCurrentScreenTask，目的是为了把另一屏的Task坐标移动到屏幕外，
+                //不然可能会产生开始拖拉时候，另一屏会有显示一瞬间闪烁的task画面，这里提前把偏移设置好
+                startMoveCurrentScreenTask(0, 0);
+                //移动Task至另一屏
+                mRootWindowContainer.moveRootTaskToDisplay(
+                        mCurrentTaskId, mOtherDisplay.mDisplayId, true);
+            } catch (Exception e) {
+                Slog.i(TAG, "doTestMoveTaskToOtherDisplay Exception", e);
+            }
+        } else {
+            Slog.i(TAG, "otherDisplay is this or otherDisplay is null!");
+        }
+    }
+
+
+    /**
+     * 在双屏拖拽时可能会出现另一屏桌面或者其他顶层Activity界面黑屏的现象，因此需要通过该配置使其保持显示。
+     * @param otherDisplay 另一屏
+     */
+    void ensureOtherDisplayActivityVisible(DisplayContent otherDisplay) {
+        //获取最顶部的Activity
+        ActivityRecord otherTopActivity = otherDisplay.getTopActivity(false, false);
+        Slog.i(TAG, "ensureOtherDisplayActivityVisible otherDisplay = " +
+                otherDisplay + "otherTopActivity = " + otherTopActivity);
+        if (otherTopActivity != null) {
+            //mLaunchTaskBehind = true,表示当前允许activity显示在最下方
+            otherTopActivity.mLaunchTaskBehind = true;
+            //保存最顶部的Activity
+            mCurrentRecord = otherTopActivity;
+        }
+    }
+
+    /**
+     * 重置mLaunchTaskBehind，更新Activity显示状态
+     */
+    void resetState() {
+        if (mCurrentRecord != null) {
+            //恢复正常状态，让mLaunchTaskBehind变成false
+            mCurrentRecord.mLaunchTaskBehind = false;
+            //更新Activity显示状态
+            mRootWindowContainer.ensureActivitiesVisible(null, 0, false);
+        }
+    }
+
+    /**
+     * 移动Task图层
+     * @param offsetX 左右偏移量
+     * @param offsetY 上下偏移量（不涉及）
+     */
+    public void startMoveCurrentScreenTask(int offsetX, int offsetY) {
+        Slog.i(TAG, "startMoveCurrentScreenTask getDisplayId() = " + mDisplayContent.mDisplayId);
+        if (realWindowStateBuffer != null && realWindowStateBuffer != null) {
+            SurfaceControl.Transaction transaction = mWmService.mTransactionFactory.get();
+            Matrix matrix = new Matrix();
+            //获取屏幕宽度
+            int width = mDisplayContent.getDisplayInfo().logicalWidth;
+            //第一屏的DisplayId一般的都是0
+            if (mDisplayContent.mDisplayId == 0) {
+                Slog.i(TAG, "isMovingToRight!");
+                //Display1，移动镜像图层
+                matrix.reset();
+                //根据计算的偏移量进行移动
+                matrix.postTranslate(offsetX + (width - offsetX), offsetY);
+                transaction.setMatrix(copyTaskBuffer, matrix, new float[9]);
+                //Display2，移动真实图层
+                matrix.reset();
+                //-(width-offsetX)，根据计算的偏移量进行移动
+                matrix.postTranslate(offsetX - width, offsetY);
+                transaction.setMatrix(realWindowStateBuffer, matrix, new float[9]);
+            } else {
+                Slog.i(TAG, "isMovingToLeft!");
+                //Display2，移动镜像图层
+                matrix.reset();
+                //-(offsetX + (width - offsetX))，根据计算的偏移量进行移动
+                matrix.postTranslate(-offsetX - width + offsetX, offsetY);
+                transaction.setMatrix(copyTaskBuffer, matrix, new float[9]);
+                //Display1，移动真实图层
+                matrix.reset();
+                //根据计算的偏移量进行移动
+                matrix.postTranslate(width - offsetX, offsetY);
+                transaction.setMatrix(realWindowStateBuffer, matrix, new float[9]);
+            }
+            transaction.apply();
+        }
+    }
+
+    /**
+     * 在放手后播放Task自动移动的动画
+     * @param offsetX 移动时的偏移量
+     * @param toOther 是否移动到另一屏,
+     *                移动大于AUTO_MOVE_GAP像素则往对侧移动,
+     *                在START_GAP和AUTO_MOVE_GAP之间回到原来的屏幕
+     */
+    public void startAutoMove(int offsetX, boolean toOther) {
+        //获取屏幕宽度
+        int width = mDisplayContent.getDisplayInfo().logicalWidth;
+        //如果是移动到另一屏则会移动距离区间为(offsetX，width)
+        //否则移动区间为(offsetX，0)
+        int endX = toOther ? width : 0;
+        Slog.i(TAG, "startAutoMove onAnimationUpdate offsetX = " + offsetX
+                + " endX = " + endX);
+        //创建一个在(offsetX, endX)区间内的ValueAnimator
+        ValueAnimator valueAnimator = ValueAnimator.ofInt(offsetX, endX);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+
+            valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                //动画更新时的监听
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    int currentX = (int) animation.getAnimatedValue();
+                    Slog.i(TAG, "startAutoMove onAnimationUpdate currentX = " + currentX);
+                    //在动画更新过程中调用移动方法，使图层在区间(offsetX, endX)内移动
+                    startMoveCurrentScreenTask(currentX, 0);
+                }
+            });
+
+            valueAnimator.addListener(new AnimatorListenerAdapter() {
+                //动画结束时的监听
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    super.onAnimationEnd(animation);
+                    SurfaceControl.Transaction transaction = mWmService.mTransactionFactory.get();
+                    //判断是否移动到另一屏幕
+                    if (toOther) {
+                        //如果移动另一屏幕，重置mLaunchTaskBehind，更新Activity显示状态
+                        resetState();
+                    } else {
+                        Slog.i(TAG, "startAutoMove move to mDisplayContent.mDisplayId = " +
+                                mDisplayContent.mDisplayId);
+                        //如果不是移动到另一屏幕，使Task回到当前屏幕
+                        mRootWindowContainer.moveRootTaskToDisplay(
+                                mCurrentTaskId, mDisplayContent.mDisplayId, true);
+                        mCurrentTaskId = -1;
+                        //重置realWindowStateBuffer
+                        if (realWindowStateBuffer != null) {
+                            Matrix matrix = new Matrix();
+                            matrix.reset();
+                            transaction.setMatrix(realWindowStateBuffer, matrix, new float[9]);
+                        }
+                        transaction.apply();
+                    }
+
+                    //移除镜像图层以及其根节点
+                    if (copyTaskBuffer != null && copyTaskSc != null) {
+                        Slog.i(TAG, "startAutoMove copyTaskBuffer and copyTaskSc is remove!");
+                        transaction.remove(copyTaskBuffer);
+                        transaction.remove(copyTaskSc);
+                        transaction.apply();
+                        copyTaskBuffer = null;
+                        copyTaskSc = null;
+                    } else {
+                        Slog.i(TAG, "copyTaskBuffer or copyTaskSc is null!");
+                    }
+                }
+            });
+            //设置动画参数并播放
+            valueAnimator.setInterpolator(new AccelerateInterpolator(1.0f));
+            valueAnimator.setDuration(500);
+            valueAnimator.start();
+        } else {
+            Slog.i(TAG, "Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB");
+        }
+    }
+
+    /**
+     * Multi-screen interaction test end
+     */
+}
+```
+
 参考下面的博客和开源代码：
 [Android T多屏多显——应用双屏间拖拽移动功能](https://www.jindouyun.cn/document/industry/details/242008)     
 [AndroidT应用双屏间拖拽移动功能实现](https://blog.csdn.net/gitblog_09739/article/details/142943823)     

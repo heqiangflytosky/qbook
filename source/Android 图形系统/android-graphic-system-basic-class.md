@@ -21,7 +21,15 @@ date: 2022-11-23 10:00:00
 7.  把合成的这个Bitmap 写到frame buffer中。
 8.  display把这个数据绘制到屏幕上。
 
+
 ## 相关类
+
+
+## 相关文章
+
+[Android图形架构缺陷](https://mp.weixin.qq.com/s/M61-uXnZz3mllMrn5HRNLg)
+[Android GPU渲染屏幕绘制显示基础概念（1）](https://zhangphil.blog.csdn.net/article/details/138585120)
+[Android GPU渲染SurfaceFlinger合成RenderThread的dequeueBuffer/queueBuffer与fence机制（2](https://blog.csdn.net/zhangphil/article/details/138628225)
 
 
 

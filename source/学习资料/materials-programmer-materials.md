@@ -495,11 +495,13 @@ date: 2016-12-1 10:00:00
 
 ### Markdown 相关工具
 
-#### 在线编辑工具
+#### 在线文档编辑工具
 
  - leanote 蚂蚁笔记：[地址](https://leanote.com/)：在线功能强大，客户端功能更强大
  - Dillinger：[地址](https://dillinger.io/)
  - StackEdit：[地址](https://stackedit.io/)
+ - 有道云笔记
+ - 语雀：https://www.yuque.com/ 为每一个人，为每一个团队，提供优秀的文档与知识库工具
 
 功能：
 

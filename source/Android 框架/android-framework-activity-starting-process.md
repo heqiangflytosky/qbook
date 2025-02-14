@@ -78,6 +78,7 @@ ActivityTaskManagerService.startActivity()
                     new ActivityRecord()
                 ActivityStarter.startActivityUnchecked()
                     ActivityStarter.startActivityInner()
+                        // 判断是否有可以重复使用的 Task
                         ActivityStarter.recycleTask()
                             ActivityStarter.setTargetRootTaskIfNeeded()
                                 Task.moveTaskToFront()
@@ -90,6 +91,10 @@ ActivityTaskManagerService.startActivity()
                                                             TopResumedActivityChangeItem.obtain()
                                                             // 通知 Launcher 客户端执行 TopResumedActivityChanged
                                                             ClientLifecycleManager.scheduleTransaction()
+                        // 如果有可以复用的 Task，这里直接返回
+                        if (startResult != START_SUCCESS) {
+                            return startResult;
+                        }
                         ActivityStarter.getOrCreateRootTask() //创建或者获取Task
                             RootWindowContainer.getOrCreateRootTask()
                                 TaskDisplayArea.getOrCreateRootTask()
@@ -102,6 +107,11 @@ ActivityTaskManagerService.startActivity()
                             TaskDisplayArea.positionChildAt()
                                 TaskDisplayArea.positionChildTaskAt()
                                     ActivityTaskSupervisor.updateTopResumedActivityIfNeeded()
+                        Task.startActivityLocked()
+                            // 执行 prepareAppTransition
+                            DisplayContent.prepareAppTransition(TRANSIT_OPEN)
+                            // 添加 StartingWindow 流程
+                            StartingSurfaceController.showStartingWindow()
                         RootWindowContainer.resumeFocusedTasksTopActivities()
                             Task.resumeTopActivityUncheckedLocked
                                 Task.resumeTopActivityInnerLocked

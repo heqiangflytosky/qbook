@@ -287,6 +287,8 @@ TransitionRequestInfo 是继承了 Parcelable 的类，用来将 WMCore 端的�
 
 ## 整体流程
 
+<img src="/images/android-window-system-shell-transitions-base/flow.png" width="862" height="1773"/>
+
 ## Transition 动画图层分析
 
 下面我们结合 WinScope  抓取的 SF 图层来分析一下 ShellTransition 过程。    
@@ -389,6 +391,13 @@ ActivityStarter.startActivityUnchecked()
                         new ActiveTransition
                         // 找出可以执行此动画的 TransitionHandler，并保存在 ActiveTransition
                         DefaultMixedHandler.handleRequest()
+                            Transitions.dispatchRequest()
+                                RemoteTransitionHandler.handleRequest()
+                                    new WindowContainerTransaction()
+                            DefaultMixedHandler.createDefaultMixedTransition()
+                                new DefaultMixedTransition()
+                            DefaultMixedHandler.mLeftoversHandler = RemoteTransitionHandler
+                            mActiveTransitions.add(mixed)
                         WindowOrganizer.startTransition()
                             IWindowOrganizerController.startTransition()
                             // -------> WMCore

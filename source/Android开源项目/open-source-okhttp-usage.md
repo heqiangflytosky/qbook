@@ -152,6 +152,28 @@ OkHttp 也对 SSE 提供了支持。
 api("com.squareup.okhttp3:okhttp-sse:4.12.0")
 ```
 
+构造Client：    
+
+```
+        // 日志拦截器
+        var logInterceptor = HttpLoggingInterceptor()
+        // 注意：流式输出时这里的level不能设置为BODY，否则不是流式输出
+        logInterceptor.level = HttpLoggingInterceptor.Level.BODY
+//        if (BuildConfig.DEBUG) {
+//            okHttpBuilder.addInterceptor(logInterceptor)
+//        }
+        
+  // 定义see接口
+    Request request = new Request.Builder().url("http://127.0.0.1:8080/sse/2").build();
+    OkHttpClient okHttpClient = new OkHttpClient.Builder()
+            .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1)) // 注意这里把HTTP2协议加上，否则可能流式传输会有问题
+            .connectTimeout(1, TimeUnit.DAYS)
+            .readTimeout(1, TimeUnit.DAYS)//这边需要将超时显示设置长一点，不然刚连上就断开
+            .build();
+```
+
+第一种方式：      
+
 ```
         var eventSourceListener: EventSourceListener = object : EventSourceListener() {
             override fun onOpen(eventSource: EventSource, response: Response) {
@@ -181,13 +203,10 @@ api("com.squareup.okhttp3:okhttp-sse:4.12.0")
             .newEventSource(Client.generateStreaming(messages.toString(),accessToken).request(),eventSourceListener)
 ```
 
+第二种方式：      
+
 ```
-  // 定义see接口
-    Request request = new Request.Builder().url("http://127.0.0.1:8080/sse/2").build();
-    OkHttpClient okHttpClient = new OkHttpClient.Builder()
-            .connectTimeout(1, TimeUnit.DAYS)
-            .readTimeout(1, TimeUnit.DAYS)//这边需要将超时显示设置长一点，不然刚连上就断开
-            .build();
+
 
     // 实例化EventSource，注册EventSource监听器
     RealEventSource realEventSource = new RealEventSource(request, new EventSourceListener() {

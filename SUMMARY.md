@@ -101,6 +101,7 @@
     * [Android SystemUI 解锁动画](source/Android 窗口系统/android-window-system-animation-systemui-keyguard-going-away.md)
     * [Android 窗口焦点](source/Android 窗口系统/android-window-system-window-focus.md)
     * [Android 屏幕旋转流程](source/Android 窗口系统/android-window-system-screen-rotation.md)
+    * [Android ShellTransitions](source/Android 窗口系统/android-window-system-shell-transitions-base.md)
 * [Android 图形系统]()
     * [Android 图形系统基础知识和相关类](source/Android 图形系统/android-graphic-system-basic-class.md)
     * [Android SurfaceFlinger dump 信息分析](source/Android 图形系统/android-graphic-system-surfaceflinger-dump.md)

@@ -440,12 +440,15 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                                         SurfaceControl.Transaction.show()
                     // 计算动画目标
                     Transition.calculateTargets()
+                        // 动画层级提升
                         Transition.tryPromote()
                     mState = STATE_PLAYING // 修改状态为 STATE_PLAYING
                     mStartTransaction = transaction // 把 merge 赋值给 mStartTransaction
                     Transition.calculateTransitionInfo()
                         // 构建TransitionInfo对象
                         new TransitionInfo
+                        // 获取用于挂载到 Leash 的图层
+                        Transition.getLeashSurface()
                         // 创建 Transition Root Leash
                         Transition.calculateTransitionRoots()
                             WindowContainer.makeAnimationLeash().build()
@@ -457,6 +460,8 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                         // WMCore  ----> WMShell
                         Transitions.TransitionPlayerImpl.onTransitionReady
                             Transitions.onTransitionReady()
+                                // 获取前面创建的 ActiveTransition，并把从wmcore传递过来的一些参数配置给 ActiveTransition
+                                ActiveTransition active = mPendingTransitions.remove(activeIdx);
                                 Transitions.dispatchReady()
                                     // 分配一个 Track
                                     Transitions.getOrCreateTrack()
@@ -465,6 +470,10 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                                     Transitions.playTransition()
                                         //将动画参与者reparent到一个共同的父Layer上，然后设置它们的Z轴层级
                                         Transitions.setupAnimHierarchy()
+                                            SurfaceControl.Transaction.reparent
+                                            // 计算层级顺序
+                                            Transitions.calculateAnimLayer() 
+                                            SurfaceControl.Transaction.setLayer
                                     Transitions.processReadyQueue()
                                         Transitions.playTransition()
                                             DefaultMixedHandler.startAnimation()
@@ -482,7 +491,9 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                                                                                     RemoteAnimationTarget.createLeash()
                                                                                         // _transition-leash
                                                                                         new SurfaceControl.Builder().build()
+                                                                                        // 设置leash的层级
                                                                                         TransitionUtil.setupLeash()
+                                                                        SurfaceControl.Transaction.apply() // 执行前面配置的 mStartT Transaction
                                                                         RemoteAnimationRunnerCompat.onAnimationStart()
                                                                             LauncherAnimationRunner.onAnimationStart()
                                                                                 QuickstepTransitionManager.AppLaunchAnimationRunner.onAnimationStart()
@@ -508,6 +519,8 @@ RootWindowContainer.performSurfacePlacementNoTrace()
 IRemoteTransitionFinishedCallback.onTransitionFinished
 Transitions.TransitionFinishCallback.onTransitionFinished // startAnimation 时注册
     Transitions.onFinish
+        // 执行 mFinishT
+        active.mFinishT.apply()
         WindowOrganizer.finishTransition()
             getWindowOrganizerController().finishTransition()
                 // ------> WMCore
@@ -1088,7 +1101,7 @@ Session.finishDrawing()
 上面的代码构造了一个局部 Transaction 变量 merged，它将所有参与动画的 WindowContainer，将它们在动画期间发生的 mSyncTransaction 操作都合并到这个局部变量 merged 中。      
 那么怎么理解这个 mSyncTransaction 呢？    
 我们指的，调用Transaction.show的时候，只是将对SurfaceControl的操作暂存在了Transaction中（更准确的说，是native层的layer_state_t结构体中），只有当调用Transaction.apply的时候，这个对SurfaceControl的操作才算真正提交到了SurfaceFlinger端，进而作用到了Layer上。     
-那么这里为了保证所有的绘制能够统一显示，创建一个统一的Transaction对象（即SyncGroup.finishNow中创建的那个Transaction类型的局部变量merged），来收集所有参与到分屏的SurfaceControl的变化，并且只有等到所有参与分屏的窗口都绘制完成后，才对这个Transaction对象调用apply方法，这样就保证了所有的SurfaceControl变化在一次Transaction.apply中进行了提交。      
+那么这里为了保证所有的绘制能够统一显示，创建一个统一的Transaction对象（即SyncGroup.finishNow中创建的那个 Transaction 类型的局部变量merged），来收集所有参与到分屏的SurfaceControl的变化，并且只有等到所有参与分屏的窗口都绘制完成后，才对这个Transaction对象调用apply方法，这样就保证了所有的SurfaceControl变化在一次Transaction.apply中进行了提交。      
 
 在 WindowState 提交显示时：    
 
@@ -1242,10 +1255,56 @@ mSyncTransaction 的apply方法的调用时机则是和 Transition 的流程密�
         }
 ```
 
+解析主要的工作如下：    
+
+ - 为所有参与到动画的WindowContainer调用waitForSyncTransactionCommit方法。    
+ - 定义一个CommitCallback的类，这个类有一个自定义的onCommitted方法，以及复写Runnable的run方法。     
+ - 调用Transaction.addTransactionCommittedListener方法注册TransactionCommittedListener回调，回调触发的时候执行这个callback的onCommitted方法。     
+ - Handler.postDelayed将这个callback添加到了MessageQueue中，5000ms超时之后执行这个callback的run方法。确保异常情况下可以执行到 merged 的那个 Transaction。     
+
+先来介绍一下 waitForSyncTransactionCommit() 方法。     
+
+```
+    void waitForSyncTransactionCommit(ArraySet<WindowContainer> wcAwaitingCommit) {
+        if (wcAwaitingCommit.contains(this)) {
+            return;
+        }
+        mSyncTransactionCommitCallbackDepth++;
+        wcAwaitingCommit.add(this);
+
+        for (int i = mChildren.size() - 1; i >= 0; --i) {
+            mChildren.get(i).waitForSyncTransactionCommit(wcAwaitingCommit);
+        }
+    }
+```
+
+这个方法里面首先将 mSyncTransactionCommitCallbackDepth 变量 +1，这个变量在前介绍 getSyncTransaction() 方法时也说过，当 `mSyncTransactionCommitCallbackDepth > 0` 时，getSyncTransaction() 返回的是 mSyncTransaction，mSyncTransaction 和 getPendingTransaction() 的区别前面也讲过，getPendingTransaction() 里面的 Transaction 一般会 apply 的比较快，而 mSyncTransaction 则会和 Transaction 流程有关，在特定事件执行。     
+
+
+```
+    public Transaction getSyncTransaction() {
+        if (mSyncTransactionCommitCallbackDepth > 0) {
+            return mSyncTransaction;
+        }
+        if (mSyncState != SYNC_STATE_NONE) {
+            return mSyncTransaction;
+        }
+
+        return getPendingTransaction();
+    }
+```
+
+那么这里 `mSyncTransactionCommitCallbackDepth++` 就确保了 getSyncTransaction() 方法会返回 mSyncTransaction。因为此时可能距离 merged 被apply还有一段时间，在这段时间内参与到动画的WindowContainer是有可能继续发生变化的，而 syncTransaction 合并到 merged 的操作已经结束了，为了让这个时间段的变化也能够被应用，所以这里调用WindowContainer.mSyncTransaction，将收集到变化的syncTransaction都合并到一个Transaction中，然后再 merged 被 apply 时再调用这些 wcAwaitingCommit 中的 apply。
+
+
+再来看看 onCommitted 方法。   
+当 merged 被 apply 时，会回调 onCommitted 方法，那么这里就把前面的 wcAwaitingCommit 里面保存的 WindowContainer 的 mSyncTransaction merge 到 merged Transaction 中，然后再次执行 apply。这样就保证了前面 merged 流程结束到 merged apply 这段时间里面 WindowContainer 的变化也能得到执行。     
+
 
 ### onTransactionReady()
 
 ```
+//Transition.java
     public void onTransactionReady(int syncId, SurfaceControl.Transaction transaction) {
         ......
         commitVisibleActivities(transaction);
@@ -1292,9 +1351,205 @@ mSyncTransaction 的apply方法的调用时机则是和 Transition 的流程密�
 1.首先调用 Transition.commitVisibleActivities() 来设置Surface可见，具体流程参考上面。    
 2.Transition.calculateTargets() 计算动画目标
 这里介绍一下 Transition.tryPromote。    
-”promote“，提升的动画目标在WindowContainer层级结构中的级别，这个逻辑之前在AppTransitionController.getAnimationTargets也用到了，思想都是类似的。比如一个Task中有两个ActivityRecord，并且这两个ActivityRecord要分别执行一段动画，也就是动画执行的主体是ActivityRecord。如果这两个ActivityRecord刚好都想向左平移同样的距离，那么我们就不需要为这两个ActivityRecord分别应用一段平移的动画，而是直接将这个平移的动画应用到它们共同的父容器Task上，并且实现的效果是一样的。这也就是”promote“的含义，动画的目标主体从ActivityRecord”提升“到了更高一级的Task上。    
+"promote"，提升的动画目标在 WindowContainer 层级结构中的级别，这个逻辑之前在 `AppTransitionController.getAnimationTargets` 也用到了，思想都是类似的。比如一个 Task 中有两个 ActivityRecord，并且这两个 ActivityRecord 要分别执行一段动画，也就是动画执行的主体是ActivityRecord。如果这两个ActivityRecord刚好都想向左平移同样的距离，那么我们就不需要为这两个ActivityRecord分别应用一段平移的动画，而是直接将这个平移的动画应用到它们共同的父容器Task上，并且实现的效果是一样的。这也就是 "promote" 的含义，动画的目标主体从ActivityRecord”提升“到了更高一级的Task上。    
 
-这里看到为 mStartTransaction 和 mFinishTransaction 赋值，mStartTransaction 被赋值为传参transaction，传参即我们上一篇分析中的在SyncGroup.finishNow创建的一个Transaction，局部变量merged。      
+```
+    static ArrayList<ChangeInfo> calculateTargets(ArraySet<WindowContainer> participants,
+            ArrayMap<WindowContainer, ChangeInfo> changes) {
+        ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS,
+                "Start calculating TransitionInfo based on participants: %s", participants);
+
+        // 首先是初始目标的构建，这里先执行一些过滤
+        final Targets targets = new Targets();
+        for (int i = participants.size() - 1; i >= 0; --i) {
+            final WindowContainer<?> wc = participants.valueAt(i);
+            // 还没有 attach的过滤
+            if (!wc.isAttached()) {
+                ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS,
+                        "  Rejecting as detached: %s", wc);
+                continue;
+            }
+            // 动画参与者不是 WindowState 的过滤
+            if (wc.asWindowState() != null) continue;
+
+            final ChangeInfo changeInfo = changes.get(wc);
+            // Reject no-ops, unless wallpaper
+            if (!changeInfo.hasChanged()
+                    && (!Flags.ensureWallpaperInTransitions() || wc.asWallpaperToken() == null)
+                    //Flyme|Core-Framework|haiqin.xia@xjmz.com|#1399245 Display Switch {
+                ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS,
+                        "  Rejecting as no-op: %s", wc);
+                continue;
+            }
+            // 加入target列表
+            targets.add(changeInfo);
+        }
+        ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS, "  Initial targets: %s",
+                targets.mArray);
+        // Combine the targets from bottom to top if possible.
+        tryPromote(targets, changes);
+        // Establish the relationship between the targets and their top changes.
+        populateParentChanges(targets, changes);
+
+        final ArrayList<ChangeInfo> targetList = targets.getListSortedByZ();
+        ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS, "  Final targets: %s", targetList);
+        return targetList;
+    }
+```
+
+初始列表构建完成了就通过 `tryPromote` 方法执行 promote 流程。具体的 promote 流程可以参考下面的日志：     
+
+```
+20479 20540 V WindowManager: Start calculating TransitionInfo based on participants: {ActivityRecord{28e1a3f u0 com.hq.android.androiddemo/.MainActivity t-1}, ActivityRecord{31547cd u0 com.***.launcher/com.android.launcher3.uioverrides.QuickstepLauncher t63}, Window{6ac4e31 u0 com.android.systemui.wallpapers.ImageWallpaper}, Task{945389a #64 type=standard A=10239:com.hq.android.androiddemo}, ActivityRecord{ac835bc u0 com.hq.android.androiddemo/.MainActivity t64}, Window{cb7175d u0 com.android.systemui.wallpapers.ImageWallpaper}}
+20479 20540 V WindowManager:   Rejecting as detached: ActivityRecord{28e1a3f u0 com.hq.android.androiddemo/.MainActivity t-1}
+20479 20540 V WindowManager:   Initial targets: {632=Task{945389a #64 type=standard A=10239:com.hq.android.androiddemo}, 720=ActivityRecord{ac835bc u0 com.hq.android.androiddemo/.MainActivity t64}, 803=ActivityRecord{31547cd u0 com.***.launcher/com.android.launcher3.uioverrides.QuickstepLauncher t63}}
+20479 20540 V WindowManager:     checking ActivityRecord{31547cd u0 com.***.launcher/com.android.launcher3.uioverrides.QuickstepLauncher t63}
+20479 20540 V WindowManager:         remove from targets ActivityRecord{31547cd u0 com.***.launcher/com.android.launcher3.uioverrides.QuickstepLauncher t63}
+20479 20540 V WindowManager:       CAN PROMOTE: promoting to parent Task{e81db93 #63 type=home I=com.***.launcher/com.android.launcher3.uioverrides.QuickstepLauncher}
+20479 20540 V WindowManager:     checking ActivityRecord{ac835bc u0 com.hq.android.androiddemo/.MainActivity t64}
+20479 20540 V WindowManager:         remove from targets ActivityRecord{ac835bc u0 com.hq.android.androiddemo/.MainActivity t64}
+20479 20540 V WindowManager:     checking Task{e81db93 #63 type=home I=com.***.launcher/com.android.launcher3.uioverrides.QuickstepLauncher}
+20479 20540 V WindowManager:         remove from targets Task{e81db93 #63 type=home I=com.***.launcher/com.android.launcher3.uioverrides.QuickstepLauncher}
+20479 20540 V WindowManager:       CAN PROMOTE: promoting to parent Task{fd2c557 #1 type=home}
+20479 20540 V WindowManager:     checking Task{945389a #64 type=standard A=10239:com.hq.android.androiddemo}
+20479 20540 V WindowManager:       SKIP: parent can't be target DefaultTaskDisplayArea@19780858
+20479 20540 V WindowManager:     checking Task{fd2c557 #1 type=home}
+20479 20540 V WindowManager:       SKIP: its sibling was rejected
+20479 20540 V WindowManager:   Final targets: [Task{945389a #64 type=standard A=10239:com.hq.android.androiddemo}, Task{fd2c557 #1 type=home}]
+```
+
+promote 之前的 targets 参数里面有三个 ChangeInfo，分别代表启动应用所在的 Task 和 ActivityRecord，以及桌面 ActivityRecord。    
+日志中的 CAN PROMOTE: 表示是可以进行 promote 的节点。     
+经过一系列的 promote 操作，targets 列表里面还剩下两项，分别是 启动应用所在的 Task，还有就是桌面所在的 Task home。这里说明把 targets 列表进行了精简处理，低级别的节点动画被提升到了高级别的父节点来执行。      
+其中桌面经历了两次提升，`ActivityRecord{31547cd u0 com.***.launcher/com.android.launcher3.uioverrides.QuickstepLauncher t63}` --> `Task{e81db93 #63 type=home I=com.***.launcher/com.android.launcher3.uioverrides.QuickstepLauncher}` --> `promoting to parent Task{fd2c557 #1 type=home}`      
+因为待启动的应用的 ActivityRecord 的父亲节点 Task 也在列表中，因此这一步 promote 可以省去了，从列表中直接remove ActivityRecord。    
+再结合代码来看一下。    
+
+```
+    private static void tryPromote(Targets targets, ArrayMap<WindowContainer, ChangeInfo> changes) {
+        WindowContainer<?> lastNonPromotableParent = null;
+        // Go through from the deepest target.
+        for (int i = targets.mArray.size() - 1; i >= 0; --i) {
+            final ChangeInfo targetChange = targets.mArray.valueAt(i);
+            final WindowContainer<?> target = targetChange.mContainer;
+            ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS, "    checking %s", target);
+            final WindowContainer<?> parent = target.getParent();
+            if (parent == lastNonPromotableParent) {
+                ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS,
+                        "      SKIP: its sibling was rejected");
+                continue;
+            }
+            // 调用Transition.canPromote方法来判断他们是否能够提升为父容器。
+            if (!canPromote(targetChange, targets, changes)) {
+                lastNonPromotableParent = parent;
+                // 如果不能提升，就开始遍历下一个
+                continue;
+            }
+            // 判断该 WindowContainer 是否是由 WindowOrganizer 来管理的
+            if (reportIfNotTop(target)) {
+                ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS,
+                        "        keep as target %s", target);
+            } else {
+                // 如果不是，把它从 targets 中移除
+                ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS,
+                        "        remove from targets %s", target);
+                targets.remove(i);
+            }
+            // 将它的父节点加入 targets
+            final ChangeInfo parentChange = changes.get(parent);
+            if (targets.mArray.indexOfValue(parentChange) < 0) {
+                ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS,
+                        "      CAN PROMOTE: promoting to parent %s", parent);
+                // The parent has lower depth, so it will be checked in the later iteration.
+                i++;
+                targets.add(parentChange);
+            }
+            if ((targetChange.mFlags & ChangeInfo.FLAG_CHANGE_NO_ANIMATION) != 0) {
+                parentChange.mFlags |= ChangeInfo.FLAG_CHANGE_NO_ANIMATION;
+            } else {
+                parentChange.mFlags |= ChangeInfo.FLAG_CHANGE_YES_ANIMATION;
+            }
+            if ((targetChange.mFlags & ChangeInfo.FLAG_CHANGE_CONFIG_AT_END) != 0) {
+                parentChange.mFlags |= ChangeInfo.FLAG_CHANGE_CONFIG_AT_END;
+            }
+        }
+    }
+```
+
+canPromote 这个方法比较重要，我们来看一下代码实现。    
+
+```
+//Transition.java
+//在某些情况下（例如，父容器中的所有可见目标都以相同的方式转换），可以将转换“提升”到父容器。这意味着动画可以只在父项上播放，而不是在所有单独的子项上播放。
+    private static boolean canPromote(ChangeInfo targetChange, Targets targets,
+            ArrayMap<WindowContainer, ChangeInfo> changes) {
+        final WindowContainer<?> target = targetChange.mContainer;
+        final WindowContainer<?> parent = target.getParent();
+        final ChangeInfo parentChange = changes.get(parent);
+        // 目前只有TaskDisplayArea、TaskFragment以及ActivityRecord会返回true，
+        // 其它类型的WindowContainer都会返回false，也就是说父容器不是这几类的WindowContainer将无法得到提升，
+        // 那么目前只有这几种提升：WindowState到ActivityRecord，ActivityRecod到TaskFragment，
+        // TaskFragment到TaskFragment（因为TaskFragment存在嵌套，比如Home类型的TaskFragment），以及TaskFragment到TaskDisplayArea。
+        if (!parent.canCreateRemoteAnimationTarget()
+                || parentChange == null || !parentChange.hasChanged()) {
+            ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS, "      SKIP: %s",
+                    "parent can't be target " + parent);
+            return false;
+        }
+        // 如果是wallpaper 类型的，则不会执行promote
+        if (isWallpaper(target)) {
+            ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS, "      SKIP: is wallpaper");
+            return false;
+        }
+        //如果当前WindowContainer前后的父WindowContainer不一致，即发生reparent了，则不提升
+        if (targetChange.mStartParent != null && target.getParent() != targetChange.mStartParent) {
+            // When a window is reparented, the state change won't fit into any of the parents.
+            // Don't promote such change so that we can animate the reparent if needed.
+            return false;
+        }
+
+        final @TransitionInfo.TransitionMode int mode = targetChange.getTransitMode(target);
+        // 遍历父WindowContainer的所有子WindowContainer
+        for (int i = parent.getChildCount() - 1; i >= 0; --i) {
+            final WindowContainer<?> sibling = parent.getChildAt(i);
+            // 过滤掉自己
+            if (target == sibling) continue;
+            ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS, "      check sibling %s",
+                    sibling);
+            final ChangeInfo siblingChange = changes.get(sibling);
+            // 如果该兄弟WindowContainer没有一个ChangeInfo，或者虽然有ChangeInfo，但是没有参与此次动画
+            // 就进入条件继续判断
+            if (siblingChange == null || !targets.wasParticipated(siblingChange)) {
+                if (sibling.isVisibleRequested()) {
+                    // 该兄弟节点可见但是没有动画，就不执行提升，因为如果提升的话会让兄弟节点一起动画
+                    ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS,
+                            "        SKIP: sibling is visible but not part of transition");
+                    return false;
+                }
+                ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS,
+                        "        unrelated invisible sibling %s", sibling);
+                // 如果该兄弟节点不可见，那就继续进行其他兄弟节点判断
+                continue;
+            }
+            // 获取兄弟节点的过渡动画类型
+            final int siblingMode = siblingChange.getTransitMode(sibling);
+            ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS,
+                    "        sibling is a participant with mode %s",
+                    TransitionInfo.modeToString(siblingMode));
+            // 通过 reduceMode来判断动画方向是否大体相同
+            if (reduceMode(mode) != reduceMode(siblingMode)) {
+                ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS,
+                        "          SKIP: common mode mismatch. was %s",
+                        TransitionInfo.modeToString(mode));
+                // 如果不一致，那就不能执行提升，就需要各做各的
+                return false;
+            }
+        }
+        return true;
+    }
+```
+
+3.这里看到为 mStartTransaction 和 mFinishTransaction 赋值，mStartTransaction 被赋值为传参transaction，传参即我们上一篇分析中的在SyncGroup.finishNow创建的一个Transaction，局部变量merged。      
 那么这两个变量存在的意义是什么呢？    
 举个例子说明一下，如果我们从ActivityA上启动了一个ActivityB：        
 1）、对于ActivityA来说，它相关的SurfaceControl（准确一点说则是WindowSurfaceController.mSurfaceControl）需要在动画结束的时候再隐藏，如果它在动画开始前就隐藏，那么就无法看到ActivityA的动画效果了（向右平移退出或者淡出之类的动画）。    
@@ -1303,7 +1558,44 @@ mSyncTransaction 的apply方法的调用时机则是和 Transition 的流程密�
 
 从以上分析可知，ActivityA和ActivityB相关的SurfaceControl可见性变化的时机是不同的，那么这个行为通过一次Transacton.apply是无法做到的，所以就需要两个Transaction，即“start transaction”和“finish transaction”。“start transaction”在动画开始前调用apply，用于在动画开始执行前提前将ActivityB进行显示，“finish transaction”则是在动画结束的时候调用apply，用于在动画结束的时候再将ActivityA隐藏。   
 
-3.calculateTransitionInfo
+4.calculateTransitionInfo
+
+```
+    static TransitionInfo calculateTransitionInfo(@TransitionType int type, int flags,
+            ArrayList<ChangeInfo> sortedTargets,
+            @NonNull SurfaceControl.Transaction startT) {
+        final TransitionInfo out = new TransitionInfo(type, flags);
+        calculateTransitionRoots(out, sortedTargets, startT);
+        ......
+        final int count = sortedTargets.size();
+        for (int i = 0; i < count; ++i) {
+            final ChangeInfo info = sortedTargets.get(i);
+            final WindowContainer target = info.mContainer;
+            final TransitionInfo.Change change = new TransitionInfo.Change(
+                    target.mRemoteToken != null ? target.mRemoteToken.toWindowContainerToken()
+                            : null, getLeashSurface(target, startT));
+            // TODO(shell-transitions): Use leash for non-organized windows.
+            if (info.mEndParent != null) {
+                change.setParent(info.mEndParent.mRemoteToken.toWindowContainerToken());
+            }
+            if (info.mStartParent != null && info.mStartParent.mRemoteToken != null
+                    && target.getParent() != info.mStartParent) {
+                change.setLastParent(info.mStartParent.mRemoteToken.toWindowContainerToken());
+            }
+            change.setMode(info.getTransitMode(target));
+            info.mReadyMode = change.getMode();
+            change.setStartAbsBounds(info.mAbsoluteBounds);
+            change.setFlags(info.getChangeFlags(target));
+            info.mReadyFlags = change.getFlags();
+            change.setDisplayId(info.mDisplayId, getDisplayId(target));
+            ......
+
+            out.addChange(change);
+        }
+        return out;
+    }
+
+```
 
 构建TransitionInfo对象     
 创建 Transition Root 图层，作为动画图层的根图层        
@@ -1321,16 +1613,87 @@ mSyncTransaction 的apply方法的调用时机则是和 Transition 的流程密�
     }
 ```
 
-4.buildFinishTransaction
+具体可以看前面的图层分析。      
 
-构建动画结束后所有的动画操作得到重置的动作。    
+5.buildFinishTransaction
 
-5.WMShell 播放动画
+构建动画结束后执行的一些重置的动作(mFinishTransaction)。比如将图层从 Leash 图层放回到原来的位置。       
+
+6.WMShell 播放动画
 
 
-### 执行动画
+### WMShell 执行动画
 
 具体流程参考前面的流程图。    
+
+setupStartState() 方法用于设置一些执行动画前的 Transaction 准备动作。
+
+```
+    private static void setupStartState(@NonNull TransitionInfo info,
+            @NonNull SurfaceControl.Transaction t, @NonNull SurfaceControl.Transaction finishT) {
+        boolean isOpening = isOpeningType(info.getType());
+        for (int i = info.getChanges().size() - 1; i >= 0; --i) {
+            final TransitionInfo.Change change = info.getChanges().get(i);
+            if (change.hasFlags(FLAGS_IS_NON_APP_WINDOW & ~FLAG_IS_WALLPAPER)) {
+                // Currently system windows are controlled by WindowState, so don't change their
+                // surfaces. Otherwise their surfaces could be hidden or cropped unexpectedly.
+                // This includes IME (associated with app), because there may not be a transition
+                // associated with their visibility changes, and currently they don't need a
+                // transition animation.
+                continue;
+            }
+            if (change.hasFlags(FLAG_IS_WALLPAPER) && !ensureWallpaperInTransitions()) {
+                // Wallpaper is always z-ordered at bottom, and historically is not animated by
+                // transition handlers.
+                continue;
+            }
+            final SurfaceControl leash = change.getLeash();
+            final int mode = info.getChanges().get(i).getMode();
+
+            if (mode == TRANSIT_TO_FRONT) {
+                // When the window is moved to front, make sure the crop is updated to prevent it
+                // from using the old crop.
+                t.setPosition(leash, change.getEndRelOffset().x, change.getEndRelOffset().y);
+                t.setWindowCrop(leash, change.getEndAbsBounds().width(),
+                        change.getEndAbsBounds().height());
+            }
+
+            // Don't move anything that isn't independent within its parents
+            if (!TransitionInfo.isIndependent(change, info)) {
+                if (mode == TRANSIT_OPEN || mode == TRANSIT_TO_FRONT || mode == TRANSIT_CHANGE) {
+                    t.show(leash);
+                    t.setMatrix(leash, 1, 0, 0, 1);
+                    t.setAlpha(leash, 1.f);
+                    t.setPosition(leash, change.getEndRelOffset().x, change.getEndRelOffset().y);
+                    t.setWindowCrop(leash, change.getEndAbsBounds().width(),
+                            change.getEndAbsBounds().height());
+                }
+                continue;
+            }
+
+            if (mode == TRANSIT_OPEN || mode == TRANSIT_TO_FRONT) {
+                // 显示准备做open动画的图层
+                t.show(leash);
+                t.setMatrix(leash, 1, 0, 0, 1);
+                if (isOpening
+                        // If this is a transferred starting window, we want it immediately visible.
+                        && (change.getFlags() & FLAG_STARTING_WINDOW_TRANSFER_RECIPIENT) == 0) {
+                    t.setAlpha(leash, 0.f);
+                }
+                // 配置 finishT 的一些执行动作，动画完成时，也是要设置显示，因为是 open动画
+                finishT.show(leash);
+            } else if (mode == TRANSIT_CLOSE || mode == TRANSIT_TO_BACK) {
+                // close 动画就要在动画结束时设置动画图层隐藏
+                finishT.hide(leash);
+            } else if (isOpening && mode == TRANSIT_CHANGE) {
+                // Just in case there is a race with another animation (eg. recents finish()).
+                // Changes are visible->visible so it's a problem if it isn't visible.
+                t.show(leash);
+            }
+        }
+    }
+
+```
 
 Transitions.setupAnimHierarchy用来在动画开始前，将动画参与者reparent到一个共同的父Layer上，然后设置它们的Z轴层级。
 
@@ -1374,6 +1737,7 @@ Transitions.setupAnimHierarchy用来在动画开始前，将动画参与者repar
         // changes should be ordered top-to-bottom in z
         for (int i = numChanges - 1; i >= 0; --i) {
             final TransitionInfo.Change change = info.getChanges().get(i);
+            // 这个leash 是用于挂载到动画Leash的图层
             final SurfaceControl leash = change.getLeash();
 
             // Don't reparent anything that isn't independent within its parents
@@ -1385,12 +1749,15 @@ Transitions.setupAnimHierarchy用来在动画开始前，将动画参与者repar
 
             final TransitionInfo.Root root = TransitionUtil.getRootFor(change, info);
             if (!hasParent) {
+                //执行reparent，这里的 root.getLeash() 就是前面创建的 Transition Root 图层
+                // leash 是需要挂载的准备做动画的图层
                 t.reparent(leash, root.getLeash());
                 t.setPosition(leash,
                         change.getStartAbsBounds().left - root.getOffset().x,
                         change.getStartAbsBounds().top - root.getOffset().y);
             }
             final int layer = calculateAnimLayer(change, i, numChanges, type);
+            // 重新设置图层的层级，因为他们重新挂载到一个新的父节点，要有个层级显示顺序
             t.setLayer(leash, layer);
         }
     }

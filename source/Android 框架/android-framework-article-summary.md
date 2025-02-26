@@ -24,8 +24,8 @@ date: 2022-11-23 10:00:00
 
 [CSDN:Android Input系统](https://blog.csdn.net/wenwang88/category_12712543.html)      
 
-[简书：Android图像系统与绘制流程](https://juejin.cn/column/7370244444282814490)
-[CSDN:Android图形/显示系统系列](https://blog.csdn.net/u010164190/category_8115449.html)
+[掘金：Android图像系统与绘制流程](https://juejin.cn/column/7370244444282814490)：Android 图像系统和SurfaceFlinger相关       
+[CSDN:Android图形/显示系统系列](https://blog.csdn.net/u010164190/category_8115449.html)      
 
 ## 微信公众号
 

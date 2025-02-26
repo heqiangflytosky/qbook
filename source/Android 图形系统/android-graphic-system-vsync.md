@@ -303,478 +303,21 @@ hw vsync代表画面开始输出给屏幕。
                     () -> mChoreographer = Choreographer.getSfInstance(), 0 /* timeout */);
 ```
 
-## Vsync框架
 
-### 相关类
+## SW-VSync 信号模型
 
- - Schdueler：负责SurfaceFlinger中VSync信号的注册与分发。
- - VsyncSchedule：Scheduler功能实现的核心。保存了 VsyncController、VSyncTracker和VSyncDispatch 对象。
- - VSyncTracker：实现类为 VSyncPredictor，负责接收外部VSync采样，计算软件VSync模型的参数。
- - VsyncController：实现类为 VSyncReactor，负责约束管理VSyncTracker的行为，控制VSyncTracker的采样。
- - VSyncDispatch：实现类为VSyncDispatchTimerQueue，负责软件VSync信号的产生和分发。
+下面开始介绍 SW-VSync 信号是如何产生和校准的。      
 
-<img src="/images/android-graphic-system-vsync/class.png" width="958" height="318" />
-
-```
-
-```
-
-### 相关线程
-
-<img src="/images/android-graphic-system-vsync/threads.png" width="802" height="451" />
-
- - TimerDispatch 线程：TimerDispatch充当软件VSYNC的信号泵，这个线程包装成VsyncDispatchTimeQueue这个类，里面有一个CallbackMap变量，存放的是那些关心VSYNC信号的人（appEventThread, appSfEventThread, sf的MessageQueue），TimerDispatch就是根据模型计算的唤醒时间对着它们发送SW VSYNC。
- - appEventThread线程：它是EventThread类型的实例，它是VSYNC-app寄宿的线程。很明显，它就是 VSYNC-app 的掌门人。一方面，它接收App对VSYNC-app的请求，如果没有App请求VSYNC-app，它就进入休眠；另一方面，它接收 TimerDispatch 发射过来 VSYNC-app，控制App的绘制。
- - appSfEventThread 线程：它是 EventThread 类型的实例，它是 VSYNC-appSf 寄宿的线程，和 appEventThread 线程功能是类似的，用于调试代码，暂时忽略。
- - MessageQueue（表示主线程）： 它是 VSYNC-sf 寄宿的线程，很明显，它就是 VSYNC-sf 的掌门人，不过它专给 SF 一个人服务。一方面，如果 SF 有合成需求，会向它提出申请；另一方面，它接收 TimerDispatch 发射过来的 VSYNC-sf，控制 SF 的合成。
-
-
- 
-### 线程初始化
-
-app、appSf和sf 信号线程的初始化和绑定。    
-
-```
-SurfaceFlinger::initScheduler
-    Scheduler::createEventThread
-    Scheduler::createEventThread
-    MessageQueue::initVsync
-        MessageQueue::onNewVsyncScheduleLocked
-```
-
- - 创建Schdueler，Schdueler负责SurfaceFlinger中VSync信号的注册与分发。ISchedulerCallback用于SurfaceFlinger监听Schdueler的状态。ICompositor用于Schdueler调用SurfaceFlingerLayer合成相关的功能。    
- - 初始化 app、appSf分发线程
- - 初始化MessageQueue，MessageQueue用于SurfaceFlinger注册监听VSync-sf信号。    
-
-```
-void SurfaceFlinger::initScheduler(const sp<const DisplayDevice>& display) {
-    // 创建Schdueler
-    mScheduler = std::make_unique<Scheduler>(static_cast<ICompositor&>(*this),
-                                             static_cast<ISchedulerCallback&>(*this), features,
-                                             std::move(modulatorPtr));
-    mScheduler->registerDisplay(display->getPhysicalId(), display->holdRefreshRateSelector());
-
-    setVsyncEnabled(display->getPhysicalId(), false);
-    mScheduler->startTimers();
-    ...
-    //初始化 app、appSf和sf
-    mAppConnectionHandle =
-            mScheduler->createEventThread(Scheduler::Cycle::Render,
-                                          mFrameTimeline->getTokenManager(),
-                                          /* workDuration */ configs.late.appWorkDuration,
-                                          /* readyDuration */ configs.late.sfWorkDuration);
-    mSfConnectionHandle =
-            mScheduler->createEventThread(Scheduler::Cycle::LastComposite,
-                                          mFrameTimeline->getTokenManager(),
-                                          /* workDuration */ activeRefreshRate.getPeriod(),
-                                          /* readyDuration */ configs.late.sfWorkDuration);
-
-    mScheduler->initVsync(mScheduler->getVsyncSchedule()->getDispatch(),
-                          *mFrameTimeline->getTokenManager(), configs.late.sfWorkDuration);
-    ...
-}
-```
-
-在 Scheduler::createEventThread 方法中根据 Cycle 类型来判断是创建 app 还是 appSf 线程。      
-
-```
-ConnectionHandle Scheduler::createEventThread(Cycle cycle,
-                                              frametimeline::TokenManager* tokenManager,
-                                              std::chrono::nanoseconds workDuration,
-                                              std::chrono::nanoseconds readyDuration) {
-    auto eventThread = std::make_unique<impl::EventThread>(cycle == Cycle::Render ? "app" : "appSf",
-                                                           getVsyncSchedule(), tokenManager,
-                                                           makeThrottleVsyncCallback(),
-                                                           makeGetVsyncPeriodFunction(),
-                                                           workDuration, readyDuration);
-
-    auto& handle = cycle == Cycle::Render ? mAppConnectionHandle : mSfConnectionHandle;
-    handle = createConnection(std::move(eventThread));
-    return handle;
-}
-```
-
-MessageQueue::initVsync 方法调用到 onNewVsyncScheduleLocked，绑定一个回调函数 MessageQueue::vsyncCallback 到 VsyncDispatch 上面，回调名字是"sf"。    
-
-```
-std::unique_ptr<scheduler::VSyncCallbackRegistration> MessageQueue::onNewVsyncScheduleLocked(
-        std::shared_ptr<scheduler::VSyncDispatch> dispatch) {
-    const bool reschedule = mVsync.registration &&
-            mVsync.registration->cancel() == scheduler::CancelResult::Cancelled;
-    auto oldRegistration = std::move(mVsync.registration);
-    // 初始化 mVsync.registration 后面介绍这个 VSyncCallbackRegistration 类
-    mVsync.registration = std::make_unique<
-            scheduler::VSyncCallbackRegistration>(std::move(dispatch),
-                                                  std::bind(&MessageQueue::vsyncCallback, this,
-                                                            std::placeholders::_1,
-                                                            std::placeholders::_2,
-                                                            std::placeholders::_3),
-                                                  "sf");
-    if (reschedule) {
-```
-
-我们知道VsyncDispatch是节拍器（心跳），也就是TimerDispatch的线程所在，所以我们回过头来了解下VsyncDispatch是在什么时候初始化的？      
-Scheduler 在构造方法中会创建 VsyncDispatch 对象，而这个对象也就是SurfaceFlinger系统中唯一的。    
-
-```
-VsyncSchedule::VsyncSchedule
-    VsyncSchedule::createDispatch()
-        make_unique<VSyncDispatchTimerQueue>
-            make_unique<Timer>()
-                Timer::threadMain()
-                    pthread_setname_np(pthread_self(), "TimerDispatch")
-```
-
-创建 VSyncDispatchTimerQueue 时会创建 Timer 对象，这个节拍器（心跳）线程就是 VSyncDispatchTimerQueue 对象中的 mTimeKeeper。    
-
-```
-VSyncDispatchTimerQueue::VSyncDispatchTimerQueue(std::unique_ptr<TimeKeeper> tk,
-                                                 VsyncSchedule::TrackerPtr tracker,
-                                                 nsecs_t timerSlack, nsecs_t minVsyncDistance)
-      : mTimeKeeper(std::move(tk)),
-```
-
-```
-class VSyncDispatchTimerQueue : public VSyncDispatch {
-```
-
-VSyncDispatchTimerQueue 是继承自 VsyncDispatch的，Timer 类是继承自 TimeKeeper的。    
-
-```
-class Timer : public TimeKeeper {
-public:
-```
-
-Timer.cpp中会创建TimerDispatch这个名字的线程。     
-
-```
- Timer::Timer() {
-    reset();
-    mDispatchThread = std::thread([this]() { threadMain(); });
-}
-
-void Timer::threadMain() {
-    while (dispatch()) {
-        reset();
-    }
-}
-
-void Timer::reset() {
-    std::function<void()> cb;
-    {
-        std::lock_guard lock(mMutex);
-        if (mExpectingCallback && mCallback) {
-            cb = mCallback;
-        }
-
-        cleanup();
-        mTimerFd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC | TFD_NONBLOCK);
-        mEpollFd = epoll_create1(EPOLL_CLOEXEC);
-        if (pipe2(mPipes.data(), O_CLOEXEC | O_NONBLOCK)) {
-            ALOGE("could not create TimerDispatch mPipes");
-        }
-    }
-    if (cb) {
-        setDebugState(DebugState::InCallback);
-        cb();
-        setDebugState(DebugState::Running);
-    }
-    setDebugState(DebugState::Reset);
-}
-
-bool Timer::dispatch() {
- 
-     // 设置线程名称
-     if (pthread_setname_np(pthread_self(), "TimerDispatch")) {
-        ALOGW("Failed to set thread name on dispatch thread");
-    }
-```
-
-```
-void VSyncDispatchTimerQueue::setTimer(nsecs_t targetTime, nsecs_t /*now*/) {
-    mIntendedWakeupTime = targetTime;
-    mTimeKeeper->alarmAt(std::bind(&VSyncDispatchTimerQueue::timerCallback, this),
-                         mIntendedWakeupTime);
-    mLastTimerSchedule = mTimeKeeper->now();
-}
-```
-
-
- - Timer类在构造方法会创建的一个线程mDispatchThread。
- - 在这里用到了timerfd，timerfd是Linux为用户程序提供一个定时器接口，这个接口基于文件描述符，通过文件描述符的可读事件进行超时通知，因此可以配合epoll等使用，timerfd_create() 函数创建一个定时器对象，同时返回一个与之关联的文件描述符。
- - timerfd配合epoll函数使用，如果定时器时间到了，就会执行上图中alarmAt函数传入的函数指针，这个函数指针是VsyncDispatchTimerQueue.cpp类的 timerCallback() 函数，而这个函数中，就是对注册的callback执行回调。
-
-
-
-### VSYNC-sf 的申请与分发
-
-先来看一下 SF向VsyncDispatch注册回调的过程。     
-SF 的主线程中也有个主线程负责处理合成相关的事物，同时有一个消息队列来驱动。    
-前面我们讲到 MessageQueue::onNewVsyncScheduleLocked 方法中初始了 mVsync.registation对象，它就是 VSyncCallbackRegistration 类的实例。这个类的作用是操作已经注册回调的帮助类，在该类的构造函数中间接调用dispatch.registerCallback()。     
-
-```
-VSyncCallbackRegistration::VSyncCallbackRegistration(std::shared_ptr<VSyncDispatch> dispatch,
-                                                     VSyncDispatch::Callback callback,
-                                                     std::string callbackName)
-      : mDispatch(std::move(dispatch)),
-        mToken(mDispatch->registerCallback(std::move(callback), std::move(callbackName))) {}
-```
-
-dispatch的registerCallback函数就是注册需要监听SW-VSYNC的信号的函数:    
-
-```
-VSyncDispatchTimerQueue::CallbackToken VSyncDispatchTimerQueue::registerCallback(
-        Callback callback, std::string callbackName) {
-    std::lock_guard lock(mMutex);
-    return CallbackToken{
-            mCallbacks
-                    .emplace(++mCallbackToken,
-                             std::make_shared<VSyncDispatchTimerQueueEntry>(std::move(callbackName),
-                                                                            std::move(callback),
-                                                                            mMinVsyncDistance))
-                    .first->first};
-}
-```
-
-VsyncDispatch的注册函数就会往mCallbacks 注册封装了 callback 的 VsyncDispatchTimerQueueEntry 对象。     
-上面是注册的流程，下面来看看信号的回调流程。     
-当VsyncDispatch发送VSYNC-sf的信号时，会走到MessageQueue类注册的回调函数。     
-
-```
-VSyncDispatchTimerQueue::timerCallback()
-    MessageQueue::vsyncCallback      
-        MessageQueue::Handler::dispatchFrame()
-            mQueue.mLooper->sendMessage
-                MessageQueue.handleMessage
-                    Scheduler.onFrameSignal
-                        // 提交当前以合成的帧
-                        compositor.commit
-                        // 提交成功后，合成下一帧
-                        compositor.composite
-                        // 通知有新合成的帧可用
-                        compositor.sample()
-```
-
-
-```
-void MessageQueue::vsyncCallback(nsecs_t vsyncTime, nsecs_t targetWakeupTime, nsecs_t readyTime) {
-    // Trace 跟踪，下面展示在 Perfetto 中的显示
-    ATRACE_CALL();
-    // Trace VSYNC-sf
-    // 1 -> 0 -> 1 变换
-    mVsync.value = (mVsync.value + 1) % 2;
-
-    const auto expectedVsyncTime = TimePoint::fromNs(vsyncTime);
-    {
-        std::lock_guard lock(mVsync.mutex);
-        mVsync.lastCallbackTime = expectedVsyncTime;
-        mVsync.scheduledFrameTime.reset();
-    }
-
-    const auto vsyncId = VsyncId{mVsync.tokenManager->generateTokenForPredictions(
-            {targetWakeupTime, readyTime, vsyncTime})};
-
-    mHandler->dispatchFrame(vsyncId, expectedVsyncTime);
-    do_vsync_update_tick();
-}
-```
-
-<img src="/images/android-graphic-system-vsync/sf-vsyncCallback.png" width="771" height="209" />
-
-```
-void MessageQueue::Handler::dispatchFrame(VsyncId vsyncId, TimePoint expectedVsyncTime) {
-    if (!mFramePending.exchange(true)) {
-        mVsyncId = vsyncId;
-        mExpectedVsyncTime = expectedVsyncTime;
-        mQueue.mLooper->sendMessage(sp<MessageHandler>::fromExisting(this), Message());
-    }
-}
-```
-dispatchFrame 方法主要做了下面两件事情：    
- - 保存VSyncId。
- - 调用MessageQueue的Looper，发送消息。
-
-在Handler的sendMessage方法中，最终会回调Handler的handleMessage方法。     
-
-```
-void MessageQueue::Handler::handleMessage(const Message&) {
-    mFramePending.store(false);
-    mQueue.onFrameSignal(mQueue.mCompositor, mVsyncId, mExpectedVsyncTime);
-}
-```
-
-由于Scheduler继承了MessageQueue，因此在Handler的handleMessage方法的内部，会调用Scheduler的onFrameSignal方法。     
-
-```
-void Scheduler::onFrameSignal(ICompositor& compositor, VsyncId vsyncId,
-                              TimePoint expectedVsyncTime) {
-    const TimePoint frameTime = SchedulerClock::now();
-    // 提交当前以合成的帧
-    if (!compositor.commit(frameTime, vsyncId, expectedVsyncTime)) {
-        return;
-    }
-    // 提交成功后，合成下一帧
-    compositor.composite(frameTime, vsyncId);
-    // 通知有新合成的帧可用
-    compositor.sample();
-}
-```
-
-分别调用 SurfaceFlinger 的相关方法。    
-
- - 提交已合成的帧显示在屏幕上。     
- - 如果提交成功，合成下一帧，并通知有新合成的帧可用。    
- 
-
-<img src="/images/android-graphic-system-vsync/sf-commit.png" width="698" height="175" />
-
-```
-void SurfaceFlinger::composite(TimePoint frameTime, VsyncId vsyncId)
-        FTL_FAKE_GUARD(kMainThreadContext) {
-    ATRACE_FORMAT("%s %" PRId64, __func__, vsyncId.value);
-    
-} 
-
-bool SurfaceFlinger::commit(TimePoint frameTime, VsyncId vsyncId, TimePoint expectedVsyncTime)
-        FTL_FAKE_GUARD(kMainThreadContext) {
-
-
-    ATRACE_FORMAT("%s %" PRId64 " vsyncIn %.2fms%s", __func__, vsyncId.value,
-                  ticks<std::milli, float>(mExpectedPresentTime - TimePoint::now()),
-                  mExpectedPresentTime == expectedVsyncTime ? "" : " (adjusted)");
-        
-}   
-    
-void SurfaceFlinger::sample() {
-    if (!mLumaSampling || !mRegionSamplingThread) {
-        return;
-    }
-
-    mRegionSamplingThread->onCompositionComplete(mScheduler->getScheduledFrameTime());
-}
-```
-
-### VSYNC-app的申请与分发
-
-#### VSYNC-app的申请
-
-VSync-app用于控制App的UI渲染。    
-如果有 App 关心 VSYN-APP，则需要向 appEventThread 注册 Connection，可能有多个 App 同时关注 VSYNC-app 信号，所以在 EventThread 的内部有一个 mDisplayEventConnections 来保存着Connection，Connection是一个Bn对象，因为要与APP进行binder通讯。      
-
-App 进程：    
-```
-new Choreographer()
-    new FrameDisplayEventReceiver
-        DisplayEventReceiver.nativeInit
-            DisplayEventReceiver::DisplayEventReceiver
-                ISurfaceComposer.createDisplayEventConnection
-```
-
-sf 进程：    
-```
-SurfaceComposerAIDL::createDisplayEventConnection
-    Scheduler::createDisplayEventConnection
-        EventThread::createEventConnection
-            EventThreadConnection::onFirstRef()
-                EventThread::registerDisplayEventConnection(
-                    mDisplayEventConnections.push_back(connection);
-```
-
-应用通过Choreographer这个对象去申请Vsync-app的信号，然后通过其内部类FrameDisplayEventReceiver来接受vsync信号，也就是Vsync-app的发射最后到这个对象里面，来触发app刷新，核心就是FrameDisplayEventReceiver类，这个类的初始化在是Choreographer的构造函数中。      
-
-
-#### VSYNC-app的分发
-
-有界面更新请求，请求 Vsync：
-
-```
-ViewRootImpl.scheduleTraversals()
-    // 申请并 监听VSYNC信号，下一次VSYNC信号到来时，执行给进去的mTraversalRunnable
-    Choreographer.postCallback(Choreographer.CALLBACK_TRAVERSAL, mTraversalRunnable)
-        Choreographer.postCallbackDelayed()
-            Choreographer.postCallbackDelayedInternal()
-                mCallbackQueues.addCallbackLocked
-                Choreographer.scheduleFrameLocked
-                    Choreographer.scheduleVsyncLocked()
-                        DisplayEventReceiver.scheduleVsync()
-                            DisplayEventReceiver.nativeScheduleVsync()
-                            ------ jni -----
-                                android_view_DisplayEventReceiver.nativeScheduleVsync
-                                    DisplayEventDispatcher::scheduleVsync()
-                                        DisplayEventReceiver::requestNextVsync()
-                                            IDisplayEventConnection.mEventConnection->requestNextVsync()  --> surfaceFlinger
-                // 如果需要立即执行，就不用等下个 Vsync
-                Handler.obtainMessage(MSG_DO_SCHEDULE_CALLBACK, action)
-                    
-```
-
-surfaceFlinger 进程：    
-
-```
-    EventThreadConnection::requestNextVsync()
-        EventThread::requestNextVsync(
-```
-应用要申请Vsync信号，都是通过Choregrapher对象调用postFrameCallback方法，而应用在绘制的时候也会调用这个方法，就是ViewRootImpl中的scheduleTraversals方法，其实在函数实现中也是调用了Choregrapher的postFrameCallback方法。     
-
-```
-binder::Status EventThreadConnection::requestNextVsync() {
-    // 原生 Trace
-    ATRACE_CALL();
-
-    mEventThread->requestNextVsync(sp<EventThreadConnection>::fromExisting(this));
-
-    return binder::Status::ok();
-}
-
-void EventThread::requestNextVsync(const sp<EventThreadConnection>& connection) {
-    ATRACE_NAME(mThreadName);//添加打印把主要线程名字打出到Trace中
-    if (connection->resyncCallback) {
-        connection->resyncCallback();
-    }
-
-    std::lock_guard<std::mutex> lock(mMutex);
-
-    if (connection->vsyncRequest == VSyncRequest::None) {
-        connection->vsyncRequest = VSyncRequest::Single;
-        mCondition.notify_all();
-    } else if (connection->vsyncRequest == VSyncRequest::SingleSuppressCallback) {
-        connection->vsyncRequest = VSyncRequest::Single;
-    }
-}
-```
-当前的申请Vsync-app的Connection的vsyncRequest赋值为 VsyncRequest::Single。     
-我们在 EventThread::requestNextVsync 添加了 Trace 打印，在 Perfetto 中看看对应的情况。    
-
-<img src="/images/android-graphic-system-vsync/sf-requestNextVsync.png" width="768" height="139" />
-
-上图展示了在对应的 EventThread 中申请了 App Vsync 信号。    
-
-EventThread的线程函数threadMain() 中进行循环调用，一方面检测是否有Vsync信号发送过来了mPendingEvent，一方面检查是否有app请求了Vsync信号，如果有Vsync信号，而且有app请求了Vsync，则通过Connection把Vsync事件发送到对端。     
-
-当有VSYNC信号来临时，native层会回调DisplayEventReceiver的dispatchVsync方法:    
-
-````
-    DisplayEventReceiver.dispatchVsync
-        Choreographer.FrameDisplayEventReceiver.onVsync
-            Message msg = Message.obtain(mHandler, this);
-            Handler.sendMessageAtTime
-                FrameDisplayEventReceiver.run()
-                    Choreographer.doFrame
-                        Choreographer.doCallbacks
-                            Choreographer.CallbackRecord.run
-                                ViewRootImpl.TraversalRunnable.run
-                                    ViewRootImpl.doTraversal()
-                                        ViewRootImpl.performTraversals()
-```
-
-## HW-VSync的开启
+### HW-VSync 的开启
 
 HW-VSync的开启的时机有如下情况：     
 
  - SurfaceFlinger初始化。
  - 连续两次请求VSync-app信号的时间间隔超过750ms。
- - SurfaceFlinger合成后，添加FenceTime到VSyncTracker中导致模型计算误差过大。
+ - SurfaceFlinger合成后，将 buffer 提交给 HWC HAL 显示时，会从 HWC HAL 返回一个 PresentFence，PresentFence 的 SignalTime 实际就是一个 HW-VSync 信号。SF 在合成完成以后，会去获取上一次的 PresentFence 的 SignalTime，并将其加入到模型中，如果偏差过大，则进行校准。
 
+如何校准：      
+远程调用到 HWC HAL，打开硬件 Vsync 开关，接受新的硬件 Vsync 数据，重新计算模型。      
 
 1.SurfaceFlinger初始化开启：
 
@@ -839,17 +382,23 @@ SurfaceFlinger::composite
             VsyncSchedule.disableHardwareVsync
 ```
 
-## SW-VSync信号的校准
+### SW-VSync信号的校准
 
+这个校准过程其实就是 HW_Vsync 计算模型的建立的过程。      
 下面开始介绍开启采样后的 HW-VSync 回调流程。    
-
 在 SurfaceFlinger::setVsyncEnabled 中调用 setHWCVsyncEnabled 开启 HW-VSync，在 Trace 中可以看到 `HW_VSYNC_ON_**` 为 1，然后 `HW_VSYNC_*` 有6个上升沿和下降沿，进行了6个周期的采样。     
 
 <img src="/images/android-graphic-system-vsync/sf-hw-sync-enable-0.png" width="692" height="321" />
 
 <img src="/images/android-graphic-system-vsync/sf-hw-sync-enable-1.png" width="700" height="326" />
 
-在开启HW-VSync信号后，HWComposer会回调SurfaceFlinger的onComposerHalVsync方法接收HW-VSync信号。    
+1.在开启HW-VSync信号后，HWComposer会回调SurfaceFlinger的 onComposerHalVsync 方法接收不少于6个 HW-VSync 信号到达的时间数据。    
+2.以 HW_Vsync 信号到达的次序为 X 轴，实际计算中，次序是根据信号到达时间与首个信号到达时间的差值除以周期计算出的（实际代码还考虑了数据可能存在的误差做了一些额外处理），次序的计算结果还乘以了一个固定的倍数做了放大处理。以 HW_Vsync 信号的到达时间做 Y 轴。通过简单线性回归公式计算出 X 与 Y 的一个线性关系 y = ax + b。      
+3.有了这个模型，给出任意一个时间，将该时间套入公式中的 y = ax + b 中的 y，计算出 x，x 再加 1，就是该时间点的下一个 HW-Vsync 信号对应的次序，再将该次序代入 y = ax + b 的 x 中，就能计算出下一个 HW-Sync 信号的到达时间 c 。在实际代码中为了保证准确性，计算出的结果 c，减去半个周期即 c - slope/2，会代入上述流程再计算一次。     
+
+<img src="/images/android-graphic-system-vsync/hw-vsync-model.png" width="508" height="461" />
+
+具体代码流程和逻辑如下：    
 
 ```
 SurfaceFlinger::onComposerHalVsync
@@ -871,8 +420,6 @@ SurfaceFlinger::onComposerHalVsync
                         HWComposer::setVsyncEnabled
         // 如果样本已经足够了，就关闭HW SYNC的硬件上报开关
         VsyncSchedule::disableHardwareVsync
-            
-        
 ```
 
 ```
@@ -1012,9 +559,753 @@ bool VSyncPredictor::addVsyncTimestamp(nsecs_t timestamp) {
 }
 ```
 
-具体的，通过最小二乘法得到一条y=bx+a的拟合曲线。其中，b称为回归系数，a称为截距。SW-VSync模型核心就是这两个参数。     
+具体的，通过最小二乘法得到一条y=bx+a的拟合曲线。其中，b称为回归系数，a称为截距。SW-VSync 模型核心就是这两个参数。     
+
+### SW-Vsync信号的计算
+
+App 渲染使用的是一个软件周期信号 Vsync-app，SurfaceFlinger 合成图层使用的一个软件周期信号 Vsync-sf。这个两个信号都是基于 HW-Vsync 信号计算出的，与 HW-Vsync 同频率，但保持了一定的相位差。    
+接下来以 Vsync-app 为例，分析软件 Vsync 信号的计算过程。    
+软件 Vsync 信号的几个重要参数：
+ - app duration：app 开始绘制一块 buffer 到 sf 开始消费这块 buffer 的时长（Vsync-app 与对应 Vsync-sf 的间隔，即相位差）；
+ - sf duration：sf 开始合成一块 buffer 到这块 buffer 开始上屏的时长（vsync-sf 到 HW-Vsync 的间隔，即相位差）；
+ - app phase: VSync-app 与 HW_Vsync 的相位差；
+ - sf phase：VSync-sf 与 HW_Vsync 的相位差。
+
+这些参数都定义在手机的属性变量中，在开机 SurfaceFligner 初始化时，被加载进内存中。从定义就容易看出，duration 和 phase 是可以相互转换的。      
+
+通过 `adb shell dumpsys SurfaceFlinger --vsync` 也可以看到他们的具体数值。     
+
+```
+VsyncDispatch:
+    Timer:
+        DebugState: Waiting
+    mTimerSlack: 0.50ms mMinVsyncDistance: 3.00ms
+    mIntendedWakeupTime: 3.68ms from now
+    mLastTimerCallback: 12.80ms ago mLastTimerSchedule: 12.27ms ago
+    Callbacks:
+        appSf:  
+            workDuration: 16.67ms readyDuration: 15.67ms earliestVsync: -12553.88ms relative to now
+            mLastDispatchTime: 12537.25ms ago
+        sf:  [wake up in 3.71ms deadline in 19.38ms for vsync 19.38ms from now]
+            workDuration: 15.67ms readyDuration: 0.00ms earliestVsync: 2.74ms relative to now
+            mLastDispatchTime: -2.74ms ago
+        app:  [wake up in 3.67ms deadline in 20.34ms for vsync 36.00ms from now]
+            workDuration: 16.67ms readyDuration: 15.67ms earliestVsync: 19.37ms relative to now
+            mLastDispatchTime: -19.37ms ago
+```
+
+ - workduration：代表自身工作的理论耗时 
+ - readyduration：代表自身工作完成后，传递给下一模块处理的等待时间 
+
+以sf和app举例：app的workduration代表app绘制渲染一帧的理论耗时，app的readyduration代表app绘制渲染一帧完成后交给surfaceflinger处理的理论耗时，sf的workduration代表sf处理这一帧的理论耗时，readyduration代表传递给下一模块处理的等待时间。    
+
+可见 app的readyduration== sf的 workduration，且sf的readyduration=0     
+
+App是可能在任意时间向 sf 申请 Vsync-app 的，而 sf 也不是立即会将信号发出，而是通过一定的计算模型来统一计算然后周期性的发出 Vsync-app 信号。下面举例来说明 Vsync-app 信号的计算过程。    
+app-sync：workduration：16.6ms readyduration: 15.6ms，那么 app-sync 的计算方式如下图所描述：    
+
+<img src="/images/android-graphic-system-vsync/vsync-app-calculate.png" width="540" height="231" />
+
+ - 假如应用在 24.9ms 时向 surfaceflinger 申请 app-vsync 信号。
+ - 在 24.9ms 基础上加上 app-vsync 的 workduration 和 readyduration 计算出时间点 a。
+ - 找出 a 的下一个 HW_VSync 的时间点：81ms，这里就会使用到计算模型 y = ax + b。a 点时间与最早的 HW-Vsync 信号的时间差除以周期再加上 1，做放大处理后，就是下一个 HW-Vsync 信号的次序，代入计算模型即可计算出下一个 HW_Vsync 信号到达的时间。
+ - 在 a 的的下一个 HW_VSYNC 的时间点上减去 app-vsync 的 workduration 和 readyduration 得到时间点 b: 48.8ms，该时间点就是未来 app 收到 app-vsync 的时间点。
+ - 计算出surfaceflinger申请app-vsync信号的到时间点b的时间差：23.9ms，并设置定时器。
+ - 23.9m 后 app 申请的a pp-vsync 时间到，surfaceflinger向app发送app-vsync信号。
+
+以上演示的是以 app-vsync 为例的 vsync 计算过程，appsf-vsync 和 sf-vsync 的计算过程类似，不同的是 appsf-vsync 和sf-vsync 的 workduration，readyduration 是不同的值，以使得信号之间保持一定的相位差。     
+
+```
+void EventThread::threadMain(std::unique_lock<std::mutex>& lock) {
+    ......
+        if (mState == State::VSync) {
+            const auto scheduleResult =
+                    mVsyncRegistration.schedule({.workDuration = mWorkDuration.get().count(),
+                                                 .readyDuration = mReadyDuration.count(),
+                                                 .lastVsync = mLastVsyncCallbackTime.ns()});
+            LOG_ALWAYS_FATAL_IF(!scheduleResult, "Error scheduling callback");
+        } else {
+            mVsyncRegistration.cancel();
+        }
+```
+
+```
+
+```
+
+## Vsync框架
+
+### 相关类
+
+ - Schdueler：负责SurfaceFlinger中VSync信号的注册与分发。
+ - VsyncSchedule：Scheduler功能实现的核心。保存了 VsyncController、VSyncTracker和VSyncDispatch 对象。
+ - VSyncTracker：实现类为 VSyncPredictor，负责接收外部 HW-Vsync 采样，建立软件 Vsync 模型，计算软件VSync模型的参数。
+ - VsyncController：实现类为 VSyncReactor，负责约束管理VSyncTracker的行为，控制VSyncTracker的采样，负责传递 HWVsync，presentFence 信号。
+ - VSyncDispatch：实现类为 VSyncDispatchTimerQueue，负责软件VSync信号的产生和分发。
+
+<img src="/images/android-graphic-system-vsync/class.png" width="958" height="318" />
+
+```
+
+```
+
+### 相关线程
+
+<img src="/images/android-graphic-system-vsync/threads.png" width="802" height="451" />
+
+ - TimerDispatch 线程：TimerDispatch充当软件VSYNC的信号泵，这个线程包装成VsyncDispatchTimeQueue这个类，里面有一个CallbackMap变量，存放的是那些关心VSYNC信号的人（appEventThread, appSfEventThread, sf的MessageQueue），TimerDispatch就是根据模型计算的唤醒时间对着它们发送SW VSYNC。
+ - appEventThread线程：它是EventThread类型的实例，它是VSYNC-app寄宿的线程。很明显，它就是 VSYNC-app 的掌门人。一方面，它接收App对VSYNC-app的请求，如果没有App请求VSYNC-app，它就进入休眠；另一方面，它接收 TimerDispatch 发射过来 VSYNC-app，控制App的绘制。
+ - appSfEventThread 线程：它是 EventThread 类型的实例，它是 VSYNC-appSf 寄宿的线程，和 appEventThread 线程功能是类似的，用于调试代码，暂时忽略。
+ - MessageQueue（表示主线程）： 它是 VSYNC-sf 寄宿的线程，很明显，它就是 VSYNC-sf 的掌门人，不过它专给 SF 一个人服务。一方面，如果 SF 有合成需求，会向它提出申请；另一方面，它接收 TimerDispatch 发射过来的 VSYNC-sf，控制 SF 的合成。
+
+
+ 
+### 线程初始化
+
+app、appSf和sf 信号线程的初始化和绑定。    
+
+```
+SurfaceFlinger::initScheduler
+    Scheduler::createEventThread
+    Scheduler::createEventThread
+        EventThread::EventThread
+    MessageQueue::initVsync
+        MessageQueue::onNewVsyncScheduleLocked
+```
+
+ - 创建Schdueler，Schdueler负责SurfaceFlinger中VSync信号的注册与分发。ISchedulerCallback用于SurfaceFlinger监听Schdueler的状态。ICompositor用于Schdueler调用SurfaceFlingerLayer合成相关的功能。    
+ - 初始化 app、appSf分发线程
+ - 初始化MessageQueue，MessageQueue用于SurfaceFlinger注册监听VSync-sf信号。    
+
+```
+void SurfaceFlinger::initScheduler(const sp<const DisplayDevice>& display) {
+    // 创建Schdueler
+    mScheduler = std::make_unique<Scheduler>(static_cast<ICompositor&>(*this),
+                                             static_cast<ISchedulerCallback&>(*this), features,
+                                             std::move(modulatorPtr));
+    mScheduler->registerDisplay(display->getPhysicalId(), display->holdRefreshRateSelector());
+
+    setVsyncEnabled(display->getPhysicalId(), false);
+    mScheduler->startTimers();
+    ...
+    //初始化 app、appSf和sf
+    mAppConnectionHandle =
+            mScheduler->createEventThread(Scheduler::Cycle::Render,
+                                          mFrameTimeline->getTokenManager(),
+                                          /* workDuration */ configs.late.appWorkDuration,
+                                          /* readyDuration */ configs.late.sfWorkDuration);
+    mSfConnectionHandle =
+            mScheduler->createEventThread(Scheduler::Cycle::LastComposite,
+                                          mFrameTimeline->getTokenManager(),
+                                          /* workDuration */ activeRefreshRate.getPeriod(),
+                                          /* readyDuration */ configs.late.sfWorkDuration);
+
+    mScheduler->initVsync(mScheduler->getVsyncSchedule()->getDispatch(),
+                          *mFrameTimeline->getTokenManager(), configs.late.sfWorkDuration);
+    ...
+}
+```
+
+在 Scheduler::createEventThread 方法中根据 Cycle 类型来判断是创建 app 还是 appSf 线程。      
+
+```
+ConnectionHandle Scheduler::createEventThread(Cycle cycle,
+                                              frametimeline::TokenManager* tokenManager,
+                                              std::chrono::nanoseconds workDuration,
+                                              std::chrono::nanoseconds readyDuration) {
+    auto eventThread = std::make_unique<impl::EventThread>(cycle == Cycle::Render ? "app" : "appSf",
+                                                           getVsyncSchedule(), tokenManager,
+                                                           makeThrottleVsyncCallback(),
+                                                           makeGetVsyncPeriodFunction(),
+                                                           workDuration, readyDuration);
+
+    auto& handle = cycle == Cycle::Render ? mAppConnectionHandle : mSfConnectionHandle;
+    handle = createConnection(std::move(eventThread));
+    return handle;
+}
+```
+
+在EventThread在创建 VSyncCallbackRegistration 时，绑定了 EventThread::onVsync 方法，所以后面有 Vsync 信号来的时候会调用到这个方法。    
+
+```
+EventThread::EventThread(const char* name, std::shared_ptr<scheduler::VsyncSchedule> vsyncSchedule,
+                         android::frametimeline::TokenManager* tokenManager,
+                         IEventThreadCallback& callback, std::chrono::nanoseconds workDuration,
+                         std::chrono::nanoseconds readyDuration)
+      : mThreadName(name),
+        mVsyncTracer(base::StringPrintf("VSYNC-%s", name), 0),
+        mWorkDuration(base::StringPrintf("VsyncWorkDuration-%s", name), workDuration),
+        mReadyDuration(readyDuration),
+        mVsyncSchedule(std::move(vsyncSchedule)),
+        mVsyncRegistration(mVsyncSchedule->getDispatch(), createDispatchCallback(), name),
+
+scheduler::VSyncDispatch::Callback EventThread::createDispatchCallback() {
+    return [this](nsecs_t vsyncTime, nsecs_t wakeupTime, nsecs_t readyTime) {
+        onVsync(vsyncTime, wakeupTime, readyTime);
+    };
+}
+```
+
+MessageQueue::initVsync 方法调用到 onNewVsyncScheduleLocked，绑定一个回调函数 MessageQueue::vsyncCallback 到 VsyncDispatch 上面，回调名字是"sf"。    
+
+```
+std::unique_ptr<scheduler::VSyncCallbackRegistration> MessageQueue::onNewVsyncScheduleLocked(
+        std::shared_ptr<scheduler::VSyncDispatch> dispatch) {
+    const bool reschedule = mVsync.registration &&
+            mVsync.registration->cancel() == scheduler::CancelResult::Cancelled;
+    auto oldRegistration = std::move(mVsync.registration);
+    // 初始化 mVsync.registration 后面介绍这个 VSyncCallbackRegistration 类
+    mVsync.registration = std::make_unique<
+            scheduler::VSyncCallbackRegistration>(std::move(dispatch),
+                                                  std::bind(&MessageQueue::vsyncCallback, this,
+                                                            std::placeholders::_1,
+                                                            std::placeholders::_2,
+                                                            std::placeholders::_3),
+                                                  "sf");
+    if (reschedule) {
+```
+
+我们知道VsyncDispatch是节拍器（心跳），也就是TimerDispatch的线程所在，所以我们回过头来了解下VsyncDispatch是在什么时候初始化的？      
+Scheduler 在构造方法中会创建 VsyncDispatch 对象，而这个对象也就是SurfaceFlinger系统中唯一的。    
+
+```
+VsyncSchedule::VsyncSchedule
+    VsyncSchedule::createDispatch()
+        make_unique<VSyncDispatchTimerQueue>
+            make_unique<Timer>()
+                Timer::threadMain()
+                    pthread_setname_np(pthread_self(), "TimerDispatch")
+```
+
+创建 VSyncDispatchTimerQueue 时会创建 Timer 对象，这个节拍器（心跳）线程就是 VSyncDispatchTimerQueue 对象中的 mTimeKeeper。    
+
+```
+VSyncDispatchTimerQueue::VSyncDispatchTimerQueue(std::unique_ptr<TimeKeeper> tk,
+                                                 VsyncSchedule::TrackerPtr tracker,
+                                                 nsecs_t timerSlack, nsecs_t minVsyncDistance)
+      : mTimeKeeper(std::move(tk)),
+```
+
+```
+class VSyncDispatchTimerQueue : public VSyncDispatch {
+```
+
+VSyncDispatchTimerQueue 是继承自 VsyncDispatch 的，Timer 类是继承自 TimeKeeper的。    
+
+```
+class Timer : public TimeKeeper {
+public:
+```
+
+Timer.cpp中会创建TimerDispatch这个名字的线程。     
+
+```
+ Timer::Timer() {
+    reset();
+    mDispatchThread = std::thread([this]() { threadMain(); });
+}
+
+void Timer::threadMain() {
+    while (dispatch()) {
+        reset();
+    }
+}
+
+void Timer::reset() {
+    std::function<void()> cb;
+    {
+        std::lock_guard lock(mMutex);
+        if (mExpectingCallback && mCallback) {
+            cb = mCallback;
+        }
+
+        cleanup();
+        mTimerFd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC | TFD_NONBLOCK);
+        mEpollFd = epoll_create1(EPOLL_CLOEXEC);
+        if (pipe2(mPipes.data(), O_CLOEXEC | O_NONBLOCK)) {
+            ALOGE("could not create TimerDispatch mPipes");
+        }
+    }
+    if (cb) {
+        setDebugState(DebugState::InCallback);
+        cb();
+        setDebugState(DebugState::Running);
+    }
+    setDebugState(DebugState::Reset);
+}
+
+bool Timer::dispatch() {
+ 
+     // 设置线程名称
+     if (pthread_setname_np(pthread_self(), "TimerDispatch")) {
+        ALOGW("Failed to set thread name on dispatch thread");
+    }
+```
+
+```
+void VSyncDispatchTimerQueue::setTimer(nsecs_t targetTime, nsecs_t /*now*/) {
+    mIntendedWakeupTime = targetTime;
+    mTimeKeeper->alarmAt(std::bind(&VSyncDispatchTimerQueue::timerCallback, this),
+                         mIntendedWakeupTime);
+    mLastTimerSchedule = mTimeKeeper->now();
+}
+```
+
+
+ - Timer 类在构造方法会创建的一个线程 mDispatchThread。
+ - 在这里用到了 timerfd，timerfd 是 Linux 为用户程序提供一个定时器接口，这个接口基于文件描述符，通过文件描述符的可读事件进行超时通知，因此可以配合 epoll 等使用，timerfd_create() 函数创建一个定时器对象，同时返回一个与之关联的文件描述符。
+ - timerfd 配合 epoll 函数使用，如果定时器时间到了，就会执行上图中alarmAt函数传入的函数指针，这个函数指针是 VsyncDispatchTimerQueue.cpp 类的 timerCallback() 函数，而这个函数中，就是对注册的 callback 执行回调。
+
+
+
+### VSYNC-sf 的申请与分发
+
+#### 注册回调
+
+先来看一下 SF 向 VsyncDispatch 注册回调的过程。     
+SF 的主线程中也有个主线程负责处理合成相关的事物，同时有一个消息队列来驱动。    
+前面我们讲到 MessageQueue::onNewVsyncScheduleLocked 方法中初始了 mVsync.registation 对象，它就是 VSyncCallbackRegistration 类的实例。这个类的作用是操作已经注册回调的帮助类，在该类的构造函数中间接调用 dispatch.registerCallback()。     
+
+```
+VSyncCallbackRegistration::VSyncCallbackRegistration(std::shared_ptr<VSyncDispatch> dispatch,
+                                                     VSyncDispatch::Callback callback,
+                                                     std::string callbackName)
+      : mDispatch(std::move(dispatch)),
+        mToken(mDispatch->registerCallback(std::move(callback), std::move(callbackName))) {}
+```
+
+dispatch 的 registerCallback 函数就是注册需要监听 SW-VSYNC 的信号的函数:    
+
+```
+VSyncDispatchTimerQueue::CallbackToken VSyncDispatchTimerQueue::registerCallback(
+        Callback callback, std::string callbackName) {
+    std::lock_guard lock(mMutex);
+    return CallbackToken{
+            mCallbacks
+                    .emplace(++mCallbackToken,
+                             std::make_shared<VSyncDispatchTimerQueueEntry>(std::move(callbackName),
+                                                                            std::move(callback),
+                                                                            mMinVsyncDistance))
+                    .first->first};
+}
+```
+
+VsyncDispatch 的注册函数就会往 mCallbacks 注册封装了 callback 的 VsyncDispatchTimerQueueEntry 对象。     
+
+#### 信号申请
+
+ - 当 SF 需要请求刷新时，会调用到 Scheduler 的 scheduleFrame 函数，该函数定义在 Scheduler 的父类 MessageQueue 中。     
+ - 接着调用 Scheduler 的 mVsync 成员 VSyncCallbackRegistration 的 schedule 函数，开始软件 Vsync 信号的计算分发。     
+ - 通过 VSyncPredictor（Tracker）计算出下一次 Vsync-app 时间，接着以该时间安排一个 TimeKeeper 定时器，时间到达后，回调到对应的回调函数 MessageQueue::vsyncCallback。     
+
+```
+Scheduler::scheduleFrame()(MessageQueue::scheduleFrame())
+    VSyncDispatchTimerQueue::schedule
+        VSyncDispatchTimerQueue::scheduleLocked()
+            VSyncDispatchTimerQueueEntry::schedule()
+                //计算下一次VSync信号的发送时间。
+                VSyncPredictor::nextAnticipatedVSyncTimeFrom
+            // 设置定时器发送下一次 Vsync 信号
+            VSyncDispatchTimerQueue::rearmTimerSkippingUpdateFor()
+                VSyncDispatchTimerQueue::setTimer()
+```
+
+```
+std::optional<ScheduleResult> VSyncDispatchTimerQueue::scheduleLocked(
+        CallbackToken token, ScheduleTiming scheduleTiming) {
+    // 根据token找到对应的VSyncDispatchTimerQueueEntry
+    auto it = mCallbacks.find(token);
+    if (it == mCallbacks.end()) {
+        return {};
+    }
+    auto& callback = it->second;
+    auto const now = mTimeKeeper->now();
+
+    /* If the timer thread will run soon, we'll apply this work update via the callback
+     * timer recalculation to avoid cancelling a callback that is about to fire. */
+    auto const rearmImminent = now > mIntendedWakeupTime;
+    if (CC_UNLIKELY(rearmImminent)) {
+        return callback->addPendingWorkloadUpdate(*mTracker, now, scheduleTiming);
+    }
+    // 计算下一次VSync信号的发送时间。
+    const auto result = callback->schedule(scheduleTiming, *mTracker, now);
+    // 设置定时器发送VSync信号
+    if (callback->wakeupTime() < mIntendedWakeupTime - mTimerSlack) {
+        rearmTimerSkippingUpdateFor(now, it);
+    }
+
+    return result;
+}
+```
+
+#### 信号分发
+
+下面来看看信号的回调流程。      
+当定时器时间到，VsyncDispatch 发送 VSYNC-sf 的信号时，会走到 MessageQueue 类注册的回调函数。      
+
+```
+VSyncDispatchTimerQueue::timerCallback()
+    VSyncDispatchTimerQueueEntry::callback
+        VSyncDispatch::Callback (实际调用 MessageQueue::vsyncCallback)    
+            MessageQueue::Handler::dispatchFrame()
+                mQueue.mLooper->sendMessage
+                    MessageQueue.handleMessage
+                        Scheduler.onFrameSignal
+                            // 提交当前以合成的帧
+                            compositor.commit
+                            // 提交成功后，合成下一帧
+                            compositor.composite
+                            // 通知有新合成的帧可用
+                            compositor.sample()
+```
+
+在 VSyncDispatchTimerQueueEntry 的 callback 方法中，会调用类型为 VSyncDispatch::Callback 的回调。在 MessageQueue 在创建 VSyncCallbackRegistration 时，绑定了MessageQueue::vsyncCallback 方法，所以这里的 VSyncDispatch::Callback 对应的是 MessageQueue 的 vsyncCallback 方法。      
+
+```
+void MessageQueue::vsyncCallback(nsecs_t vsyncTime, nsecs_t targetWakeupTime, nsecs_t readyTime) {
+    // Trace 跟踪，下面展示在 Perfetto 中的显示
+    ATRACE_CALL();
+    // Trace VSYNC-sf
+    // 1 -> 0 -> 1 变换
+    mVsync.value = (mVsync.value + 1) % 2;
+
+    const auto expectedVsyncTime = TimePoint::fromNs(vsyncTime);
+    {
+        std::lock_guard lock(mVsync.mutex);
+        mVsync.lastCallbackTime = expectedVsyncTime;
+        mVsync.scheduledFrameTime.reset();
+    }
+
+    const auto vsyncId = VsyncId{mVsync.tokenManager->generateTokenForPredictions(
+            {targetWakeupTime, readyTime, vsyncTime})};
+
+    mHandler->dispatchFrame(vsyncId, expectedVsyncTime);
+    do_vsync_update_tick();
+}
+```
+
+<img src="/images/android-graphic-system-vsync/sf-vsyncCallback.png" width="771" height="209" />
+
+```
+void MessageQueue::Handler::dispatchFrame(VsyncId vsyncId, TimePoint expectedVsyncTime) {
+    if (!mFramePending.exchange(true)) {
+        mVsyncId = vsyncId;
+        mExpectedVsyncTime = expectedVsyncTime;
+        mQueue.mLooper->sendMessage(sp<MessageHandler>::fromExisting(this), Message());
+    }
+}
+```
+dispatchFrame 方法主要做了下面两件事情：    
+ - 保存 VSyncId。
+ - 调用 MessageQueue 的 Looper，发送消息。
+
+在 Handler 的 sendMessage 方法中，最终会回调 Handler 的 handleMessage 方法。     
+
+```
+void MessageQueue::Handler::handleMessage(const Message&) {
+    mFramePending.store(false);
+    mQueue.onFrameSignal(mQueue.mCompositor, mVsyncId, mExpectedVsyncTime);
+}
+```
+
+由于 Scheduler 继承了 MessageQueue，因此在 Handler 的 handleMessage 方法的内部，会调用 Scheduler 的 onFrameSignal 方法。     
+
+```
+void Scheduler::onFrameSignal(ICompositor& compositor, VsyncId vsyncId,
+                              TimePoint expectedVsyncTime) {
+    const TimePoint frameTime = SchedulerClock::now();
+    // 提交当前以合成的帧
+    if (!compositor.commit(frameTime, vsyncId, expectedVsyncTime)) {
+        return;
+    }
+    // 提交成功后，合成下一帧
+    compositor.composite(frameTime, vsyncId);
+    // 通知有新合成的帧可用
+    compositor.sample();
+}
+```
+
+分别调用 SurfaceFlinger 的相关方法。     
+
+ - 提交已合成的帧显示在屏幕上。     
+ - 如果提交成功，合成下一帧，并通知有新合成的帧可用。    
+ 
+
+<img src="/images/android-graphic-system-vsync/sf-commit.png" width="698" height="175" />
+
+```
+void SurfaceFlinger::composite(TimePoint frameTime, VsyncId vsyncId)
+        FTL_FAKE_GUARD(kMainThreadContext) {
+    ATRACE_FORMAT("%s %" PRId64, __func__, vsyncId.value);
+    
+} 
+
+bool SurfaceFlinger::commit(TimePoint frameTime, VsyncId vsyncId, TimePoint expectedVsyncTime)
+        FTL_FAKE_GUARD(kMainThreadContext) {
+
+
+    ATRACE_FORMAT("%s %" PRId64 " vsyncIn %.2fms%s", __func__, vsyncId.value,
+                  ticks<std::milli, float>(mExpectedPresentTime - TimePoint::now()),
+                  mExpectedPresentTime == expectedVsyncTime ? "" : " (adjusted)");
+        
+}   
+    
+void SurfaceFlinger::sample() {
+    if (!mLumaSampling || !mRegionSamplingThread) {
+        return;
+    }
+
+    mRegionSamplingThread->onCompositionComplete(mScheduler->getScheduledFrameTime());
+}
+```
+
+### VSYNC-app的申请与分发
+
+#### 信号注册
+
+VSync-app用于控制App的UI渲染。    
+如果有 App 关心 VSYN-APP，则需要向 appEventThread 注册 Connection，可能有多个 App 同时关注 VSYNC-app 信号，所以在 EventThread 的内部有一个 mDisplayEventConnections 来保存着Connection，Connection是一个Bn对象，因为要与APP进行binder通讯。      
+
+App 进程：    
+```
+new Choreographer()
+    new FrameDisplayEventReceiver
+        DisplayEventReceiver.nativeInit
+            DisplayEventReceiver::DisplayEventReceiver
+                ISurfaceComposer.createDisplayEventConnection
+```
+
+sf 进程：    
+```
+SurfaceComposerAIDL::createDisplayEventConnection
+    Scheduler::createDisplayEventConnection
+        EventThread::createEventConnection
+            EventThreadConnection::onFirstRef()
+                EventThread::registerDisplayEventConnection(
+                    mDisplayEventConnections.push_back(connection);
+```
+
+应用通过Choreographer这个对象去申请Vsync-app的信号，然后通过其内部类FrameDisplayEventReceiver来接受vsync信号，也就是Vsync-app的发射最后到这个对象里面，来触发app刷新，核心就是FrameDisplayEventReceiver类，这个类的初始化在是Choreographer的构造函数中。      
+
+
+#### VSYNC-app的申请
+
+有界面更新请求，请求 Vsync：     
+
+```
+ViewRootImpl.scheduleTraversals()
+    // 申请并 监听VSYNC信号，下一次VSYNC信号到来时，执行给进去的mTraversalRunnable
+    Choreographer.postCallback(Choreographer.CALLBACK_TRAVERSAL, mTraversalRunnable)
+        Choreographer.postCallbackDelayed()
+            Choreographer.postCallbackDelayedInternal()
+                mCallbackQueues.addCallbackLocked
+                Choreographer.scheduleFrameLocked
+                    Choreographer.scheduleVsyncLocked()
+                        DisplayEventReceiver.scheduleVsync()
+                            DisplayEventReceiver.nativeScheduleVsync()
+                            ------ jni -----
+                                android_view_DisplayEventReceiver.nativeScheduleVsync
+                                    DisplayEventDispatcher::scheduleVsync()
+                                        DisplayEventReceiver::requestNextVsync()
+                                            IDisplayEventConnection.mEventConnection->requestNextVsync()  --> surfaceFlinger
+                // 如果需要立即执行，就不用等下个 Vsync
+                Handler.obtainMessage(MSG_DO_SCHEDULE_CALLBACK, action)
+                    
+```
+
+surfaceFlinger 进程：    
+
+```
+    EventThreadConnection::requestNextVsync()
+        EventThread::requestNextVsync()
+            Scheduler::resync()
+                // 开启HW-Vsync对SW-Vsync信号的校准
+                Scheduler::resyncAllToHardwareVsync()
+                    Scheduler::resyncToHardwareVsyncLocked()
+            // 修改 VSyncRequest::Single
+            EventThreadConnection->vsyncRequest = VSyncRequest::Single;
+            // 唤醒 EventThread::threadMain
+            mCondition.notify_all()
+```
+
+```
+EventThread::threadMain()
+    VSyncCallbackRegistration::schedule()
+        VSyncDispatchTimerQueue::schedule()
+            VSyncDispatchTimerQueue::scheduleLocked()
+                VSyncDispatchTimerQueueEntry::schedule()
+                    //计算下一次VSync信号的发送时间。
+                    VSyncPredictor::nextAnticipatedVSyncTimeFrom
+                // 设置定时器发送下一次 Vsync 信号
+                VSyncDispatchTimerQueue::rearmTimerSkippingUpdateFor()
+                    VSyncDispatchTimerQueue::setTimer()
+```
+应用要申请Vsync信号，都是通过Choregrapher对象调用postFrameCallback方法，而应用在绘制的时候也会调用这个方法，就是ViewRootImpl中的scheduleTraversals方法，其实在函数实现中也是调用了Choregrapher的postFrameCallback方法。     
+
+```
+binder::Status EventThreadConnection::requestNextVsync() {
+    // 原生 Trace
+    ATRACE_CALL();
+
+    mEventThread->requestNextVsync(sp<EventThreadConnection>::fromExisting(this));
+
+    return binder::Status::ok();
+}
+
+void EventThread::requestNextVsync(const sp<EventThreadConnection>& connection) {
+    ATRACE_NAME(mThreadName);//添加打印把主要线程名字打出到Trace中
+    if (connection->resyncCallback) {
+        connection->resyncCallback();
+    }
+
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    if (connection->vsyncRequest == VSyncRequest::None) {
+        connection->vsyncRequest = VSyncRequest::Single;
+        mCondition.notify_all();
+    } else if (connection->vsyncRequest == VSyncRequest::SingleSuppressCallback) {
+        connection->vsyncRequest = VSyncRequest::Single;
+    }
+}
+```
+当前的申请Vsync-app的Connection的vsyncRequest赋值为 VsyncRequest::Single。     
+我们在 EventThread::requestNextVsync 添加了 Trace 打印，在 Perfetto 中看看对应的情况。    
+
+<img src="/images/android-graphic-system-vsync/sf-requestNextVsync.png" width="768" height="139" />
+
+上图展示了在对应的 EventThread 中申请了 App Vsync 信号。    
+
+EventThread的线程函数threadMain() 中进行循环调用，一方面检测是否有 Vsync 信号发送过来了 mPendingEvent，一方面检查是否有 app 请求了 Vsync 信号，如果有 Vsync 信号，而且有app请求了Vsync，则通过Connection把Vsync事件发送到对端。     
+
+#### VSYNC-app的分发
+
+当有VSYNC信号来临时，native 层会回调 DisplayEventReceiver 的 dispatchVsync 方法:    
+
+```
+VSyncDispatchTimerQueue::timerCallback()
+    VSyncDispatchTimerQueueEntry::callback
+        VSyncDispatch::Callback (实际调用 EventThread::onVsync)  
+            // 创建 Event
+            DisplayEventReceiver::Event makeVSync()
+            mPendingEvents.push_back()
+            // 唤醒 EventThread::threadMain
+            mCondition.notify_all()
+```
+
+前面在EventThread在创建 VSyncCallbackRegistration 时，绑定了 EventThread::onVsync 方法，所以这里的VSyncDispatch::Callback对应的是EventThread的onVsync方法。      
+
+```
+EventThread::threadMain
+    EventThread::shouldConsumeEvent()
+    EventThread::dispatchEvent
+        EventThreadConnection::postEvent()
+            DisplayEventReceiver::sendEvents()
+                BitTube::sendObjects
+                    BitTube::write
+```
+
+```
+ssize_t BitTube::write(void const* vaddr, size_t size) {
+    ssize_t err, len;
+    do {
+        len = ::send(mSendFd, vaddr, size, MSG_DONTWAIT | MSG_NOSIGNAL);
+        // cannot return less than size, since we're using SOCK_SEQPACKET
+        err = len < 0 ? errno : 0;
+    } while (err == EINTR);
+    return err == 0 ? len : -err;
+}
+```
+
+通过调用系统函数send向与消费者关联的文件描述符FD发送信号，于是完成Vsync向应用端的分发，分发的消息在 DisplayEventReceiver.dispatchVsync 方法中处理。    
+
+````
+    DisplayEventReceiver.dispatchVsync
+        Choreographer.FrameDisplayEventReceiver.onVsync
+            Message msg = Message.obtain(mHandler, this);
+            Handler.sendMessageAtTime
+                FrameDisplayEventReceiver.run()
+                    Choreographer.doFrame
+                        Choreographer.doCallbacks
+                            Choreographer.CallbackRecord.run
+                                ViewRootImpl.TraversalRunnable.run
+                                    ViewRootImpl.doTraversal()
+                                        ViewRootImpl.performTraversals()
+```
+
+那么它们的关联是如何建立起来的呢？    
+在应用端:     
+
+```
+DisplayEventReceiver()
+    nativeInit()
+        NativeDisplayEventReceiver::nativeInit()
+            new NativeDisplayEventReceiver
+            DisplayEventDispatcher::initialize()    
+                mLooper->addFd(mReceiver.getFd(), 0, Looper::EVENT_INPUT, this, NULL)
+```
+
+```
+status_t DisplayEventDispatcher::initialize() {
+    status_t result = mReceiver.initCheck();
+    ......
+    // 往 Looper 里面添加一个描述符，就是让 Looper 一起监听事件
+    // DisplayEventDispatcher 继承了 LooperCallback
+    // this 表示 LooperCallback，表示当 fd 有可读数据时会触发 DisplayEventDispatcher::handleEvent
+    if (mLooper != nullptr) {
+        int rc = mLooper->addFd(mReceiver.getFd(), 0, Looper::EVENT_INPUT, this, NULL);
+        if (rc < 0) {
+            return UNKNOWN_ERROR;
+        }
+    }
+
+    return OK;
+}
+```
+
+上面方法中 mReceiver 是 DisplayEventReceiver 对象：    
+
+```
+DisplayEventReceiver::DisplayEventReceiver(gui::ISurfaceComposer::VsyncSource vsyncSource,
+                                           EventRegistrationFlags eventRegistration,
+                                           const sp<IBinder>& layerHandle) {
+    //连接SurfaceFlingerAIDL的binder
+    sp<gui::ISurfaceComposer> sf(ComposerServiceAIDL::getComposerService());
+    if (sf != nullptr) {
+        mEventConnection = nullptr;
+        // 调用 createDisplayEventConnection，实例化 mEventConnection
+        binder::Status status =
+                sf->createDisplayEventConnection(vsyncSource,
+                                                 static_cast<
+                                                         gui::ISurfaceComposer::EventRegistration>(
+                                                         eventRegistration.get()),
+                                                 layerHandle, &mEventConnection);
+        if (status.isOk() && mEventConnection != nullptr) {
+            mDataChannel = std::make_unique<gui::BitTube>();
+            status = mEventConnection->stealReceiveChannel(mDataChannel.get());
+            ......
+    }
+}
+
+int DisplayEventReceiver::getFd() const {
+    if (mDataChannel == nullptr) return mInitError.has_value() ? mInitError.value() : NO_INIT;
+
+    return mDataChannel->getFd();
+}
+```
+
+当 sf 端写入事件时 ：      
+
+```
+DisplayEventDispatcher::handleEvent
+    NativeDisplayEventReceiver::dispatchVsync
+        -------> Java 端
+        DisplayEventReceiver.dispatchVsync
+```
 
 ## 相关文章
  
-SurfaceFlinger模块-VSYNC研究：https://www.jianshu.com/p/5e9c558d1543
-VSync信号系统与SurfaceFlinger :https://juejin.cn/post/7371642257797038091
+SurfaceFlinger模块-VSYNC研究：https://www.jianshu.com/p/5e9c558d1543     
+VSync信号系统与SurfaceFlinger :https://juejin.cn/post/7371642257797038091      
+彻底掌握 Android14 Vsync 原理 :https://mp.weixin.qq.com/s/6RXEpIkhd9j7f4Our5P8-w      
+VSync信号系统与SurfaceFlinger :https://blog.csdn.net/LeeDuoZuiShuai/article/details/139046513      
+

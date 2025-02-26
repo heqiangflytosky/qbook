@@ -107,9 +107,12 @@ TransitionController 有点像之前的 AppTransitionController，是 WMCore 这
 ### Transition
 
 过渡动画在WMCore的代表类，它主要保持跟踪这WM状态到过渡动画状态，其内部定义了Transition可能处于的几个状态值，其成员变量mState保存了Transition当前所处的状态。    
+Transition 实现了 BLASTSyncEngine.TransactionReadyListener 接口，
 即最后状态都会体现在这个Transition类中的几个状态，默认状态是STATE_PENDING。      
 
 ```
+class Transition implements BLASTSyncEngine.TransactionReadyListener {
+    ......
     /** The transition has been created but isn't collecting yet. */
     private static final int STATE_PENDING = -1;
 

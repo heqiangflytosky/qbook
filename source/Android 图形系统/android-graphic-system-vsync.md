@@ -1061,7 +1061,7 @@ void SurfaceFlinger::sample() {
 
 ### VSYNC-app的申请与分发
 
-#### 信号注册
+#### 回调注册
 
 VSync-app用于控制App的UI渲染。    
 如果有 App 关心 VSYN-APP，则需要向 appEventThread 注册 Connection，可能有多个 App 同时关注 VSYNC-app 信号，所以在 EventThread 的内部有一个 mDisplayEventConnections 来保存着Connection，Connection是一个Bn对象，因为要与APP进行binder通讯。      
@@ -1071,8 +1071,60 @@ App 进程：
 new Choreographer()
     new FrameDisplayEventReceiver
         DisplayEventReceiver.nativeInit
-            DisplayEventReceiver::DisplayEventReceiver
-                ISurfaceComposer.createDisplayEventConnection
+            ----> jni
+            NativeDisplayEventReceiver::nativeInit()
+                new NativeDisplayEventReceiver
+                DisplayEventDispatcher::initialize()
+                    mLooper->addFd(mReceiver.getFd(), 0, Looper::EVENT_INPUT, this, NULL)
+```
+
+```
+status_t DisplayEventDispatcher::initialize() {
+    status_t result = mReceiver.initCheck();
+    ......
+    // 往 Looper 里面添加一个描述符，就是让 Looper 一起监听事件
+    // DisplayEventDispatcher 继承了 LooperCallback
+    // this 表示 LooperCallback，表示当 fd 有可读数据时会触发 DisplayEventDispatcher::handleEvent
+    if (mLooper != nullptr) {
+        int rc = mLooper->addFd(mReceiver.getFd(), 0, Looper::EVENT_INPUT, this, NULL);
+        if (rc < 0) {
+            return UNKNOWN_ERROR;
+        }
+    }
+
+    return OK;
+}
+```
+
+上面方法中 mReceiver 是 DisplayEventReceiver 对象：    
+
+```
+DisplayEventReceiver::DisplayEventReceiver(gui::ISurfaceComposer::VsyncSource vsyncSource,
+                                           EventRegistrationFlags eventRegistration,
+                                           const sp<IBinder>& layerHandle) {
+    //连接SurfaceFlingerAIDL的binder
+    sp<gui::ISurfaceComposer> sf(ComposerServiceAIDL::getComposerService());
+    if (sf != nullptr) {
+        mEventConnection = nullptr;
+        // 调用 createDisplayEventConnection，实例化 mEventConnection
+        binder::Status status =
+                sf->createDisplayEventConnection(vsyncSource,
+                                                 static_cast<
+                                                         gui::ISurfaceComposer::EventRegistration>(
+                                                         eventRegistration.get()),
+                                                 layerHandle, &mEventConnection);
+        if (status.isOk() && mEventConnection != nullptr) {
+            mDataChannel = std::make_unique<gui::BitTube>();
+            status = mEventConnection->stealReceiveChannel(mDataChannel.get());
+            ......
+    }
+}
+
+int DisplayEventReceiver::getFd() const {
+    if (mDataChannel == nullptr) return mInitError.has_value() ? mInitError.value() : NO_INIT;
+
+    return mDataChannel->getFd();
+}
 ```
 
 sf 进程：    
@@ -1086,7 +1138,6 @@ SurfaceComposerAIDL::createDisplayEventConnection
 ```
 
 应用通过Choreographer这个对象去申请Vsync-app的信号，然后通过其内部类FrameDisplayEventReceiver来接受vsync信号，也就是Vsync-app的发射最后到这个对象里面，来触发app刷新，核心就是FrameDisplayEventReceiver类，这个类的初始化在是Choreographer的构造函数中。      
-
 
 #### VSYNC-app的申请
 
@@ -1218,6 +1269,15 @@ ssize_t BitTube::write(void const* vaddr, size_t size) {
 
 通过调用系统函数send向与消费者关联的文件描述符FD发送信号，于是完成Vsync向应用端的分发，分发的消息在 DisplayEventReceiver.dispatchVsync 方法中处理。    
 
+当 sf 端写入事件时 ：      
+
+```
+DisplayEventDispatcher::handleEvent
+    NativeDisplayEventReceiver::dispatchVsync
+        -------> Java 端
+        DisplayEventReceiver.dispatchVsync
+```
+
 ````
     DisplayEventReceiver.dispatchVsync
         Choreographer.FrameDisplayEventReceiver.onVsync
@@ -1232,75 +1292,7 @@ ssize_t BitTube::write(void const* vaddr, size_t size) {
                                         ViewRootImpl.performTraversals()
 ```
 
-那么它们的关联是如何建立起来的呢？    
-在应用端:     
-
-```
-DisplayEventReceiver()
-    nativeInit()
-        NativeDisplayEventReceiver::nativeInit()
-            new NativeDisplayEventReceiver
-            DisplayEventDispatcher::initialize()    
-                mLooper->addFd(mReceiver.getFd(), 0, Looper::EVENT_INPUT, this, NULL)
-```
-
-```
-status_t DisplayEventDispatcher::initialize() {
-    status_t result = mReceiver.initCheck();
-    ......
-    // 往 Looper 里面添加一个描述符，就是让 Looper 一起监听事件
-    // DisplayEventDispatcher 继承了 LooperCallback
-    // this 表示 LooperCallback，表示当 fd 有可读数据时会触发 DisplayEventDispatcher::handleEvent
-    if (mLooper != nullptr) {
-        int rc = mLooper->addFd(mReceiver.getFd(), 0, Looper::EVENT_INPUT, this, NULL);
-        if (rc < 0) {
-            return UNKNOWN_ERROR;
-        }
-    }
-
-    return OK;
-}
-```
-
-上面方法中 mReceiver 是 DisplayEventReceiver 对象：    
-
-```
-DisplayEventReceiver::DisplayEventReceiver(gui::ISurfaceComposer::VsyncSource vsyncSource,
-                                           EventRegistrationFlags eventRegistration,
-                                           const sp<IBinder>& layerHandle) {
-    //连接SurfaceFlingerAIDL的binder
-    sp<gui::ISurfaceComposer> sf(ComposerServiceAIDL::getComposerService());
-    if (sf != nullptr) {
-        mEventConnection = nullptr;
-        // 调用 createDisplayEventConnection，实例化 mEventConnection
-        binder::Status status =
-                sf->createDisplayEventConnection(vsyncSource,
-                                                 static_cast<
-                                                         gui::ISurfaceComposer::EventRegistration>(
-                                                         eventRegistration.get()),
-                                                 layerHandle, &mEventConnection);
-        if (status.isOk() && mEventConnection != nullptr) {
-            mDataChannel = std::make_unique<gui::BitTube>();
-            status = mEventConnection->stealReceiveChannel(mDataChannel.get());
-            ......
-    }
-}
-
-int DisplayEventReceiver::getFd() const {
-    if (mDataChannel == nullptr) return mInitError.has_value() ? mInitError.value() : NO_INIT;
-
-    return mDataChannel->getFd();
-}
-```
-
-当 sf 端写入事件时 ：      
-
-```
-DisplayEventDispatcher::handleEvent
-    NativeDisplayEventReceiver::dispatchVsync
-        -------> Java 端
-        DisplayEventReceiver.dispatchVsync
-```
+具体它们的关联的建立过程，请参考前面回调注册一节。    
 
 ## 相关文章
  

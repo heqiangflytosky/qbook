@@ -319,6 +319,12 @@ HW-VSync的开启的时机有如下情况：
 如何校准：      
 远程调用到 HWC HAL，打开硬件 Vsync 开关，接受新的硬件 Vsync 数据，重新计算模型。      
 
+<img src="/images/android-graphic-system-vsync/vsync-enable-1.png" width="854" height="331" />
+
+调用到 vendor.qti.hardware.display.composer-service 进程：    
+
+<img src="/images/android-graphic-system-vsync/vsync-enable-2.png" width="867" height="336" />
+
 1.SurfaceFlinger初始化开启：
 
 ```
@@ -642,12 +648,45 @@ void EventThread::threadMain(std::unique_lock<std::mutex>& lock) {
  - VSyncTracker：实现类为 VSyncPredictor，负责接收外部 HW-Vsync 采样，建立软件 Vsync 模型，计算软件VSync模型的参数。
  - VsyncController：实现类为 VSyncReactor，负责约束管理VSyncTracker的行为，控制VSyncTracker的采样，负责传递 HWVsync，presentFence 信号。
  - VSyncDispatch：实现类为 VSyncDispatchTimerQueue，负责软件VSync信号的产生和分发。
+ - EventThreadConnection：app会向surfaceflinger建立连接，该连接就是EventThreadConnection，连接建立后会把该连接保存在EventThread的mDisplayEventConnections列表中。    
+ - EventThread：SurfaceFlinger 创建了两个子线程（EventThread）用来分别向客户端派app-vsync事件和appsf-vsync事件，下面会详细介绍。    
 
 <img src="/images/android-graphic-system-vsync/class.png" width="958" height="318" />
 
-```
+EventThread主要作用：
+
+ - 处理app端建立连接的请求，建立过程中会保存连接信息，并生成一个socktpair并返回给app端，后续的vsync信号将会通过该socktpair发送给app
+ - 接收app申请vsync的请求，并向对应的vsync信号软件模型进行申请
+ - 当vsync信号到达时，分发vsync信号给有需求的app
+ 
+在EventThread的初始化过程中会，会启动一个线程，在该线程中会执行EventThread::threaMain(),该函数是会执行一个while大循环，该循环的运行受状态机控制：    
 
 ```
+//EventThread.h
+    enum class State {
+        Idle,//循环会阻塞，此时表示当前处于空闲状态，等待app建立连接或请求Vsync信号后唤醒循环
+        Quit,//循环将会退出
+        SyntheticVSync,//表示此时应该伪造 Vsync，比如显示器关闭时
+        VSync,//表示正常亮屏时请求，分发 Vsync 信号
+    };
+```
+
+EventThreadConnection 中有个变量 vsyncRequest ，类型为VSyncRequest ：
+
+```
+//EventThread.h
+enum class VSyncRequest {
+    None = -2, // 不请求
+    // Single wakes up for the next two frames to avoid scheduler overhead
+    Single = -1, //该状态下会得到两次vsync回调
+    // SingleSuppressCallback only wakes up for the next frame
+    SingleSuppressCallback = 0, //该状态下会得到一次vsync回调
+    Periodic = 1, //亮屏下不使用该状态
+    // Subsequent values are periods.
+};
+```
+
+VSyncRequest 对应着 VSync 信号的申请状态，对 VSync 的连续申请以及按需申请的保证起到关键作用。      
 
 ### 相关线程
 
@@ -1141,6 +1180,24 @@ SurfaceComposerAIDL::createDisplayEventConnection
 
 #### VSYNC-app的申请
 
+先来结合 Perfetto 来看一下流程：     
+
+SurfaceFlinger 第一次 requestNextVsync 时会开启硬件校准。    
+
+<img src="/images/android-graphic-system-vsync/app-vsync-1.png" width="851" height="594" />
+
+第一次 requestNextVsync 是从 system_server 处理触摸事件时调过来的。     
+
+<img src="/images/android-graphic-system-vsync/app-vsync-2.png" width="873" height="471" />
+
+app 执行 `Choreographer#scheduleVsyncLocked` 方法跨进程调用到Surfaceflinger端的 `requestNextVsync` 方法:    
+
+<img src="/images/android-graphic-system-vsync/app-vsync-3.png" width="926" height="624" />
+
+surfaceflinger作为服务端如下:    
+
+<img src="/images/android-graphic-system-vsync/app-vsync-4.png" width="846" height="413" />
+
 有界面更新请求，请求 Vsync：     
 
 ```
@@ -1190,6 +1247,8 @@ EventThread::threadMain()
                 // 设置定时器发送下一次 Vsync 信号
                 VSyncDispatchTimerQueue::rearmTimerSkippingUpdateFor()
                     VSyncDispatchTimerQueue::setTimer()
+    // 进入等待状态，当Vsync信号到来时被唤醒进行 Vsync 信号分发
+    mCondition.wait_for()
 ```
 应用要申请Vsync信号，都是通过Choregrapher对象调用postFrameCallback方法，而应用在绘制的时候也会调用这个方法，就是ViewRootImpl中的scheduleTraversals方法，其实在函数实现中也是调用了Choregrapher的postFrameCallback方法。     
 
@@ -1210,11 +1269,17 @@ void EventThread::requestNextVsync(const sp<EventThreadConnection>& connection) 
     }
 
     std::lock_guard<std::mutex> lock(mMutex);
-
+    // 第一次请求的时候 connection->vsyncRequest == VSyncRequest::None，进入如下逻辑，
+    // 使得该连接的vsyncRequest = VSyncRequest::Single
     if (connection->vsyncRequest == VSyncRequest::None) {
         connection->vsyncRequest = VSyncRequest::Single;
+        // 唤醒EventThread::threadMain()
         mCondition.notify_all();
     } else if (connection->vsyncRequest == VSyncRequest::SingleSuppressCallback) {
+        // 如果是 SingleSuppressCallback，代表前一次刚刚已经进入vsync,准备进入停止回调状态
+        // 那么只修改 vsyncRequest 状态，不唤醒 EventThread::threadMain()
+        // 这里可能有疑问，不唤醒EventThread::threadMain()怎么来产生 vsync  信号呢
+        // 后面在分发流程中会介绍，当EventThread::threadMain()完成一次Vsync信号分发后，会调用 schedule() 再次生成一个 Vsync信号
         connection->vsyncRequest = VSyncRequest::Single;
     }
 }
@@ -1226,7 +1291,7 @@ void EventThread::requestNextVsync(const sp<EventThreadConnection>& connection) 
 
 上图展示了在对应的 EventThread 中申请了 App Vsync 信号。    
 
-EventThread的线程函数threadMain() 中进行循环调用，一方面检测是否有 Vsync 信号发送过来了 mPendingEvent，一方面检查是否有 app 请求了 Vsync 信号，如果有 Vsync 信号，而且有app请求了Vsync，则通过Connection把Vsync事件发送到对端。     
+EventThread 的线程函数 threadMain() 中进行循环调用，一方面检测是否有 Vsync 信号发送过来了 mPendingEvent，一方面检查是否有 app 请求了 Vsync 信号，如果有 Vsync 信号，而且有app请求了 Vsync，则通过Connection把Vsync事件发送到对端。     
 
 #### VSYNC-app的分发
 
@@ -1238,6 +1303,7 @@ VSyncDispatchTimerQueue::timerCallback()
         VSyncDispatch::Callback (实际调用 EventThread::onVsync)  
             // 创建 Event
             DisplayEventReceiver::Event makeVSync()
+            // 放到mPendingEvents中，在 EventThread::threadMain 中取用
             mPendingEvents.push_back()
             // 唤醒 EventThread::threadMain
             mCondition.notify_all()
@@ -1247,12 +1313,20 @@ VSyncDispatchTimerQueue::timerCallback()
 
 ```
 EventThread::threadMain
+    // 判断是否需要消费这个事件
+    // 在这里修改 connection->vsyncRequest 状态
     EventThread::shouldConsumeEvent()
+        case VSyncRequest::Single -> connection->vsyncRequest = VSyncRequest::SingleSuppressCallback;
+        case VSyncRequest::SingleSuppressCallback -> connection->vsyncRequest = VSyncRequest::None;
     EventThread::dispatchEvent
         EventThreadConnection::postEvent()
             DisplayEventReceiver::sendEvents()
                 BitTube::sendObjects
                     BitTube::write
+    // 再次申请一次 Vsync 信号
+    VSyncCallbackRegistration::schedule()
+    // 进入等待状态，当Vsync信号到来时被唤醒进行 Vsync 信号分发
+    mCondition.wait_for()    
 ```
 
 ```
@@ -1292,7 +1366,101 @@ DisplayEventDispatcher::handleEvent
                                         ViewRootImpl.performTraversals()
 ```
 
-具体它们的关联的建立过程，请参考前面回调注册一节。    
+具体它们的关联的建立过程，请参考前面回调注册一节。     
+
+前面就介绍了一次完整的 app-vsync 信号的申请与分发，在这个过程中我们提到了，当 EventThread::threadMain 分发 vsync 时会再次申请一次 vsync 信号，那么是不是 vsync 信号就会一直无休止的申请和分发下去呢？那当然不是的。      
+当app第一次申请分发app-vsync结束后，接下来将会有两种情况：    
+ - app接着申请app-vsync
+ - app不再申请app-vsync
+
+当app接着申请app-vsync时，前面介绍过，在 EventThread::requestNextVsync 方法中，因为此时满足 `(connection->vsyncRequest == VSyncRequest::SingleSuppressCallback)` 条件，那么就只是把 `connection->vsyncRequest = VSyncRequest::Single;`，不会再次唤醒线程，等前面申请的 vsync 到的时候再向 app 分发，如此循环往复。     
+
+当 app不再申请app-vsync时，那么EventThread::requestNextVsync 就不会再次调用，`connection->vsyncRequest` 的状态就不会由 `VSyncRequest::SingleSuppressCallback` 切换到 `VSyncRequest::Single` 了。       
+
+```
+void EventThread::requestNextVsync(const sp<EventThreadConnection>& connection) {
+    ATRACE_NAME(mThreadName);//添加打印把主要线程名字打出到Trace中
+    mCallback.resync();
+
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    if (connection->vsyncRequest == VSyncRequest::None) {
+        connection->vsyncRequest = VSyncRequest::Single;
+        mCondition.notify_all();
+    } else if (connection->vsyncRequest == VSyncRequest::SingleSuppressCallback) {
+        connection->vsyncRequest = VSyncRequest::Single;
+    }
+}
+```
+
+那么在最后一次 vsync 信号到来时，在 shouldConsumeEvent 方法中会把 vsyncRequest 状态从 SingleSuppressCallback 改为 `VSyncRequest::None`。    
+
+```
+bool EventThread::shouldConsumeEvent(const DisplayEventReceiver::Event& event,
+                                     const sp<EventThreadConnection>& connection) const {
+                                     
+        case DisplayEventReceiver::DISPLAY_EVENT_VSYNC:
+            switch (connection->vsyncRequest) {
+                case VSyncRequest::None:
+                    return false;
+                case VSyncRequest::SingleSuppressCallback:
+                    connection->vsyncRequest = VSyncRequest::None;
+                    return false;
+                case VSyncRequest::Single: {
+                    if (throttleVsync()) {
+                        return false;
+                    }
+                    connection->vsyncRequest = VSyncRequest::SingleSuppressCallback;
+                    return true;
+                }
+```
+
+再最后一次设置的定时器到时，在 `EventThread::threadMain` 方法中，由于vsyncRequested变为false，就不会继续申请 vsync信号，而且会设置 `mState = State::Idle`。    
+
+```
+void EventThread::threadMain(std::unique_lock<std::mutex>& lock) {
+        .......
+        bool vsyncRequested = false;
+
+        // Find connections that should consume this event.
+        auto it = mDisplayEventConnections.begin();
+        while (it != mDisplayEventConnections.end()) {
+            if (const auto connection = it->promote()) {
+                if (event && shouldConsumeEvent(*event, connection)) {
+                    consumers.push_back(connection);
+                }
+                // connection->vsyncRequest == VSyncRequest::None，vsyncRequested 为false
+                vsyncRequested |= connection->vsyncRequest != VSyncRequest::None;
+
+                ++it;
+            } else {
+                it = mDisplayEventConnections.erase(it);
+            }
+        }
+
+        if (!consumers.empty()) {
+            dispatchEvent(*event, consumers);
+            consumers.clear();
+        }
+        // 由于 vsyncRequested 为 false，这里把 mState 设置为 State::Idle
+        if (mVSyncState && vsyncRequested) {
+            mState = mVSyncState->synthetic ? State::SyntheticVSync : State::VSync;
+        } else {
+            ALOGW_IF(!mVSyncState, "Ignoring VSYNC request while display is disconnected");
+            mState = State::Idle;
+        }
+        // 这里就不再继续申请 Vsync 信号
+        if (mState == State::VSync) {
+            const auto scheduleResult =
+                    mVsyncRegistration.schedule({.workDuration = mWorkDuration.get().count(),
+                                                 .readyDuration = mReadyDuration.count(),
+                                                 .lastVsync = mLastVsyncCallbackTime.ns()});
+            LOG_ALWAYS_FATAL_IF(!scheduleResult, "Error scheduling callback");
+        } else {
+            mVsyncRegistration.cancel();
+        }
+        
+```
 
 ## 相关文章
  
@@ -1300,4 +1468,5 @@ SurfaceFlinger模块-VSYNC研究：https://www.jianshu.com/p/5e9c558d1543
 VSync信号系统与SurfaceFlinger :https://juejin.cn/post/7371642257797038091      
 彻底掌握 Android14 Vsync 原理 :https://mp.weixin.qq.com/s/6RXEpIkhd9j7f4Our5P8-w      
 VSync信号系统与SurfaceFlinger :https://blog.csdn.net/LeeDuoZuiShuai/article/details/139046513      
-
+Andoid SurfaceFlinger(二) VSYNC的开始，连续，结束：https://blog.csdn.net/qq_41095045/article/details/136378829      
+App/Sf的Vsync部分源码流程结合perfetto/systrace分析：https://blog.csdn.net/liaosongmao1/article/details/136139562      

@@ -933,7 +933,7 @@ VsyncDispatch 的注册函数就会往 mCallbacks 注册封装了 callback 的 V
 
 #### 信号申请
 
- - 当 SF 需要请求刷新时，会调用到 Scheduler 的 scheduleFrame 函数，该函数定义在 Scheduler 的父类 MessageQueue 中。     
+ - 当 App 绘制完成，请求 SF 合成时，会调用到 Scheduler 的 scheduleFrame 函数，该函数定义在 Scheduler 的父类 MessageQueue 中。     
  - 接着调用 Scheduler 的 mVsync 成员 VSyncCallbackRegistration 的 schedule 函数，开始软件 Vsync 信号的计算分发。     
  - 通过 VSyncPredictor（Tracker）计算出下一次 Vsync-app 时间，接着以该时间安排一个 TimeKeeper 定时器，时间到达后，回调到对应的回调函数 MessageQueue::vsyncCallback。     
 
@@ -947,6 +947,8 @@ Scheduler::scheduleFrame()(MessageQueue::scheduleFrame())
             // 设置定时器发送下一次 Vsync 信号
             VSyncDispatchTimerQueue::rearmTimerSkippingUpdateFor()
                 VSyncDispatchTimerQueue::setTimer()
+                    // 设置定时器并设置定时触发回调函数
+                    Timer::alarmAt(VSyncDispatchTimerQueue::timerCallback)
 ```
 
 ```
@@ -1102,6 +1104,8 @@ void SurfaceFlinger::sample() {
 
 #### 回调注册
 
+##### App 和 sf 连接的注册
+
 VSync-app用于控制App的UI渲染。    
 如果有 App 关心 VSYN-APP，则需要向 appEventThread 注册 Connection，可能有多个 App 同时关注 VSYNC-app 信号，所以在 EventThread 的内部有一个 mDisplayEventConnections 来保存着Connection，Connection是一个Bn对象，因为要与APP进行binder通讯。      
 
@@ -1113,9 +1117,17 @@ new Choreographer()
             ----> jni
             NativeDisplayEventReceiver::nativeInit()
                 new NativeDisplayEventReceiver
+                    DisplayEventDispatcher::DisplayEventDispatcher()
+                        new DisplayEventReceiver()
+                            // 建立和 SF 的连接
+                            ISurfaceComposer.createDisplayEventConnection() ----> SF 进程
+                            IDisplayEventConnection::stealReceiveChannel
                 DisplayEventDispatcher::initialize()
                     mLooper->addFd(mReceiver.getFd(), 0, Looper::EVENT_INPUT, this, NULL)
 ```
+
+其中 FrameDisplayEventReceiver 继承自 DisplayEventReceiver。它的主要作用就是创建一个socket以及对应的文件，然后实现和SurfaceFlinger的双向通讯。     
+NativeDisplayEventReceiver 继承自 DisplayEventDispatcher。      
 
 ```
 status_t DisplayEventDispatcher::initialize() {
@@ -1176,7 +1188,39 @@ SurfaceComposerAIDL::createDisplayEventConnection
                     mDisplayEventConnections.push_back(connection);
 ```
 
-应用通过Choreographer这个对象去申请Vsync-app的信号，然后通过其内部类FrameDisplayEventReceiver来接受vsync信号，也就是Vsync-app的发射最后到这个对象里面，来触发app刷新，核心就是FrameDisplayEventReceiver类，这个类的初始化在是Choreographer的构造函数中。      
+```
+EventThreadConnection::stealReceiveChannel
+    // 设置 FD，后面就可以通过socket进行通信了
+    BitTube::setReceiveFd()
+    BitTube::setSendFd()
+```
+
+应用通过Choreographer这个对象去申请Vsync-app的信号，然后通过其内部类 FrameDisplayEventReceiver 来接受 vsync 信号，也就是Vsync-app的发射最后到这个对象里面，来触发app刷新，核心就是FrameDisplayEventReceiver类，这个类的初始化在是Choreographer的构造函数中。      
+
+##### Vsync 信号回调的注册
+
+当 Vsync 生成时，不管sf还是app都会调用 `VSyncDispatchTimerQueue::timerCallback()`，但是这里面分别注册了不同的回调函数用于不同类型 Vsync 的回调。关于 app-vsync 这部分的回调在前面线程初始化的部分已经讲过了：      
+
+在EventThread在创建 VSyncCallbackRegistration 时，绑定了 EventThread::onVsync 方法，所以后面有 Vsync 信号来的时候会调用到这个方法。      
+
+```
+EventThread::EventThread(const char* name, std::shared_ptr<scheduler::VsyncSchedule> vsyncSchedule,
+                         android::frametimeline::TokenManager* tokenManager,
+                         IEventThreadCallback& callback, std::chrono::nanoseconds workDuration,
+                         std::chrono::nanoseconds readyDuration)
+      : mThreadName(name),
+        mVsyncTracer(base::StringPrintf("VSYNC-%s", name), 0),
+        mWorkDuration(base::StringPrintf("VsyncWorkDuration-%s", name), workDuration),
+        mReadyDuration(readyDuration),
+        mVsyncSchedule(std::move(vsyncSchedule)),
+        mVsyncRegistration(mVsyncSchedule->getDispatch(), createDispatchCallback(), name),
+
+scheduler::VSyncDispatch::Callback EventThread::createDispatchCallback() {
+    return [this](nsecs_t vsyncTime, nsecs_t wakeupTime, nsecs_t readyTime) {
+        onVsync(vsyncTime, wakeupTime, readyTime);
+    };
+}
+```
 
 #### VSYNC-app的申请
 
@@ -1242,11 +1286,14 @@ EventThread::threadMain()
         VSyncDispatchTimerQueue::schedule()
             VSyncDispatchTimerQueue::scheduleLocked()
                 VSyncDispatchTimerQueueEntry::schedule()
-                    //计算下一次VSync信号的发送时间。
+                    // 计算下一次VSync信号的发送时间。
+                    // 具体的计算方法前面有介绍
                     VSyncPredictor::nextAnticipatedVSyncTimeFrom
                 // 设置定时器发送下一次 Vsync 信号
                 VSyncDispatchTimerQueue::rearmTimerSkippingUpdateFor()
                     VSyncDispatchTimerQueue::setTimer()
+                        // 设置定时器并设置定时触发回调函数
+                        Timer::alarmAt(VSyncDispatchTimerQueue::timerCallback)
     // 进入等待状态，当Vsync信号到来时被唤醒进行 Vsync 信号分发
     mCondition.wait_for()
 ```
@@ -1322,6 +1369,7 @@ EventThread::threadMain
         EventThreadConnection::postEvent()
             DisplayEventReceiver::sendEvents()
                 BitTube::sendObjects
+                    // 写入事件
                     BitTube::write
     // 再次申请一次 Vsync 信号
     VSyncCallbackRegistration::schedule()
@@ -1341,9 +1389,9 @@ ssize_t BitTube::write(void const* vaddr, size_t size) {
 }
 ```
 
-通过调用系统函数send向与消费者关联的文件描述符FD发送信号，于是完成Vsync向应用端的分发，分发的消息在 DisplayEventReceiver.dispatchVsync 方法中处理。    
+sf 分发 Vsync 信号到App进程是通过 Socket 进行通信的，通过调用系统函数send向与消费者关联的文件描述符FD发送信号，于是完成Vsync向应用端的分发，分发的消息在 DisplayEventReceiver.dispatchVsync 方法中处理。    
 
-当 sf 端写入事件时 ：      
+当 sf 端写入事件时 ，App 端的执行流程：      
 
 ```
 DisplayEventDispatcher::handleEvent
@@ -1457,6 +1505,7 @@ void EventThread::threadMain(std::unique_lock<std::mutex>& lock) {
                                                  .lastVsync = mLastVsyncCallbackTime.ns()});
             LOG_ALWAYS_FATAL_IF(!scheduleResult, "Error scheduling callback");
         } else {
+            // 取消定时器
             mVsyncRegistration.cancel();
         }
         

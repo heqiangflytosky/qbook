@@ -300,10 +300,12 @@ SurfaceControl.init()
             Client::createSurface
             -------跨进程调用到 SurfaceFlinger
 SurfaceFlinger::createLayer
-    // 根据不同的surface创建不同的 Layer
-    createBufferStateLayer
-    createEffectLayer
-    createContainerLayer
+    // 创建 Layer 对象
+    SurfaceFlinger::createBufferStateLayer
+        //获取一个纹理索引
+        SurfaceFlinger::getNewTexture()
+        // 构造layer对象
+        getFactory().createBufferStateLayer
     SurfaceFlinger::addClientLayer
 ```
 

@@ -272,10 +272,11 @@ TransitionHandler表示可以处理一组过渡动画的接口：
 
 实现类有：    
 
-RemoteTransitionHandler：远程动画
-DefaultTransitionHandler
-KeyguardTransitionHandler
-DefaultMixedHandler
+ - RemoteTransitionHandler：远程动画    
+ - DefaultTransitionHandler：应用内切换动画    
+ - KeyguardTransitionHandler：解锁相关动画    
+ - DefaultMixedHandler：比如桌面打开应用动画    
+
 等
 
 ### TransitionPlayerRecord

@@ -19,7 +19,7 @@ BLASTSyncEngine 设计的目的就是收集所有参与同步操作容器的 Tra
 adb shell wm logging enable-text WM_DEBUG_SYNC_ENGINE
 ```
 
-BLASTSyncEngine 是 WMS 的成员变量，基本每次窗口的事务切换都会围绕这个对象进行。     
+1. BLASTSyncEngine 是 WMS 的成员变量，基本每次窗口的事务切换都会围绕这个对象进行。     
 
 ```
 public class WindowManagerService extends IWindowManager.Stub
@@ -35,7 +35,7 @@ public class WindowManagerService extends IWindowManager.Stub
 }
 ```
 
-BLASTSyncEngine 下维护了一个集合 mActiveSyncs ，这个集合里的元素是 SyncGroup。      
+2. BLASTSyncEngine 下维护了一个集合 mActiveSyncs ，这个集合里的元素是 SyncGroup。      
 
 ```
 class BLASTSyncEngine {
@@ -43,9 +43,9 @@ class BLASTSyncEngine {
     private final ArrayList<SyncGroup> mActiveSyncs = new ArrayList<>();
 ```
 
-SyncGroup 代表一次同步任务组，也就是系统中某个逻辑，需要使用同步引擎完成时，就会为这次操作创建一个 SyncGroup。    
+3. SyncGroup 代表一次同步任务组，也就是系统中某个逻辑，需要使用同步引擎完成时，就会为这次操作创建一个 SyncGroup。    
 SyncGroup 下维护了一个集合 mRootMembers ，内部保存的是容器，但是一般都是 Task , ActivityRecord 级别。因为一般需要同步操作时，改变操作的也是这个级别的容器，命名为 “root”是因为虽然添加进集合的是它们，但是它们内部还有子容器，一般指的是 WindowState。    
-SyncGroup 创建的时候接收一个接口回调: TransactionReadyListener ，这个回调也将被保存在成员变量 mListener 中。作用是这次同步任务结束后，通过接口方法回调给使用者。      
+4. SyncGroup 创建的时候接收一个接口回调: TransactionReadyListener ，这个回调也将被保存在成员变量 mListener 中。作用是这次同步任务结束后，通过接口方法回调给使用者。      
 当 SyncGroup 下 mRootMembers  集合所有容器极其子容器都完成同步后，这个同步组的同步任务也就完成了，就会回调  TransactionReadyListener::onTransactionReady 方法回调给调用者。      
 
 ```
@@ -63,10 +63,11 @@ SyncGroup 创建的时候接收一个接口回调: TransactionReadyListener ，�
     }
 ```
 
-TransactionReadyListener 的实现类有 Transition 和 WindowOrganizerController。    
+5. TransactionReadyListener 的实现类有 Transition 和 WindowOrganizerController。    
 onTransactionReady() 方法中的参数 SurfaceControl.Transaction 代表了这次操作各个容器对应的 Surface 操作。     
 当同步任务完成时，会收集参与容器的 SurfaceControl.Transaction 合并成一个 SurfaceControl.Transaction 作为 TransactionReadyListener::onTransactionReady 的参数回调出去。    
 发起同步任务者，收到回调的同时，也拿到了 SurfaceControl.Transaction 的合集，就可以做对应的行为了。    
+
 因此一次同步任务可以分为下面几步：    
 
  - 启动一个同步组
@@ -78,6 +79,7 @@ onTransactionReady() 方法中的参数 SurfaceControl.Transaction 代表了这�
 ## 同步流程
 
 ### 搜集阶段
+
 
 这个阶段主要包含:    
  - 为对应操作创建 SyncGroup，后续才能把需要参与同步的容器添加到这个 SyncGroup。     

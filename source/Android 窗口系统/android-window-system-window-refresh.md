@@ -39,8 +39,10 @@ WindowStateAnimator的 mDrawState 属性用于表示窗口的绘制状态。mDra
 ViewRootImpl.performTraversals()
     SurfaceSyncGroup.markSyncReady()
         SurfaceSyncGroup.checkIfSyncIsComplete()
-            ViewRootImpl.reportDrawFinished()
-                WindowSession.finishDrawing()
+            // 执行创建 SurfaceSyncGroup 时的回调
+            mTransactionReadyConsumer.accept(mTransaction)
+                ViewRootImpl.reportDrawFinished()
+                    WindowSession.finishDrawing()
 
 // system_server
 Session.finishDrawing()

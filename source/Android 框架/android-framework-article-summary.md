@@ -10,6 +10,8 @@ date: 2022-11-23 10:00:00
 
 ## 博客和专栏
 
+[Android Performance](https://androidperformance.com/)：Android 开发和优化相关的话题，包括一些性能工具的使用、Android App 优化知识、Android Framework 知识讲解，性能理论知识讲解等。另外还会通过 Android Weekly 发布一些最新的技术相关的文章。      
+[Gracker 知乎](https://www.zhihu.com/people/gracker)：Android Performance 作者的知乎专栏
 
 [CSDN：千里马学框架](https://blog.csdn.net/learnframework/category_12210428.html)      
 [CSDN：Android高级知识分享官(千里马)](https://blog.csdn.net/liaosongmao1?type=blog)      
@@ -30,6 +32,7 @@ date: 2022-11-23 10:00:00
 ## 微信公众号
 
  - 千里马学框架
+ - AndroidPerformance
 
 ## 文章
 

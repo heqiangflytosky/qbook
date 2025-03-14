@@ -25,6 +25,11 @@ date: 2022-11-23 10:00:00
 协调分屏 MainStage 和 SideStage 可见性、大小调整等，MainStage 和 SideStage作为分屏 RootTask 的载体，分别代表主分屏区和辅助分屏区。      
 创建分屏的 RootTask。    
 
+```
+    // 表示 SideStage 代表的是上分屏还是下分屏
+    private int mSideStagePosition = SPLIT_POSITION_BOTTOM_OR_RIGHT;
+```
+
 ### SplitDecorManager
 
 通常我们在缩放分屏时，在被拉伸的 Task 上面会有个遮罩层，用来遮挡应用程序在拉伸过程中出现的奇怪的布局。    
@@ -275,7 +280,7 @@ WindowOrganizerController.applyTransaction() 主要做了下面几件事：
 ## 分屏切换
 
 双击分屏中间的分隔条可以实现上下分屏的切换。    
-对比窗口层级树我们会发现，切换分屏前后层级树结构没有发生任何变化，只是把上下分屏的位置做了改变。    
+对比窗口层级树我们会发现，切换分屏前后层级树结构没有发生任何变化，只是把上下分屏的位置做了改变。然后修改了 mSideStagePosition 模式。    
 
 <img src="/images/android-window-system-split-screen/3.png" width="936" height="92"/>
 
@@ -293,6 +298,14 @@ DividerView$DoubleTapListener.onDoubleTap
                     SplitLayout.moveSurface
                     SplitLayout.moveSurface
                     SplitLayout.moveSurface
+                    onAnimationEnd()
+                        StageCoordinator.reverseSplitPosition()
+                        StageCoordinator.setSideStagePosition()
+                            StageCoordinator.updateWindowBounds()
+                                SplitLayout.applyTaskChanges()
+                                    SplitLayout.setTaskBounds()
+                                        WindowContainerTransaction.setBounds()
+                                        WindowContainerTransaction.setSmallestScreenWidthDp()
                     AnimatorSet.start()
 ```
 
@@ -301,9 +314,61 @@ ScreenshotUtils screenshot 图层：
 <img src="/images/android-window-system-split-screen/2.png" width="380" height="461"/>
 
 ```
+    void switchSplitPosition(String reason) {
+        ProtoLog.d(WM_SHELL_SPLIT_SCREEN, "switchSplitPosition");
+        final SurfaceControl.Transaction t = mTransactionPool.acquire();
+        mTempRect1.setEmpty();
+        final StageTaskListener topLeftStage =
+                mSideStagePosition == SPLIT_POSITION_TOP_OR_LEFT ? mSideStage : mMainStage;
+        final SurfaceControl topLeftScreenshot = ScreenshotUtils.takeScreenshot(t,
+                topLeftStage.mRootLeash, mTempRect1, Integer.MAX_VALUE - 1);
+        final StageTaskListener bottomRightStage =
+                mSideStagePosition == SPLIT_POSITION_TOP_OR_LEFT ? mMainStage : mSideStage;
+        final SurfaceControl bottomRightScreenshot = ScreenshotUtils.takeScreenshot(t,
+                bottomRightStage.mRootLeash, mTempRect1, Integer.MAX_VALUE - 1);
+        mSplitLayout.splitSwitching(t, topLeftStage.mRootLeash, bottomRightStage.mRootLeash,
+                insets -> {
+                    // onAnimationEnd 回调执行
+                    // 构造 WindowContainerTransaction，因为需要最终由 system_server 来修改 Task 位置
+                    WindowContainerTransaction wct = new WindowContainerTransaction();
+                    // 设置最终的 Task 位置，以及修改 mSideStagePosition
+                    setSideStagePosition(reverseSplitPosition(mSideStagePosition), wct);
+                    // 把 WindowContainerTransaction 放到 SyncTransactionQueue 中执行
+                    mSyncQueue.queue(wct);
+                    mSyncQueue.runInSync(st -> {
+                        updateSurfaceBounds(mSplitLayout, st, false /* applyResizingOffset */);
+                        st.setPosition(topLeftScreenshot, -insets.left, -insets.top);
+                        st.setPosition(bottomRightScreenshot, insets.left, insets.top);
+
+                        final ValueAnimator va = ValueAnimator.ofFloat(1, 0);
+                        va.addUpdateListener(valueAnimator-> {
+                            final float progress = (float) valueAnimator.getAnimatedValue();
+                            t.setAlpha(topLeftScreenshot, progress);
+                            t.setAlpha(bottomRightScreenshot, progress);
+                            t.apply();
+                        });
+                        va.addListener(new AnimatorListenerAdapter() {
+                            @Override
+                            public void onAnimationEnd(
+                                    @androidx.annotation.NonNull Animator animation) {
+                                t.remove(topLeftScreenshot);
+                                t.remove(bottomRightScreenshot);
+                                t.apply();
+                                mTransactionPool.release(t);
+                            }
+                        });
+                        va.start();
+                    });
+                });
+    }
+```
+
+```
     // 构造切换分屏的动画
     // leash1和leash2分别代表 两个分屏所在 Task的SurfaceControl
-    // finishCallback在 StageCoordinator.switchSplitPosition 方法中构造，动画执行完毕后执行，主要是隐藏 Task 截图
+    // finishCallback在 StageCoordinator.switchSplitPosition 方法中构造，
+    // 动画执行完毕后执行，主要是隐藏 Task 截图，调整 mSideStagePosition 的值。
+    //以及修改上面分屏 Task 的最终位置
     public void splitSwitching(SurfaceControl.Transaction t, SurfaceControl leash1,
             SurfaceControl leash2, Consumer<Rect> finishCallback) {
         final Rect insets = getDisplayStableInsets(mContext);
@@ -392,8 +457,25 @@ ScreenshotUtils screenshot 图层：
     }
 ```
 
+reverseSplitPosition 方法将分屏模式进行翻转。比如以前的 SideStage 代表下分屏，那么反转后就代表上分屏。     
+
+```
+    public static int reverseSplitPosition(@SplitScreenConstants.SplitPosition int position) {
+        switch (position) {
+            case SPLIT_POSITION_TOP_OR_LEFT:
+                return SPLIT_POSITION_BOTTOM_OR_RIGHT;
+            case SPLIT_POSITION_BOTTOM_OR_RIGHT:
+                return SPLIT_POSITION_TOP_OR_LEFT;
+            case SPLIT_POSITION_UNDEFINED:
+            default:
+                return SPLIT_POSITION_UNDEFINED;
+        }
+    }
+```
+
 
 ## 分屏退出
+
 
 ## 相关文章
 

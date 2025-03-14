@@ -228,6 +228,9 @@ public class RootWindowContainer extends WindowContainer<DisplayContent>
     String getName() {
         return "ROOT";
     }
+    
+    // 获取 RootTaskInfo
+    private RootTaskInfo getRootTaskInfo(Task task){}
 ```
 
 由于DisplayContent代表了一个屏幕，且RootWindowContainer能够作为DisplayContent的父容器，这也说明了Android是支持多屏幕的，展开来说就是包括一个内部屏幕（内置于手机或平板电脑中的屏幕）、一个外部屏幕（如通过 HDMI 连接的电视）以及一个或多个虚拟屏幕。    
@@ -418,8 +421,19 @@ class WallpaperWindowToken extends WindowToken {
 WallpaperWindowToken 用来存放和Wallpaper相关的窗口。    
 引入了 WallpaperWindowToken 后就可以把非Activity窗口分为两类窗口：Wallpaper窗口和非Wallpaper窗口。Wallpaper 窗口的层级是比App窗口的层级低的。    
 
+### TaskFragment
 
-### Task（ActivityRecord的容器）
+一个基本容器，可用于包含 activity 或其他 {@link TaskFragment}，它还能够管理 activity 生命周期并更新其中 activity 的可见性。      
+
+```
+class TaskFragment extends WindowContainer<WindowContainer> {
+    // 该 TaskFragment 是否应该可见
+    boolean shouldBeVisible(ActivityRecord starting) {
+```
+
+#### Task（ActivityRecord的容器）
+
+Task 是一个 TaskFragment，它可以包含一组用于执行特定作业的 activities。具有相同任务相关性的活动通常分组在同一个  Task 中。Task 也可以是在“最近”屏幕中显示用户与之交互的作业的实体。一个 Task 还可以包含其他 Task。      
 
 ```
 class Task extends TaskFragment {
@@ -498,6 +512,17 @@ DisplayArea有三种风格，用来保证窗口能够拥有正确的Z轴顺序�
 
 ```
 class TaskDisplayArea extends DisplayArea<WindowContainer> {
+
+    private final ArrayList<WindowContainer> mTmpAlwaysOnTopChildren = new ArrayList<>();
+    private final ArrayList<WindowContainer> mTmpNormalChildren = new ArrayList<>();
+    private final ArrayList<WindowContainer> mTmpHomeChildren = new ArrayList<>();
+    
+    void assignRootTaskOrdering(SurfaceControl.Transaction t) {}
+    
+    //调整属于同一组的根任务的图层。请注意，有三个根任务组：home rootTasks、always on top rootTasks 和普通 rootTasks。
+    private int adjustRootTaskLayer(SurfaceControl.Transaction t,
+            ArrayList<WindowContainer> children, int startLayer) {
+
 ```
 
 TaskDisplayArea，代表了屏幕的一个包含 App 类型的 WindowContainer 的区域。它的子节点可以是 Task，或者是 TaskDisplayArea。    

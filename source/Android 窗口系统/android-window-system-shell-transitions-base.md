@@ -453,9 +453,13 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                         new TransitionInfo
                         // 获取用于挂载到 Leash 的图层
                         Transition.getLeashSurface()
-                        // 创建 Transition Root Leash
+                        // 
                         Transition.calculateTransitionRoots()
+                            //创建 Transition Root Leash
                             WindowContainer.makeAnimationLeash().build()
+                            // 管理窗口层级
+                            Transition.assignLayers()
+                                DisplayContent.assignChildLayers()
                     TransitionController.moveToPlaying()
                         mPlayingTransitions.add(transition)
                     // 动画结束后重置属性
@@ -492,7 +496,7 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                                                                             RemoteAnimationTargetCompat.wrap()
                                                                                 TransitionUtil.newTarget()
                                                                                     // 创建用来动画的 Leash
-                                                                                    RemoteAnimationTarget.createLeash()
+                                                                                    TransitionUtil.createLeash()
                                                                                         // _transition-leash
                                                                                         new SurfaceControl.Builder().build()
                                                                                         // 设置leash的层级

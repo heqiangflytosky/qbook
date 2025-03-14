@@ -1,0 +1,404 @@
+---
+title: Android 分屏
+categories: Android 窗口系统
+comments: true
+tags: [Android 窗口系统]
+description: 介绍 Android 分屏
+date: 2022-11-23 10:00:00
+---
+
+## 相关类
+
+### 窗口层级
+
+分屏前，Task 12 和 Task 13 分别对应两个即将分屏的 Task，mode=fullscreen。Task 9 对应分屏容器所在的 Task，下面有两个 Task 10 和 Task 11，mode=MULTI-WINDOW，用来状态需要分屏的 Task。     
+分屏后，Task 12 和 Task 13 移动到了 Task 9 下面的 Task 10 和 Task 11。mode 变成了 MULTI-WINDOW。      
+
+<img src="/images/android-window-system-split-screen/0.png" width="757" height="142"/>
+
+### SplitScreenController
+
+分屏管理器，负责构造 StageCoordinator，负责和 Launcher 进行通信。    
+
+### StageCoordinator
+
+协调分屏 MainStage 和 SideStage 可见性、大小调整等，MainStage 和 SideStage作为分屏 RootTask 的载体，分别代表主分屏区和辅助分屏区。      
+创建分屏的 RootTask。    
+
+### SplitDecorManager
+
+通常我们在缩放分屏时，在被拉伸的 Task 上面会有个遮罩层，用来遮挡应用程序在拉伸过程中出现的奇怪的布局。    
+SplitDecorManager 继承自 WindowlessWindowManager，表示这个界面不需要 WMS 的窗口管理，直接操作 Layer 图层进行界面显示。      
+
+```
+public class SplitDecorManager extends WindowlessWindowManager {
+```
+
+对应图层:      
+对于每个分屏分别构造了 SplitDecorManager，和分屏的两个 Task( Task 12 和 Task 13)分别挂载到了同一个父层级。     
+
+<img src="/images/android-window-system-split-screen/1.png" width="422" height="587"/>
+
+### SplitWindowManager
+
+持有分屏操作窗口的根布局以及帮助分屏分隔条进行分屏。       
+主要作用是协调两个应用窗口的布局和交互。        
+
+```
+public final class SplitWindowManager extends WindowlessWindowManager {
+    private SurfaceControlViewHost mViewHost;
+    private SurfaceControl mLeash;
+    private DividerView mDividerView;
+```
+
+对应图层见上图:      
+和两个分屏的父 Task(Task 10 和 Task 11) 挂载到了同一个父层级。     
+
+
+## 桌面启动分屏
+
+桌面部分的主要工作是选择上下分屏的 Task，将 Task 传给 SystemUI 执行分屏操作，完成真正分屏前的一些动画。     
+
+### 选择上分屏
+
+```
+TaskShortcutFactory.SplitSelectSystemShortcut.onClick()
+    TaskView.initiateSplitSelect
+        LauncherRecentsView.initiateSplitSelect
+            StateManager.goToState
+                StateManager.goToStateAnimated
+                    // 创建动画
+                    StateManager.createAnimationToNewWorkspaceInternal
+                        BaseRecentsViewStateController.setStateWithAnimation
+                            RecentsViewStateController.setStateWithAnimationInternal
+                                RecentsViewStateController.handleSplitSelectionState
+                                    RecentsView.createSplitSelectInitAnimation
+                                        RecentsView.createTaskDismissAnimation
+                                            RecentsView.createInitialSplitSelectAnimation
+                                                // 构造 FloatingTaskThumbnailView
+                                                FloatingTaskView.getFloatingTaskView()
+                    // 开启动画
+                    new StartAnimRunnable(animation)
+```
+
+### 选择下分屏
+
+```
+TaskView.confirmSecondSplitSelectApp()
+    RecentsView.confirmSplitSelect()
+        SplitSelectStateController.setSecondTask()
+        new PendingAnimation
+        pendingAnimation.addEndListener
+            //动画完成时，启动分屏
+            SplitSelectStateController.launchSplitTasks
+                SplitSelectStateController.launchTasks
+                    SplitSelectStateController.getShellRemoteTransition
+                        // 创建动画执行器
+                        new RemoteSplitLaunchTransitionRunner
+                        new RemoteTransition
+                    SystemUiProxy.startTasks()
+                        ISplitScreen.startTasks()  -----> SystemUI 执行
+        // 开启动画
+        pendingAnimation.buildAnim().start()
+```
+
+## SystemUI 启动分屏流程
+
+从 Launcher 到 SystemUI 传递了上下分屏的 taskID，SplitPosition类型等参数。     
+
+```
+        public void startTasks(int taskId1, @Nullable Bundle options1, int taskId2,
+                @Nullable Bundle options2, @SplitPosition int splitPosition,
+                @PersistentSnapPosition int snapPosition,
+                @Nullable RemoteTransition remoteTransition, InstanceId instanceId) {
+```
+
+```
+SplitScreenController.ISplitScreenImpl.startTasks()
+    //线程切换 binder -> wmshell.main
+    executeRemoteCallWithTaskPermission()
+        StageCoordinator.startTasks()
+            // 创建一个 
+            new WindowContainerTransaction()
+            // 关联options1与taskId1
+            WindowContainerTransaction.startTask()
+                // 创建 HierarchyOp
+                HierarchyOp.createForTaskLaunch()
+                // 添加到 mHierarchyOps
+                mHierarchyOps.add()
+            StageCoordinator.startWithTask()
+                // 设置分屏比例
+                SplitLayout.setDivideRatio(snapPosition)
+                    // 设置分割线
+                    SplitLayout.setDividerPosition()
+                        SplitLayout.updateBounds()
+                // 设置上下屏的bound，传递到 server 端执行
+                StageCoordinator.updateWindowBounds()
+                    SplitLayout.applyTaskChanges()
+                        SplitLayout.setTaskBounds
+                            WindowContainerTransaction.setBounds()
+                                WindowContainerTransaction.getOrCreateChange()
+                                    // 报存到 mChanges
+                                    mChanges.put()
+                            WindowContainerTransaction.setSmallestScreenWidthDp()
+                //让装载分屏的rootTask进行reorder，主要就是为了把分屏移到最前面
+                WindowContainerTransaction.reorder()
+                // 添加启动的下分屏task
+                WindowContainerTransaction.startTask()
+                SplitScreenTransitions.startEnterTransition(TRANSIT_TO_FRONT)
+                    //启动动画和提交WindowContainerTransaction相关事务
+                    Transitions.startTransition()
+                        // 通过mOrganizer.startNewTransition启动一个新的事务，调到 system_servr 端
+                        new ActiveTransition(mOrganizer.startNewTransition(type, wct))
+                            WindowOrganizer.startNewTransition
+                                // system_server开始执行事务，参数 type 为 TRANSIT_TO_FRONT
+                                getWindowOrganizerController().startNewTransition() ----> system_servr
+                        // 放到mPendingTransitions 中，等待 同步 准备好后执行
+                        mPendingTransitions.add(active)
+                    //设置mPendingEnter动画
+                    SplitScreenTransitions.setEnterTransition()
+                        mPendingEnter = new EnterSession()
+                    
+```
+
+我们mSplitTransitions.startEnterTransition这个方法中传递了WindowContainerTransaction对象wct，用于后续system_server流程中提交该事务，并且启动分屏。      
+
+```
+// Transitions.java
+    public IBinder startTransition(@WindowManager.TransitionType int type,
+            @NonNull WindowContainerTransaction wct, @Nullable TransitionHandler handler) {
+        //启动新的过渡动画,开启同步过程，并提交WindowContainerTransaction相关事务
+        final ActiveTransition active =
+                new ActiveTransition(mOrganizer.startNewTransition(type, wct));
+        active.mHandler = handler;
+        mKnownTransitions.put(active.mToken, active);
+        mPendingTransitions.add(active);
+        return active.mToken;
+    }
+```
+
+当一切同步工作都准备好后,就开始执行刚才的 ActiveTransition，这部分具体介绍在 ShellTransition 一节中。      
+
+```
+Transitions.TransitionPlayerImpl.onTransitionReady()
+    Transitions.onTransitionReady()
+        Transitions.dispatchReady()
+            // 中间其他部分省略，和前面 ShellTransition 中介绍的了流程相似
+            Transitions.processReadyQueue()
+                active.mHandler.startAnimation() 实际执行 StageCoordinator.startAnimation()
+                    StageCoordinator.startPendingAnimation()
+                        StageCoordinator.startPendingEnterAnimation()
+                            StageCoordinator.finishEnterSplitScreen
+                                SplitLayout.update()
+                                    SplitLayout.init()
+                                        SplitWindowManager.init()
+                                            new SurfaceControlViewHost()
+                                                SurfaceControlViewHost.setView()
+                                                    ViewRootImpl.setView
+                                                        WindowlessWindowManager.addToDisplayAsUser
+                                                            WindowlessWindowManager.addToDisplay
+                                                                SplitWindowManager.getParentSurface
+                                                                    // 构建 Leash
+                                                                    new SurfaceControl.Builder.build()
+                                // 构建上下分屏遮罩的视图
+                                SplitDecorManager.inflate()
+                                    new SurfaceControlViewHost()
+                                        SurfaceControlViewHost.setView()
+                                finishT.show(mRootTaskLeash)
+                                // 开始两个分屏出现的动画
+                                SplitScreenTransitions.playAnimation()
+                                    // 获取到前面创建的 EnterSession
+                                    getPendingTransition()
+                                    // 执行到 桌面侧 ----> launcher
+                                    SplitScreenTransitions.EnterSession.mRemoteHandler.startAnimation
+```
+
+
+## 桌面执行动画
+
+SplitSelectStateController.RemoteSplitLaunchTransitionRunner.startAnimation()
+
+
+## system_server 部分
+
+前面说到 SystemUI 在处理分屏逻辑时，创建了 WindowContainerTransaction，经过一系列的属性设置后，通过 `mOrganizer.startNewTransition(type, wct)` 将相关事务提交到 system_server，那么接下来就讲解 WindowOrganizerController是如何处理WindowContainerTransaction的。    
+
+systemui 通过 `getWindowOrganizerController().startNewTransition()` 方法跨进程通信到 system_server。    
+
+```
+WindowOrganizerController.startNewTransition()
+    TransitionController.startCollectOrQueue()
+        mCollectingTransition = transition;
+        Transition.startCollecting()
+            // 修改状态
+            mState = STATE_COLLECTING;
+            // BLASTSyncEngine 流程，此处略去
+            BLASTSyncEngine.startSyncSet()
+        // 也就是传入的回调，在 startCollectOrQueue 方法中定义
+        onStartCollect.onCollectStarted
+            Transition.start()
+                mState = STATE_STARTED;
+            // 开始处理事务
+            WindowOrganizerController.applyTransaction()
+                Transition.deferTransitionReady()
+                // 获取 HierarchyOp，也就是前面对 WindowContainerTransaction的一系列操作
+                // 包括 setBounds、startTask、reorder等
+                WindowContainerTransaction.getHierarchyOps()
+                // 遍历 WindowContainerTransaction.Change，并应用到窗口
+                WindowOrganizerController.applyWindowContainerChange()
+                // 应用 HierarchyOp相关，主要是 
+                WindowOrganizerController.applyHierarchyOp()
+                // 获取 mBoundsChangeSurfaceBounds，并应用到对应窗口上
+                WindowContainerTransaction.Change.getBoundsChangeSurfaceBounds()
+                SurfaceControl.Transaction.setPosition
+                SurfaceControl.Transaction.setWindowCrop
+                // 更新Activity的可见性和Configuration
+                RootWindowContainer.ensureActivitiesVisible()
+                RootWindowContainer.resumeFocusedTasksTopActivities()
+                ActivityRecord.ensureActivityConfiguration
+                ActivityTaskManagerService.continueWindowLayout()
+                
+```
+
+
+### 事务处理
+
+WindowOrganizerController.applyTransaction() 主要做了下面几件事：
+ - 遍历 WindowContainerTransaction.Change，并应用到窗口
+ - 应用 HierarchyOp相关
+ - 获取 mBoundsChangeSurfaceBounds，并应用到对应窗口上
+ - 更新Activity的可见性和Configuration
+
+## 分屏拉伸
+
+
+## 分屏切换
+
+双击分屏中间的分隔条可以实现上下分屏的切换。    
+对比窗口层级树我们会发现，切换分屏前后层级树结构没有发生任何变化，只是把上下分屏的位置做了改变。    
+
+<img src="/images/android-window-system-split-screen/3.png" width="936" height="92"/>
+
+```
+DividerView$DoubleTapListener.onDoubleTap
+    SplitLayout.onDoubleTappedDivider
+        StageCoordinator.onDoubleTappedDivider
+            StageCoordinator.switchSplitPosition
+                // 对上下两个分屏进行截图，
+                // 将这两个截图图层挂载到两个分屏的RootTask对应节点上
+                ScreenshotUtils.takeScreenshot()
+                ScreenshotUtils.takeScreenshot()
+                SplitLayout.splitSwitching
+                    // 分屏构造上下分屏和分割线动画
+                    SplitLayout.moveSurface
+                    SplitLayout.moveSurface
+                    SplitLayout.moveSurface
+                    AnimatorSet.start()
+```
+
+ScreenshotUtils screenshot 图层：    
+
+<img src="/images/android-window-system-split-screen/2.png" width="380" height="461"/>
+
+```
+    // 构造切换分屏的动画
+    // leash1和leash2分别代表 两个分屏所在 Task的SurfaceControl
+    // finishCallback在 StageCoordinator.switchSplitPosition 方法中构造，动画执行完毕后执行，主要是隐藏 Task 截图
+    public void splitSwitching(SurfaceControl.Transaction t, SurfaceControl leash1,
+            SurfaceControl leash2, Consumer<Rect> finishCallback) {
+        final Rect insets = getDisplayStableInsets(mContext);
+        insets.set(mIsLeftRightSplit ? insets.left : 0, mIsLeftRightSplit ? 0 : insets.top,
+                mIsLeftRightSplit ? insets.right : 0, mIsLeftRightSplit ? 0 : insets.bottom);
+
+        final int dividerPos = mDividerSnapAlgorithm.calculateNonDismissingSnapTarget(
+                mIsLeftRightSplit ? mBounds2.width() : mBounds2.height()).position;
+        final Rect distBounds1 = new Rect();
+        final Rect distBounds2 = new Rect();
+        final Rect distDividerBounds = new Rect();
+        // Compute dist bounds.
+        updateBounds(dividerPos, distBounds2, distBounds1, distDividerBounds,
+                false /* setEffectBounds */);
+        // Offset to real position under root container.
+        distBounds1.offset(-mRootBounds.left, -mRootBounds.top);
+        distBounds2.offset(-mRootBounds.left, -mRootBounds.top);
+        distDividerBounds.offset(-mRootBounds.left, -mRootBounds.top);
+        // 构造动画
+        ValueAnimator animator1 = moveSurface(t, leash1, getRefBounds1(), distBounds1,
+                -insets.left, -insets.top);
+        ValueAnimator animator2 = moveSurface(t, leash2, getRefBounds2(), distBounds2,
+                insets.left, insets.top);
+        ValueAnimator animator3 = moveSurface(t, getDividerLeash(), getRefDividerBounds(),
+                distDividerBounds, 0 /* offsetX */, 0 /* offsetY */);
+
+        AnimatorSet set = new AnimatorSet();
+        set.playTogether(animator1, animator2, animator3);
+        set.setDuration(FLING_SWITCH_DURATION);
+        set.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+                InteractionJankMonitorUtils.beginTracing(CUJ_SPLIT_SCREEN_DOUBLE_TAP_DIVIDER,
+                        mContext, getDividerLeash(), null /*tag*/);
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                mDividerPosition = dividerPos;
+                updateBounds(mDividerPosition);
+                finishCallback.accept(insets);
+                InteractionJankMonitorUtils.endTracing(CUJ_SPLIT_SCREEN_DOUBLE_TAP_DIVIDER);
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animation) {
+                InteractionJankMonitorUtils.cancelTracing(CUJ_SPLIT_SCREEN_DOUBLE_TAP_DIVIDER);
+            }
+        });
+        set.start();
+    }
+    
+    private ValueAnimator moveSurface(SurfaceControl.Transaction t, SurfaceControl leash,
+            Rect start, Rect end, float offsetX, float offsetY) {
+        Rect tempStart = new Rect(start);
+        Rect tempEnd = new Rect(end);
+        final float diffX = tempEnd.left - tempStart.left;
+        final float diffY = tempEnd.top - tempStart.top;
+        final float diffWidth = tempEnd.width() - tempStart.width();
+        final float diffHeight = tempEnd.height() - tempStart.height();
+        ValueAnimator animator = ValueAnimator.ofFloat(0, 1);
+        animator.addUpdateListener(animation -> {
+            if (leash == null) return;
+
+            final float scale = (float) animation.getAnimatedValue();
+            final float distX = tempStart.left + scale * diffX;
+            final float distY = tempStart.top + scale * diffY;
+            final int width = (int) (tempStart.width() + scale * diffWidth);
+            final int height = (int) (tempStart.height() + scale * diffHeight);
+            // 更新分屏的位置
+            if (offsetX == 0 && offsetY == 0) {
+                t.setPosition(leash, distX, distY);
+                t.setWindowCrop(leash, width, height);
+            } else {
+                final int diffOffsetX = (int) (scale * offsetX);
+                final int diffOffsetY = (int) (scale * offsetY);
+                t.setPosition(leash, distX + diffOffsetX, distY + diffOffsetY);
+                mTempRect.set(0, 0, width, height);
+                mTempRect.offsetTo(-diffOffsetX, -diffOffsetY);
+                t.setCrop(leash, mTempRect);
+            }
+            // apply 事务
+            t.apply();
+        });
+        return animator;
+    }
+```
+
+
+## 分屏退出
+
+## 相关文章
+
+[Android U 多任务启动分屏——Launcher流程（上分屏）](https://blog.csdn.net/yimelancholy/article/details/141851599)      
+[aosp13/14命令行进入分屏相关实战](https://zhuanlan.zhihu.com/p/692879274)      
+[Android U system_server侧WindowContainerTransaction处理](https://blog.csdn.net/yimelancholy/article/details/144694952)      
+[安卓分屏下Activity启动其他Activity为啥也在分屏下？-framework深入剖析](https://zhuanlan.zhihu.com/p/706097799)      
+[android T 分屏流程之systemui部分/android framework车载车机手机实战开发 ](https://juejin.cn/post/7265891728163749903)      

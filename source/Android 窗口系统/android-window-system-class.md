@@ -244,18 +244,19 @@ RemoteAnimationTarget 主要用来存放远程动画图层。
 
 ### WindowOrganizerController
 
-服务端用来组织管理窗口的实现
+详情可参考后面的 WindowOrganizerController 相关博客。     
 
 ### TaskOrganizer
 
-参考 WM shell
+参考 WM shell 相关博客。    
 
 ### BLASTSyncEngine
 
+详情可阅读后面的 BLASTSyncEngine 相关博客。      
+
 ### WindowContainerTransaction
 
-用于存储对WindowContainer修改的集合的类。由于应用层无法直接操作WindowContainer，需要通过系统层进行修改，因此WindowContainerTransaction类实现了Parcelable接口，支持跨进程传输‌。     
-这种机制确保了应用层可以通过系统层安全地修改WindowContainer‌。    
+详情可阅读后面的 WindowContainerTransaction 相关博客。      
 
 
 

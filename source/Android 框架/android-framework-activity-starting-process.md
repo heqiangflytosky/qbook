@@ -78,7 +78,9 @@ ActivityTaskManagerService.startActivity()
                     new ActivityRecord()
                 ActivityStarter.startActivityUnchecked()
                     ActivityStarter.startActivityInner()
-                        // 判断是否有可以重复使用的 Task
+                        // 判断是否有可以重复使用的 Task，比如挂在已经存在的 Task
+                        ActivityStarter.getReusableTask()
+                        // 判断是否有可以回收使用的 Task
                         ActivityStarter.recycleTask()
                             ActivityStarter.setTargetRootTaskIfNeeded()
                                 Task.moveTaskToFront()

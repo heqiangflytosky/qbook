@@ -18,16 +18,115 @@ date: 2022-11-23 10:00:00
 
 ### SplitScreenController
 
-分屏管理器，负责构造 StageCoordinator，负责和 Launcher 进行通信。    
+分屏管理器，负责构造 StageCoordinator，负责和 Launcher 进行通信。     
 
 ### StageCoordinator
 
 协调分屏 MainStage 和 SideStage 可见性、大小调整等，MainStage 和 SideStage作为分屏 RootTask 的载体，分别代表主分屏区和辅助分屏区。      
-创建分屏的 RootTask。    
+创建分屏的 RootTask(36) 和上下分屏的 Root Task(37和38)。      
 
 ```
+                  │  ├─ Task=36 type=undefined mode=fullscreen override-mode=fullscreen requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
+                  │  │  ├─ Task=37 type=undefined mode=MULTI-WINDOW override-mode=MULTI-WINDOW requested-bounds=[0,1184][1080,2340] bounds=[0,1184][1080,2340]
+                  │  │  └─ Task=38 type=undefined mode=MULTI-WINDOW override-mode=MULTI-WINDOW requested-bounds=[0,0][0,0] bounds=[0,0][1080,2340]
+
+```
+
+StageCoordinator 实现了 ShellTaskOrganizer.TaskListener 接口，来监听 Task 的变化情况。       
+
+```
+public class StageCoordinator implements SplitLayout.SplitLayoutHandler,
+        DisplayController.OnDisplaysChangedListener, Transitions.TransitionHandler,
+        ShellTaskOrganizer.TaskListener {
+    ......
     // 表示 SideStage 代表的是上分屏还是下分屏
     private int mSideStagePosition = SPLIT_POSITION_BOTTOM_OR_RIGHT;
+
+    protected StageCoordinator(Context context, int displayId, SyncTransactionQueue syncQueue,
+            ShellTaskOrganizer taskOrganizer, DisplayController displayController,
+            DisplayImeController displayImeController,
+            DisplayInsetsController displayInsetsController, Transitions transitions,
+            TransactionPool transactionPool,
+            IconProvider iconProvider, ShellExecutor mainExecutor,
+            Optional<RecentTasksController> recentTasks,
+            LaunchAdjacentController launchAdjacentController,
+            Optional<WindowDecorViewModel> windowDecorViewModel) {
+        ......
+        // 创建 Root Task，并设置自己为 TaskListener    
+        taskOrganizer.createRootTask(displayId, WINDOWING_MODE_FULLSCREEN, this /* listener */);
+
+        ProtoLog.d(WM_SHELL_SPLIT_SCREEN, "Creating main/side root task");
+        // 创建 MainStage 和 SideStage
+        mMainStage = new MainStage(
+                mContext,
+                mTaskOrganizer,
+                mDisplayId,
+                mMainStageListener,
+                mSyncQueue,
+                mSurfaceSession,
+                iconProvider,
+                mWindowDecorViewModel);
+        mSideStage = new SideStage(
+                mContext,
+                mTaskOrganizer,
+                mDisplayId,
+                mSideStageListener,
+                mSyncQueue,
+                mSurfaceSession,
+                iconProvider,
+                mWindowDecorViewModel);
+        ....
+    }
+```
+
+当分屏 RootTask 创建完成后，再挂载上下分屏的 RootTask。       
+
+```
+    public void onTaskAppeared(ActivityManager.RunningTaskInfo taskInfo, SurfaceControl leash) {
+        if (mRootTaskInfo != null || taskInfo.hasParentTask()) {
+            throw new IllegalArgumentException(this + "\n Unknown task appeared: " + taskInfo);
+        }
+
+        ProtoLog.d(WM_SHELL_SPLIT_SCREEN, "onTaskAppeared: task=%s", taskInfo);
+        mRootTaskInfo = taskInfo;
+        mRootTaskLeash = leash;
+        // 创建 SplitLayout
+        if (mSplitLayout == null) {
+            mSplitLayout = new SplitLayout(TAG + "SplitDivider", mContext,
+                    mRootTaskInfo.configuration, this, mParentContainerCallbacks,
+                    mDisplayController, mDisplayImeController, mTaskOrganizer,
+                    PARALLAX_ALIGN_CENTER /* parallaxType */);
+            mDisplayInsetsController.addInsetsChangedListener(mDisplayId, mSplitLayout);
+        }
+        // 挂载两个分屏的 Root Task。    
+        onRootTaskAppeared();
+    }
+    
+    void onRootTaskAppeared() {
+        ProtoLog.d(WM_SHELL_SPLIT_SCREEN, "onRootTaskAppeared: rootTask=%s mainRoot=%b sideRoot=%b",
+                mRootTaskInfo, mMainStageListener.mHasRootTask, mSideStageListener.mHasRootTask);
+        // Wait unit all root tasks appeared.
+        if (mRootTaskInfo == null
+                || !mMainStageListener.mHasRootTask
+                || !mSideStageListener.mHasRootTask) {
+            return;
+        }
+
+        final WindowContainerTransaction wct = new WindowContainerTransaction();
+        // 挂载上下分屏的 Root Task。
+        wct.reparent(mMainStage.mRootTaskInfo.token, mRootTaskInfo.token, true);
+        wct.reparent(mSideStage.mRootTaskInfo.token, mRootTaskInfo.token, true);
+        // Make the stages adjacent to each other so they occlude what's behind them.
+        wct.setAdjacentRoots(mMainStage.mRootTaskInfo.token, mSideStage.mRootTaskInfo.token);
+        setRootForceTranslucent(true, wct);
+        mSplitLayout.getInvisibleBounds(mTempRect1);
+        wct.setBounds(mSideStage.mRootTaskInfo.token, mTempRect1);
+        mSyncQueue.queue(wct);
+        mSyncQueue.runInSync(t -> {
+            t.setPosition(mSideStage.mRootLeash, mTempRect1.left, mTempRect1.top);
+        });
+        mLaunchAdjacentController.setLaunchAdjacentRoot(mSideStage.mRootTaskInfo.token);
+    }
 ```
 
 ### SplitDecorManager
@@ -59,6 +158,31 @@ public final class SplitWindowManager extends WindowlessWindowManager {
 对应图层见上图:      
 和两个分屏的父 Task(Task 10 和 Task 11) 挂载到了同一个父层级。     
 
+分屏的时候我们看到了上下屏都绘制了圆角，但是我们看 sf 图层却没有圆角效果，这时为什么呢？其实是分隔条所在的图层绘制的效果，盖再来分屏的图层上面，具体在 DividerRoundedCorner 里面绘制。      
+
+## MainStage 和 SideStage
+
+代表分屏的上下屏幕，继承 StageTaskListener。      
+初始化时为上下分屏创建 Root Task。     
+
+```
+    StageTaskListener(Context context, ShellTaskOrganizer taskOrganizer, int displayId,
+            StageListenerCallbacks callbacks, SyncTransactionQueue syncQueue,
+            SurfaceSession surfaceSession, IconProvider iconProvider,
+            Optional<WindowDecorViewModel> windowDecorViewModel) {
+        mContext = context;
+        mCallbacks = callbacks;
+        mSyncQueue = syncQueue;
+        mSurfaceSession = surfaceSession;
+        mIconProvider = iconProvider;
+        mWindowDecorViewModel = windowDecorViewModel;
+        taskOrganizer.createRootTask(displayId, WINDOWING_MODE_MULTI_WINDOW, this);
+    }
+```
+
+## SplitScreenTransitions
+
+管理分屏的过渡动画，以及和 server 端的通信。       
 
 ## 桌面启动分屏
 
@@ -125,6 +249,9 @@ SplitScreenController.ISplitScreenImpl.startTasks()
         StageCoordinator.startTasks()
             // 创建一个 
             new WindowContainerTransaction()
+            StageCoordinator.setSideStagePosition()
+                //设置 mSideStagePosition
+                mSideStagePosition = sideStagePosition;
             // 关联options1与taskId1
             WindowContainerTransaction.startTask()
                 // 创建 HierarchyOp
@@ -140,11 +267,13 @@ SplitScreenController.ISplitScreenImpl.startTasks()
                 // 设置上下屏的bound，传递到 server 端执行
                 StageCoordinator.updateWindowBounds()
                     SplitLayout.applyTaskChanges()
-                        SplitLayout.setTaskBounds
+                        SplitLayout.setTaskBounds()
+                            //设置 Task 显示区域
                             WindowContainerTransaction.setBounds()
                                 WindowContainerTransaction.getOrCreateChange()
                                     // 报存到 mChanges
                                     mChanges.put()
+                            // 分屏后，屏幕最小宽度可能发生变化，需要重新设置一下
                             WindowContainerTransaction.setSmallestScreenWidthDp()
                 //让装载分屏的rootTask进行reorder，主要就是为了把分屏移到最前面
                 WindowContainerTransaction.reorder()
@@ -275,6 +404,39 @@ WindowOrganizerController.applyTransaction() 主要做了下面几件事：
  - 更新Activity的可见性和Configuration
 
 ## 分屏拉伸
+
+当触摸分割线进行移动时会动态改变上下两个分屏的大小。      
+
+```
+DividerView.onTouch()：MotionEvent.ACTION_MOVE
+    SplitLayout.updateDividerBounds()
+        SplitLayout.updateBounds()
+        StageCoordinator.onLayoutSizeChanging()
+            StageCoordinator.updateSurfaceBounds()
+            MainStage.onResizing()
+            SideStage.onResizing()
+                SplitDecorManager.onResizing()
+            SurfaceControl.Transaction.apply()
+```
+
+```
+DividerView.onTouch()：MotionEvent.ACTION_UP
+    SplitLayout.snapToTarget()
+        SplitLayout.flingDividerPosition()
+            AnimatorUpdateListener.onAnimationUpdate
+                SplitLayout.updateDividerBounds
+            AnimatorListenerAdapter.onAnimationEnd
+                SplitLayout.setDividerPosition
+                    StageCoordinator.onLayoutSizeChanged
+                        new WindowContainerTransaction()
+                        StageCoordinator.updateWindowBounds
+                            SplitScreenTransitions.startResizeTransition
+                                SplitLayout.applyTaskChanges()
+                                    SplitLayout.setTaskBounds()
+                                        WindowContainerTransaction.setBounds()
+                        SplitScreenTransitions.startResizeTransition()
+                            Transitions.startTransition()
+```
 
 
 ## 分屏切换

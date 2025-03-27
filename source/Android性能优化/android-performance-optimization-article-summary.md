@@ -27,6 +27,12 @@ date: 2016-2-20 10:00:00
 
 [toolargetool](https://github.com/guardian/toolargetool)    
 
+Perfetto 上手指南
+ - [Perfetto 快速上手指南1 —— Trace 的抓取](https://mp.weixin.qq.com/s/vn9-dTcKUwrL82yaCYLAzg)
+ - [Perfetto 上手指南2 —— 基础使用](https://mp.weixin.qq.com/s/Iqe5ryiH7v9c16aDQXTmfw)
+ - [Perfetto 上手指南3 —— CPU 信息分析](https://mp.weixin.qq.com/s/T-VGovpO7gNSQ2p6pMUVuA)
+ - ......
+
 ## ANR
 
 [字节跳动技术团队 ANR 系列](https://mp.weixin.qq.com/mp/appmsgalbum?__biz=MzI1MzYzMjE0MQ==&action=getalbum&album_id=1780091311874686979&scene=173&from_msgid=2247488116&from_itemidx=1&count=3&nolastread=1#wechat_redirect)    

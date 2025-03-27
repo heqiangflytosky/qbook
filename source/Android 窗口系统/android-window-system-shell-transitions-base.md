@@ -231,6 +231,16 @@ requestStartTransition: 当WMCore中的某些内容需要播放Transition时调�
 
 WMShell端的过渡动画实体类，很多核心逻辑是在 ActiveTransition 成员变量 TransitionInfo 中，和 WMCore 端的 Transition 对象靠 IBinder 类型的成员变量 mToken进行对应。    
 
+### TransitionInfo
+
+```
+public final class TransitionInfo implements Parcelable {
+```
+
+用于传递一些 Transition 的变化信息到 TransitionPlayer。      
+注意和 TransitionRequestInfo 的区别。      
+TransitionInfo‌ 主要用于描述一个 Transition 的状态信息。它包含了 Transition 的各种属性，如动画效果、持续时间等。TransitionInfo 通常用于在 WMShell 端处理 Transition 时使用，它描述了Transition的具体内容和状态‌。      
+
 #### TransitionHandler
 
 TransitionHandler表示可以处理一组过渡动画的接口：     
@@ -287,7 +297,7 @@ TransitionHandler表示可以处理一组过渡动画的接口：
 ### TransitionRequestInfo
 
 TransitionRequestInfo 是继承了 Parcelable 的类，用来将 WMCore 端的一些信息进行封装，发送给 WMShell 端。    
-
+当有动画场景时，WMCore 端会创建一个 TransitionRequestInfo 对象，并将其传递给 WMShell 端。WMShell 端接收到这个请求后，会创建一个 ActiveTransition 对象来处理这个请求，并根据需要启动相应的动画效果。      
 
 ## 整体流程
 
@@ -483,6 +493,8 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                                             Transitions.calculateAnimLayer() 
                                             SurfaceControl.Transaction.setLayer
                                     Transitions.processReadyQueue()
+                                        // 构造回调函数 callback，在动画执行完毕后回调
+                                        Transitions.TransitionFinishCallback
                                         Transitions.playTransition()
                                             DefaultMixedHandler.startAnimation()
                                                 DefaultMixedTransition.startAnimation()
@@ -1356,8 +1368,12 @@ mSyncTransaction 的apply方法的调用时机则是和 Transition 的流程密�
 
 这里摘出几个关键点来介绍一下。    
 
-1.首先调用 Transition.commitVisibleActivities() 来设置Surface可见，具体流程参考上面。    
-2.Transition.calculateTargets() 计算动画目标
+#### commitVisibleActivities
+
+首先调用 Transition.commitVisibleActivities() 来设置Surface可见，具体流程参考上面。    
+
+#### calculateTargets
+Transition.calculateTargets() 计算动画目标
 这里介绍一下 Transition.tryPromote。    
 "promote"，提升的动画目标在 WindowContainer 层级结构中的级别，这个逻辑之前在 `AppTransitionController.getAnimationTargets` 也用到了，思想都是类似的。比如一个 Task 中有两个 ActivityRecord，并且这两个 ActivityRecord 要分别执行一段动画，也就是动画执行的主体是ActivityRecord。如果这两个ActivityRecord刚好都想向左平移同样的距离，那么我们就不需要为这两个ActivityRecord分别应用一段平移的动画，而是直接将这个平移的动画应用到它们共同的父容器Task上，并且实现的效果是一样的。这也就是 "promote" 的含义，动画的目标主体从ActivityRecord”提升“到了更高一级的Task上。    
 
@@ -1557,7 +1573,9 @@ canPromote 这个方法比较重要，我们来看一下代码实现。
     }
 ```
 
-3.这里看到为 mStartTransaction 和 mFinishTransaction 赋值，mStartTransaction 被赋值为传参transaction，传参即我们上一篇分析中的在SyncGroup.finishNow创建的一个Transaction，局部变量merged。      
+#### mStartTransaction 和 mFinishTransaction
+
+这里看到为 mStartTransaction 和 mFinishTransaction 赋值，mStartTransaction 被赋值为传参transaction，传参即我们上一篇分析中的在SyncGroup.finishNow创建的一个Transaction，局部变量merged。      
 那么这两个变量存在的意义是什么呢？    
 举个例子说明一下，如果我们从ActivityA上启动了一个ActivityB：        
 1）、对于ActivityA来说，它相关的SurfaceControl（准确一点说则是WindowSurfaceController.mSurfaceControl）需要在动画结束的时候再隐藏，如果它在动画开始前就隐藏，那么就无法看到ActivityA的动画效果了（向右平移退出或者淡出之类的动画）。    
@@ -1566,7 +1584,7 @@ canPromote 这个方法比较重要，我们来看一下代码实现。
 
 从以上分析可知，ActivityA和ActivityB相关的SurfaceControl可见性变化的时机是不同的，那么这个行为通过一次Transacton.apply是无法做到的，所以就需要两个Transaction，即“start transaction”和“finish transaction”。“start transaction”在动画开始前调用apply，用于在动画开始执行前提前将ActivityB进行显示，“finish transaction”则是在动画结束的时候调用apply，用于在动画结束的时候再将ActivityA隐藏。   
 
-4.calculateTransitionInfo
+#### calculateTransitionInfo
 
 ```
     static TransitionInfo calculateTransitionInfo(@TransitionType int type, int flags,
@@ -1623,12 +1641,59 @@ canPromote 这个方法比较重要，我们来看一下代码实现。
 
 具体可以看前面的图层分析。      
 
-5.buildFinishTransaction
+#### buildFinishTransaction
 
 构建动画结束后执行的一些重置的动作(mFinishTransaction)。比如将图层从 Leash 图层放回到原来的位置。       
 
-6.WMShell 播放动画
+```
+    private void buildFinishTransaction(SurfaceControl.Transaction t, TransitionInfo info) {
+        // usually only size 1
+        final ArraySet<DisplayContent> displays = new ArraySet<>();
+        for (int i = mTargets.size() - 1; i >= 0; --i) {
+            final WindowContainer<?> target = mTargets.get(i).mContainer;
+            if (target.getParent() == null) continue;
+            final SurfaceControl targetLeash = getLeashSurface(target, null /* t */);
+            final SurfaceControl origParent = getOrigParentSurface(target);
+            // Ensure surfaceControls are re-parented back into the hierarchy.
+            t.reparent(targetLeash, origParent);
+            t.setLayer(targetLeash, target.getLastLayer());
+            t.setAlpha(targetLeash, 1);
+            displays.add(target.getDisplayContent());
+            // For config-at-end, the end-transform will be reset after the config is actually
+            // applied in the client (since the transform depends on config). The other properties
+            // remain here because shell might want to persistently override them.
+            if ((mTargets.get(i).mFlags & ChangeInfo.FLAG_CHANGE_CONFIG_AT_END) == 0) {
+                resetSurfaceTransform(t, target, targetLeash);
+            }
+        }
+        // Remove screenshot layers if necessary
+        if (mContainerFreezer != null) {
+            mContainerFreezer.cleanUp(t);
+        }
+        // Need to update layers on involved displays since they were all paused while
+        // the animation played. This puts the layers back into the correct order.
+        for (int i = displays.size() - 1; i >= 0; --i) {
+            if (displays.valueAt(i) == null) continue;
+            assignLayers(displays.valueAt(i), t);
+        }
 
+        for (int i = 0; i < info.getRootCount(); ++i) {
+            t.reparent(info.getRoot(i).getLeash(), null);
+        }
+
+    }
+```
+
+传入的Transaction对象为Transition.mFinishTransaction，如该方法的注释所说，这里对”finish transaction“的操作保证了动画结束后，所有的”reparent“操作或者是Layer的变化将会得到重置，特别是Layer的几何信息（位置、缩放、旋转这些）。如果你的Layer在动画结束的时候在Layer的这些信息上的确有变化，那就要注意不要让这个方法把你对Layer的操作重置了。      
+
+#### 通知 WMShell 播放动画
+
+```
+                mController.getTransitionPlayer().onTransitionReady(
+                        mToken, info, transaction, mFinishTransaction);
+```
+
+这里也会把 mFinishTransaction 传递给动画播放者，确保在动画执行完之后进行重置操作。      
 
 ### WMShell 执行动画
 
@@ -1769,4 +1834,116 @@ Transitions.setupAnimHierarchy用来在动画开始前，将动画参与者repar
             t.setLayer(leash, layer);
         }
     }
+```
+
+### 动画执行完毕
+
+
+这里主要涉及一些动画执行完毕的重置操作，主要是执行 WMCore 传递过来的 mFinishTransaction。     
+具体参考前面的代码流程图。      
+
+现在来看一下桌面启动 Activity 时 finish 回调的构建过程。     
+
+1. 首先构建 mFinishTransaction，这个构建在 Transition.buildFinishTransaction。      
+
+Transition.onTransactionReady()  --> Transition.buildFinishTransaction(mFinishTransaction, info)
+
+2. 传递给 WMShell
+
+把动画结束时的动作保存在 mFinishTransaction 中，在传递给 WMShell。后面的执行也在 WMShell。     
+
+```
+Transition.java
+    public void onTransactionReady(int syncId, SurfaceControl.Transaction transaction) {
+                mController.getTransitionPlayer().onTransitionReady(
+                        mToken, info, transaction, mFinishTransaction);
+```
+
+3. WMShell 收到后把 mFinishTransaction 保存在 ActiveTransition 的 mFinishT 中或者与其进行合并。       
+
+```
+    void onTransitionReady(@NonNull IBinder transitionToken, @NonNull TransitionInfo info,
+            @NonNull SurfaceControl.Transaction t, @NonNull SurfaceControl.Transaction finishT) {
+            
+        final ActiveTransition active = mPendingTransitions.remove(activeIdx);
+        active.mInfo = info;
+        active.mStartT = t;
+        active.mFinishT = finishT;            
+```
+
+4. 然后就在执行 active.mHandler.startAnimation 除了传递 active.mFinishT 外，还构造了一个回调方法。当桌面执行完动画后，会回调这个方法。      
+
+```
+Transitions.java
+    private void playTransition(@NonNull ActiveTransition active) {
+        if (active.mHandler != null) {
+            ProtoLog.v(ShellProtoLogGroup.WM_SHELL_TRANSITIONS, " try firstHandler %s",
+                    active.mHandler);
+            boolean consumed = active.mHandler.startAnimation(token, active.mInfo,
+                    active.mStartT, active.mFinishT, (wct) -> onFinish(token, wct));
+            if (consumed) {
+```
+
+重点在 onFinish 方法，这里会执行 active.mFinishT 的 apply() 方法
+
+```
+    private void onFinish(IBinder token,
+            @Nullable WindowContainerTransaction wct) {
+        ......
+        SurfaceControl.Transaction fullFinish = active.mFinishT;
+        if (active.mMerged != null) {
+            for (int iM = 0; iM < active.mMerged.size(); ++iM) {
+                final ActiveTransition toMerge = active.mMerged.get(iM);
+                // Include start. It will be a no-op if it was already applied. Otherwise, we need
+                // it to maintain consistent state.
+                if (toMerge.mStartT != null) {
+                    if (fullFinish == null) {
+                        fullFinish = toMerge.mStartT;
+                    } else {
+                        fullFinish.merge(toMerge.mStartT);
+                    }
+                }
+                if (toMerge.mFinishT != null) {
+                    if (fullFinish == null) {
+                        fullFinish = toMerge.mFinishT;
+                    } else {
+                        fullFinish.merge(toMerge.mFinishT);
+                    }
+                }
+            }
+        }
+        if (fullFinish != null) {
+            fullFinish.apply();
+        }
+        ......
+    }
+```
+
+5. 后面就把 active.mFinishT 一路传递到 RemoteTransitionHandler.startAnimation 方法，既然前面的 onFinish 方法会执行 mFinishT，这里为什么还要传递呢？因为这里还要 merge 一些 IRemoteTransitionFinishedCallback.onTransitionFinished 传递过来的 SurfaceControl.Transaction。     
+
+```
+RemoteTransitionHandler.java
+    public boolean startAnimation(@NonNull IBinder transition, @NonNull TransitionInfo info,
+            @NonNull SurfaceControl.Transaction startTransaction,
+            @NonNull SurfaceControl.Transaction finishTransaction,
+            @NonNull Transitions.TransitionFinishCallback finishCallback) {
+            ......
+        IRemoteTransitionFinishedCallback cb = new IRemoteTransitionFinishedCallback.Stub() {
+            @Override
+            public void onTransitionFinished(WindowContainerTransaction wct,
+                    SurfaceControl.Transaction sct) {
+                unhandleDeath(remote.asBinder(), finishCallback);
+                if (sct != null) {
+                    finishTransaction.merge(sct);
+                }
+                mMainExecutor.execute(() -> {
+                    mRequestedRemotes.remove(transition);
+                    finishCallback.onTransitionFinished(wct);
+                });
+            }
+        };
+        
+        ......
+        
+        remote.getRemoteTransition().startAnimation(transition, remoteInfo, remoteStartT, cb);
 ```

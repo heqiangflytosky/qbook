@@ -24,6 +24,33 @@ mWindowMap:mWindowMap保存了每个WindowState和客户端窗口的映射关系
 
 窗口容器类，它有众多的子类来构建窗口层级系统，具体见[Android 窗口层级树](http://www.heqiangfly.com/qbook/source/Android%20%E7%AA%97%E5%8F%A3%E7%B3%BB%E7%BB%9F/android-window-system-window-tree-basic.html)。    
 
+### WindowConfiguration
+
+WindowConfiguration类中包含窗口的基本信息，如bounds信息，窗口的模式，activity的类型等。      
+作为 Configuration 类的成员变量。     
+
+```
+    private final Rect mBounds = new Rect();
+    private Rect mAppBounds;
+    private final Rect mMaxBounds = new Rect()
+    private int mDisplayRotation = ROTATION_UNDEFINED;
+    private int mRotation = ROTATION_UNDEFINED;
+    // 当前container处于哪一种多窗口模式里。
+    private @WindowingMode int mWindowingMode;
+    //用来声明当前container是否总是处于顶层。
+    private @AlwaysOnTop int mAlwaysOnTop;
+    
+    // 对于PIP模式和DREAM类型的container，是需要用于位于顶层的，其他的container，
+    // 即使设置了mAlwaysOnTop为ALWAYS_ON_TOP_ON，也需要是WINDOWING_MODE_FREEFORM或WINDOWING_MODE_MULTI_WINDOW类型才行。
+    public boolean isAlwaysOnTop() {
+        if (mWindowingMode == WINDOWING_MODE_PINNED) return true;
+        if (mActivityType == ACTIVITY_TYPE_DREAM) return true;
+        if (mAlwaysOnTop != ALWAYS_ON_TOP_ON) return false;
+        return mWindowingMode == WINDOWING_MODE_FREEFORM
+                    || mWindowingMode == WINDOWING_MODE_MULTI_WINDOW;
+    }
+```
+
 ### DisplayAreaPolicy
 
 用来管理 DisplayArea
@@ -246,6 +273,30 @@ RemoteAnimationTarget 主要用来存放远程动画图层。
 
 详情可参考后面的 WindowOrganizerController 相关博客。     
 
+### ShellTransitions 相关类
+
+参考 ShellTransitions 博客
+
+#### TransitionController
+
+#### Transition
+
+#### Transitions
+
+#### Track
+
+#### TransitionPlayerImpl
+
+#### ActiveTransition
+
+#### TransitionInfo
+
+#### TransitionHandler
+
+#### TransitionPlayerRecord
+
+#### TransitionRequestInfo
+
 ### TaskOrganizer
 
 参考 WM shell 相关博客。    
@@ -257,6 +308,8 @@ RemoteAnimationTarget 主要用来存放远程动画图层。
 ### WindowContainerTransaction
 
 详情可阅读后面的 WindowContainerTransaction 相关博客。      
+
+
 
 
 

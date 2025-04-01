@@ -104,10 +104,21 @@ Transitions.onInit()
 
 TransitionController 有点像之前的 AppTransitionController，是 WMCore 这边的过渡动画的控制器调度器之类的，控制过渡动画的生命周期。     
 
+```
+    // 等待开始的 Transition 队列
+    private final ArrayList<QueuedTransition> mQueuedTransitions = new ArrayList<>();
+
+    // 表示当前正在构建的 Transition，正在收集 target 中
+    private Transition mCollectingTransition = null;
+
+    // 已完成但仍等待参与者准备就绪的 Transition
+    final ArrayList<Transition> mWaitingTransitions = new ArrayList<>();
+```
+
 ### Transition
 
 过渡动画在WMCore的代表类，它主要保持跟踪这WM状态到过渡动画状态，其内部定义了Transition可能处于的几个状态值，其成员变量mState保存了Transition当前所处的状态。    
-Transition 实现了 BLASTSyncEngine.TransactionReadyListener 接口，
+Transition 实现了 BLASTSyncEngine.TransactionReadyListener 接口，        
 即最后状态都会体现在这个Transition类中的几个状态，默认状态是STATE_PENDING。      
 
 ```
@@ -175,6 +186,13 @@ WMShell侧主要负责播放动画，当WMShell侧播放动画完成后，会调
     private SurfaceControl.Transaction mFinishTransaction = null;
 ```
 
+mStartTransaction 和 mFinishTransaction 参考后面章节的介绍。    
+
+```
+    // 当前 transition 动画的参与者，保存的是有哪些容器参与到当前动画中
+    final ArraySet<WindowContainer> mParticipants = new ArraySet<>();
+```
+
 ### Transitions
 
 执行在 WMShell 侧，主要是处理过渡动画的播放。     
@@ -235,6 +253,9 @@ WMShell端的过渡动画实体类，很多核心逻辑是在 ActiveTransition �
 
 ```
 public final class TransitionInfo implements Parcelable {
+
+    // 存储了此次动画需要变更的对象，可能会有多个，比如Activity切换时伴随有 OPEN 和 CLOSE 动画。    
+    private final ArrayList<Change> mChanges = new ArrayList<>();
 ```
 
 用于传递一些 Transition 的变化信息到 TransitionPlayer。      
@@ -403,7 +424,10 @@ ActivityStarter.startActivityUnchecked()
                     Transitions.requestStartTransition()
                         // 创建一个 ActiveTransition
                         new ActiveTransition
+                        // 循环遍历所有的 TransitionHandler
                         // 找出可以执行此动画的 TransitionHandler，并保存在 ActiveTransition
+                        // 这找到的时 DefaultMixedHandler
+                        for (int i = mHandlers.size() - 1; i >= 0; --i)
                         DefaultMixedHandler.handleRequest()
                             Transitions.dispatchRequest()
                                 RemoteTransitionHandler.handleRequest()
@@ -461,8 +485,6 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                     Transition.calculateTransitionInfo()
                         // 构建TransitionInfo对象
                         new TransitionInfo
-                        // 获取用于挂载到 Leash 的图层
-                        Transition.getLeashSurface()
                         // 
                         Transition.calculateTransitionRoots()
                             //创建 Transition Root Leash
@@ -470,6 +492,8 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                             // 管理窗口层级
                             Transition.assignLayers()
                                 DisplayContent.assignChildLayers()
+                        // 获取用于挂载到 Leash 的图层
+                        Transition.getLeashSurface()
                     TransitionController.moveToPlaying()
                         mPlayingTransitions.add(transition)
                     // 动画结束后重置属性
@@ -530,6 +554,10 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                                                                                                                     IRemoteTransitionFinishedCallback.onTransitionFinished
                                                                                                                         // -------> WMShell
                                                                                                                         看下面的分析
+                                    // 这里是需要 merge动画的情形，如果 Track 有已经ready的ActiveTransition，那么就需要合并
+                                    // 这部分 TransitionHandler 中每个有自己的实现
+                                    // 这种情况的多动画处理场景另外文章中介绍
+                                    TransitionHandler.mergeAnimation() 
                                                                                         
 ```
 当桌面执行完动画，执行 onTransitionFinished 回调到 WMShell     
@@ -550,7 +578,9 @@ Transitions.TransitionFinishCallback.onTransitionFinished // startAnimation 时�
                             mState = STATE_FINISHED // 修改状态为 STATE_FINISHED
 ```
 
-## 启动 Activity
+## 流程分析
+
+这里以从桌面启动 Activity 这个场景来分析一下 Transition 动画的执行流程。    
 
 ```
 // ActivityStarter.java
@@ -609,12 +639,14 @@ Transitions.TransitionFinishCallback.onTransitionFinished // startAnimation 时�
 ```
 
 ActivityStarter.startActivityUnchecked的主要内容为：
+
  - 首先调用TransitionController.createAndStartCollecting方法创建一个类型为TRANSIT_OPEN的Transition对象。
  - 将当前启动的ActivityRecord收集到刚刚创建的Transition对象中。
  - 调用ActivityStarter.startActivityInner去走具体的启动Activity流程。
  - 最后在ActivityStarter.handleStartResult中，调用TransitionController.requestStartTransition来启动动画。
 
 ### 前期准备工作和收集动画参与者
+
 #### 创建Transition
 
 ```
@@ -671,7 +703,7 @@ ActivityStarter.startActivityUnchecked的主要内容为：
     }
 ```
 
-首先将当前Transition的状态标记为 STATE_COLLECTING，接着通过BLASTSyncEngine.startSyncSet方法，创建一个SyncGroup，用来收集动画的参与者。    
+首先将当前Transition的状态标记为 STATE_COLLECTING，接着通过BLASTSyncEngine.startSyncSet方法，创建一个 SyncGroup，用来收集动画的参与者。    
 SyncGroup 用来保存当前有哪些WindowContainer参与到了动画当中，它的` final ArraySet<WindowContainer> mRootMembers = new ArraySet<>();` 变量保存了参与动画的WindowContainer的集合。     
 ```
 // BLASTSyncEngine.java
@@ -1349,6 +1381,24 @@ mSyncTransaction 的apply方法的调用时机则是和 Transition 的流程密�
         mController.moveToPlaying(this);
         
         ...
+        //手动显示 visibleRequest 的所有活动。这是正确支持同步动画排队合并所必需的。
+        //具体而言，如果过渡 A 使 Activity 不可见，则其 finishTransaction（在动画之后应用）将隐藏 Activity 表面。
+        //如果转换 B 随后使 activity 再次可见，则正常的 surfaceplacement 逻辑不会向此启动事务添加显示，
+        //因为尚未提交 activity 可见性。为了解决这个问题，我们必须以与 finishTransaction 中手动隐藏相同的方式在此处手动显示。
+        for (int i = mParticipants.size() - 1; i >= 0; --i) {
+            final ActivityRecord ar = mParticipants.valueAt(i).asActivityRecord();
+            if (ar == null || !ar.isVisibleRequested()) continue;
+            transaction.show(ar.getSurfaceControl());
+
+            ......
+            for (WindowContainer p = ar.getParent(); p != null && !containsChangeFor(p, mTargets);
+                    p = p.getParent()) {
+                if (p.getSurfaceControl() != null) {
+                    transaction.show(p.getSurfaceControl());
+                }
+            }
+        }
+        ....
         
         buildFinishTransaction(mFinishTransaction, info);
 
@@ -1586,6 +1636,8 @@ canPromote 这个方法比较重要，我们来看一下代码实现。
 
 #### calculateTransitionInfo
 
+
+
 ```
     static TransitionInfo calculateTransitionInfo(@TransitionType int type, int flags,
             ArrayList<ChangeInfo> sortedTargets,
@@ -1640,6 +1692,25 @@ canPromote 这个方法比较重要，我们来看一下代码实现。
 ```
 
 具体可以看前面的图层分析。      
+
+为 TransitionInfo 设置 Mode，包含：TRANSIT_CLOSE，TRANSIT_OPEN，TRANSIT_TO_FRONT，TRANSIT_TO_BACK 等，根据当前容器的状态来动态计算。     
+
+```
+        int getTransitMode(@NonNull WindowContainer wc) {
+            if ((mFlags & ChangeInfo.FLAG_ABOVE_TRANSIENT_LAUNCH) != 0) {
+                return mExistenceChanged ? TRANSIT_CLOSE : TRANSIT_TO_BACK;
+            }
+            final boolean nowVisible = wc.isVisibleRequested();
+            if (nowVisible == mVisible) {
+                return TRANSIT_CHANGE;
+            }
+            if (mExistenceChanged) {
+                return nowVisible ? TRANSIT_OPEN : TRANSIT_CLOSE;
+            } else {
+                return nowVisible ? TRANSIT_TO_FRONT : TRANSIT_TO_BACK;
+            }
+        }
+```
 
 #### buildFinishTransaction
 
@@ -1698,6 +1769,121 @@ canPromote 这个方法比较重要，我们来看一下代码实现。
 ### WMShell 执行动画
 
 具体流程参考前面的流程图。    
+
+
+#### dispatchReady
+
+dispatchReady 方法用来分发 Transaction 动画。    
+
+```
+    boolean dispatchReady(ActiveTransition active) {
+        final TransitionInfo info = active.mInfo;
+
+        if (info.getType() == TRANSIT_SLEEP || active.isSync()) {
+            // Adding to *front*! If we are here, it means that it was pulled off the front
+            // so we are just putting it back; or, it is the first one so it doesn't matter.
+            mReadyDuringSync.add(0, active);
+            boolean hadPreceding = false;
+            // Now flush all the tracks.
+            for (int i = 0; i < mTracks.size(); ++i) {
+                final Track tr = mTracks.get(i);
+                if (tr.isIdle()) continue;
+                hadPreceding = true;
+                // Sleep starts a process of forcing all prior transitions to finish immediately
+                ProtoLog.v(ShellProtoLogGroup.WM_SHELL_TRANSITIONS,
+                        "Start finish-for-sync track %d", i);
+                finishForSync(active.mToken, i, null /* forceFinish */);
+            }
+            if (hadPreceding) {
+                return false;
+            }
+            // Actually able to process the sleep now, so re-remove it from the queue and continue
+            // the normal flow.
+            mReadyDuringSync.remove(active);
+        }
+
+        // 1.为ActiveTransition分配一个Track，然后将该ActiveTransition添加到Track.mReadyTransitions。
+        final Track track = getOrCreateTrack(info.getTrack());
+        track.mReadyTransitions.add(active);
+
+        for (int i = 0; i < mObservers.size(); ++i) {
+            mObservers.get(i).onTransitionReady(
+                    active.mToken, info, active.mStartT, active.mFinishT);
+        }
+
+        /*
+         * Some transitions we always need to report to keyguard even if they are empty.
+         * TODO (b/274954192): Remove this once keyguard dispatching fully moves to Shell.
+         */
+        if (info.getRootCount() == 0 && !KeyguardTransitionHandler.handles(info)) {
+            // No root-leashes implies that the transition is empty/no-op, so just do
+            // housekeeping and return.
+            ProtoLog.v(ShellProtoLogGroup.WM_SHELL_TRANSITIONS, "No transition roots in %s so"
+                    + " abort", active);
+            onAbort(active);
+            return true;
+        }
+
+        final int changeSize = info.getChanges().size();
+        boolean taskChange = false;
+        boolean transferStartingWindow = false;
+        int animBehindStartingWindow = 0;
+        boolean allOccluded = changeSize > 0;
+        for (int i = changeSize - 1; i >= 0; --i) {
+            final TransitionInfo.Change change = info.getChanges().get(i);
+            taskChange |= change.getTaskInfo() != null;
+            transferStartingWindow |= change.hasFlags(FLAG_STARTING_WINDOW_TRANSFER_RECIPIENT);
+            if (change.hasAllFlags(FLAG_IS_BEHIND_STARTING_WINDOW | FLAG_NO_ANIMATION)
+                    || change.hasAllFlags(
+                            FLAG_IS_BEHIND_STARTING_WINDOW | FLAG_IN_TASK_WITH_EMBEDDED_ACTIVITY)) {
+                animBehindStartingWindow++;
+            }
+            if (!change.hasFlags(FLAG_IS_OCCLUDED)) {
+                allOccluded = false;
+            } else if (change.hasAllFlags(TransitionInfo.FLAGS_IS_OCCLUDED_NO_ANIMATION)) {
+                // Remove the change because it should be invisible in the animation.
+                info.getChanges().remove(i);
+                continue;
+            }
+            // The change has already animated by back gesture, don't need to play transition
+            // animation on it.
+            if (change.hasFlags(FLAG_BACK_GESTURE_ANIMATED)) {
+                info.getChanges().remove(i);
+            }
+        }
+        // There does not need animation when:
+        // A. Transfer starting window. Apply transfer starting window directly if there is no other
+        // task change. Since this is an activity->activity situation, we can detect it by selecting
+        // transitions with changes where
+        // 1. none are tasks, and
+        // 2. one is a starting-window recipient, or all change is behind starting window.
+        if (!taskChange && (transferStartingWindow || animBehindStartingWindow == changeSize)
+                && changeSize >= 1
+                // B. It's visibility change if the TRANSIT_TO_BACK/TO_FRONT happened when all
+                // changes are underneath another change.
+                || ((info.getType() == TRANSIT_TO_BACK || info.getType() == TRANSIT_TO_FRONT)
+                && allOccluded)) {
+            // Treat this as an abort since we are bypassing any merge logic and effectively
+            // finishing immediately.
+            ProtoLog.v(ShellProtoLogGroup.WM_SHELL_TRANSITIONS,
+                    "Non-visible anim so abort: %s", active);
+            onAbort(active);
+            return true;
+        }
+
+        setupStartState(active.mInfo, active.mStartT, active.mFinishT);
+
+        if (track.mReadyTransitions.size() > 1) {
+            // There are already transitions waiting in the queue, so just return.
+            return true;
+        }
+        // 执行 track.mReadyTransitions 中的动画
+        processReadyQueue(track);
+        return true;
+    }
+```
+
+#### setupStartState
 
 setupStartState() 方法用于设置一些执行动画前的 Transaction 准备动作。
 
@@ -1768,9 +1954,79 @@ setupStartState() 方法用于设置一些执行动画前的 Transaction 准备�
 
 ```
 
-Transitions.setupAnimHierarchy用来在动画开始前，将动画参与者reparent到一个共同的父Layer上，然后设置它们的Z轴层级。
+#### processReadyQueue
 
+processReadyQueue 方法用来执行已经准备好的 Transition 动画。      
+主要在 Transitions.dispatchReady() 方法中调用，或者是 Transitions.onFinish() 中调用，此时需要看看 mReadyTransitions 是否有等待执行的 Transition 动画。    
 
+```
+    void processReadyQueue(Track track) {
+        // 如果等待队里为空，那么表示可以执行当前动画
+        if (track.mReadyTransitions.isEmpty()) {
+            if (track.mActiveTransition == null) {
+                ProtoLog.v(ShellProtoLogGroup.WM_SHELL_TRANSITIONS, "Track %d became idle",
+                        mTracks.indexOf(track));
+                if (areTracksIdle()) {
+                    if (!mReadyDuringSync.isEmpty()) {
+                        // Dispatch everything unless we hit another sync
+                        while (!mReadyDuringSync.isEmpty()) {
+                            ActiveTransition next = mReadyDuringSync.remove(0);
+                            boolean success = dispatchReady(next);
+                            // Hit a sync or sleep, so stop dispatching.
+                            if (!success) break;
+                        }
+                    } else if (mPendingTransitions.isEmpty()) {
+                        ProtoLog.v(ShellProtoLogGroup.WM_SHELL_TRANSITIONS, "All active transition "
+                                + "animations finished");
+                        mKnownTransitions.clear();
+                        // Run all runnables from the run-when-idle queue.
+                        for (int i = 0; i < mRunWhenIdleQueue.size(); i++) {
+                            mRunWhenIdleQueue.get(i).run();
+                        }
+                        mRunWhenIdleQueue.clear();
+                    }
+                }
+            }
+            return;
+        }
+        // 如果mReadyTransitions不为空，则需要等待执行
+        final ActiveTransition ready = track.mReadyTransitions.get(0);
+        // 如果 mActiveTransition 为空，表示当前没有正在执行的动画
+        // 那么就执行 mReadyTransitions 中的第一个动画
+        if (track.mActiveTransition == null) {
+            // The normal case, just play it.
+            track.mReadyTransitions.remove(0);
+            track.mActiveTransition = ready;
+            if (ready.mAborted) {
+                if (ready.mStartT != null) {
+                    ready.mStartT.apply();
+                }
+                // finish now since there's nothing to animate. Calls back into processReadyQueue
+                onFinish(ready.mToken, null);
+                return;
+            }
+            playTransition(ready);
+            // Attempt to merge any more queued-up transitions.
+            processReadyQueue(track);
+            return;
+        }
+        // An existing animation is playing, so see if we can merge.
+        final ActiveTransition playing = track.mActiveTransition;
+        if (ready.mAborted) {
+            // record as merged since it is no-op. Calls back into processReadyQueue
+            onMerged(playing, ready);
+            return;
+        }
+        ProtoLog.v(ShellProtoLogGroup.WM_SHELL_TRANSITIONS, "Transition %s ready while"
+                + " %s is still animating. Notify the animating transition"
+                + " in case they can be merged", ready, playing);
+        mTransitionTracer.logMergeRequested(ready.mInfo.getDebugId(), playing.mInfo.getDebugId());
+        playing.mHandler.mergeAnimation(ready.mToken, ready.mInfo, ready.mStartT,
+                playing.mToken, (wct) -> onMerged(playing, ready));
+    }
+```
+
+#### playTransition
 
 ```
     private void playTransition(@NonNull ActiveTransition active) {
@@ -1795,10 +2051,17 @@ Transitions.setupAnimHierarchy用来在动画开始前，将动画参与者repar
                 return;
             }
         }
-        // Otherwise give every other handler a chance
+        // 分发 Transition，再次寻找可以执行当前 Transition 的 TransitionHandler，并且保存在 active.mHandler
         active.mHandler = dispatchTransition(token, active.mInfo, active.mStartT,
                 active.mFinishT, (wct) -> onFinish(token, wct), active.mHandler);
     }
+```
+
+#### setupAnimHierarchy
+
+setupAnimHierarchy用来在动画开始前，将动画参与者reparent到一个共同的父Layer上，然后设置它们的Z轴层级。
+
+```
     
     private static void setupAnimHierarchy(@NonNull TransitionInfo info,
             @NonNull SurfaceControl.Transaction t, @NonNull SurfaceControl.Transaction finishT) {
@@ -1916,6 +2179,8 @@ Transitions.java
             fullFinish.apply();
         }
         ......
+        // 当前 Transition 动画执行完毕，再查看一下 Track 的 mReadyTransitions 是否有等待执行的动画
+        processReadyQueue(track);
     }
 ```
 

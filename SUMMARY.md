@@ -107,6 +107,7 @@
     * [Android WindowContainerTransaction](source/Android 窗口系统/android-window-system-window-container-transaction.md)
     * [Android WindowOrganizerController](source/Android 窗口系统/android-window-system-window-organizer-controller.md)
     * [Android 分屏](source/Android 窗口系统/android-window-system-split-screen.md)
+    * [Android Task 切换动画](source/Android 窗口系统/android-window-system-task-switch-animation.md)
 * [Android 图形系统]()
     * [Android 图形系统基础知识和相关类](source/Android 图形系统/android-graphic-system-basic-class.md)
     * [Android SurfaceFlinger dump 信息分析](source/Android 图形系统/android-graphic-system-surfaceflinger-dump.md)

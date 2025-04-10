@@ -132,6 +132,7 @@ public class StageCoordinator implements SplitLayout.SplitLayoutHandler,
 ### SplitDecorManager
 
 通常我们在缩放分屏时，在被拉伸的 Task 上面会有个遮罩层，用来遮挡应用程序在拉伸过程中出现的奇怪的布局。    
+遮罩层的构成有 mIconLeash（显示图标），mBackgroundLeash 和 mGapBackgroundLeash。    
 SplitDecorManager 继承自 WindowlessWindowManager，表示这个界面不需要 WMS 的窗口管理，直接操作 Layer 图层进行界面显示。      
 
 ```
@@ -139,9 +140,10 @@ public class SplitDecorManager extends WindowlessWindowManager {
 ```
 
 对应图层:      
-对于每个分屏分别构造了 SplitDecorManager，和分屏的两个 Task( Task 12 和 Task 13)分别挂载到了同一个父层级。     
+对于每个分屏分别构造了下面图层：
+ - SplitDecorManager(mIconLeash)，mBackgroundLeash 和 mGapBackgroundLeash，它们和分屏的两个 Task( Task 1456 和 Task 1407)分别挂载到了同一个父层级。     
 
-<img src="/images/android-window-system-split-screen/1.png" width="422" height="587"/>
+<img src="/images/android-window-system-split-screen/1.png" width="436" height="593"/>
 
 ### SplitWindowManager
 
@@ -413,11 +415,33 @@ DividerView.onTouch()：MotionEvent.ACTION_MOVE
         SplitLayout.updateBounds()
         StageCoordinator.onLayoutSizeChanging()
             StageCoordinator.updateSurfaceBounds()
+                //调整上下分屏的位置
+                SplitLayout.applySurfaceChanges()
+                    SurfaceControl.Transaction.setPosition(leash1, mTempRect.left, mTempRect.top)
+                    SurfaceControl.Transaction.setPosition(leash2, mTempRect.left, mTempRect.top)
+            // 获取上下分屏的区域
+            StageCoordinator.getMainStageBounds(mTempRect1)
+            StageCoordinator.getSideStageBounds(mTempRect2)
             MainStage.onResizing()
             SideStage.onResizing()
                 SplitDecorManager.onResizing()
+                    // 如果需要就去构造这两个图层
+                    mBackgroundLeash = SurfaceUtils.makeColorLayer
+                    mGapBackgroundLeash = SurfaceUtils.makeColorLayer
+                    // 设置 mIconLeash 的位置
+                    SurfaceControl.Transaction.setPosition(mIconLeash
+                    SplitDecorManager.startFadeAnimation()
+                        mFadeAnimator.addUpdateListener
+                            //对 mBackgroundLeash 和 mIconLeash 图层做alpha动画
+                            SurfaceControl.Transaction.setAlpha(mBackgroundLeash)
+                            SurfaceControl.Transaction.setAlpha(mIconLeash
+                            SurfaceControl.Transaction.apply()
+                        // 启动显示遮罩层的动画
+                        mFadeAnimator.start()
             SurfaceControl.Transaction.apply()
 ```
+
+移动结束，ACTION_UP 时，开始 Transition 动画。     
 
 ```
 DividerView.onTouch()：MotionEvent.ACTION_UP
@@ -435,7 +459,38 @@ DividerView.onTouch()：MotionEvent.ACTION_UP
                                     SplitLayout.setTaskBounds()
                                         WindowContainerTransaction.setBounds()
                         SplitScreenTransitions.startResizeTransition()
-                            Transitions.startTransition()
+                            Transitions.startTransition(TRANSIT_CHANGE)
+            ValueAnimator.start()
+```
+
+动画准备好后，    
+
+```
+Transitions$TransitionPlayerImpl.onTransitionReady
+    Transitions.onTransitionReady
+        Transitions.dispatchReady
+            Transitions.processReadyQueue
+                Transitions.playTransition
+                    StageCoordinator.startAnimation
+                        StageCoordinator.startPendingAnimation
+                            SplitScreenTransitions.playResizeAnimation
+                                // 遍历收集到的动画参与者
+                                for (int i = info.getChanges().size() - 1; i >= 0; --i) {
+                                SplitDecorManager.onResized()
+                                    SplitDecorManager.fadeOutDecor()
+                                        // 执行因此遮罩图层的动画
+                                        SplitDecorManager.startFadeAnimation()
+                                            onAnimationUpdate
+                                                // 修改遮罩图层的透明度
+                                                SurfaceControl.Transaction.setAlpha
+                                            onAnimationEnd
+                                                // 删除遮罩图层
+                                                SplitDecorManager.releaseDecor()
+                                        mShown = false
+                                    SplitDecorManager.releaseDecor()
+                                        // 删除遮罩图层
+                                        SurfaceControl.Transaction.remove(mBackgroundLeash)
+                                        SurfaceControl.Transaction.remove(mGapBackgroundLeash)
 ```
 
 
@@ -637,6 +692,46 @@ reverseSplitPosition 方法将分屏模式进行翻转。比如以前的 SideSta
 
 
 ## 分屏退出
+
+```
+DividerView.onTouch
+    MotionEvent.ACTION_UP
+        SplitLayout.snapToTarget()
+            SplitLayout.flingDividerPosition()
+                onAnimationUpdate
+                onAnimationEnd
+                    StageCoordinator.onSnappedToDismiss
+                        // 创建 WindowContainerTransaction
+                        WindowContainerTransaction wct = new WindowContainerTransaction()
+                        StageCoordinator.prepareExitSplitScreen
+                            // 分屏的Task重新挂载
+                            SideStage.removeAllTasks()
+                                WindowContainerTransaction.reparentTasks()
+                            MainStage.deactivate
+                                WindowContainerTransaction.reparentTasks()
+                        SplitScreenTransitions.startDismissTransition()
+                            Transitions.startTransition(TRANSIT_SPLIT_DISMISS_SNAP)
+                            mPendingDismiss = new DismissSession
+                ValueAnimator.start()
+```
+
+
+
+```
+Transitions$TransitionPlayerImpl.onTransitionReady
+    Transitions.onTransitionReady
+        Transitions.dispatchReady
+            Transitions.processReadyQueue
+                Transitions.playTransition
+                    StageCoordinator.startAnimation
+                        StageCoordinator.startPendingAnimation
+                            SplitScreenTransitions.playDragDismissAnimation
+                                SplitDecorManager.onResized
+                                    SplitDecorManager.fadeOutDecor
+                                        //隐藏遮罩层动画
+                                        SplitDecorManager.startFadeAnimation
+                                
+```
 
 
 ## 相关文章

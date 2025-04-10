@@ -198,14 +198,16 @@ class WindowContainer<E extends WindowContainer> extends ConfigurationContainer<
             
     getSession()：获取 SurfaceSession，用来连接 SurfaceFlinger。 
     
-    // 对于该容器所有子节点的窗口类型(实现forAllWindows)，调用回调；
-    forAllWindows()
-    
-    // 对于该容器所有子节点的Task类型(实现forAllTasks)，调用回调；
-    forAllTasks()
-    forAllActivities()
-    forAllLeafTasks()
-    forAllRootTasks()
+    // 提供了许多遍历子容器的方法
+    forAllWindows()//对于该容器所有子节点的WindowState类型(实现forAllWindows)，调用回调；
+    forAllTasks()// 对于该容器所有子节点的Task类型(实现forAllTasks)，调用回调；
+    forAllActivities()// 遍历 ActivityRecord
+    forAllLeafTasks() // 遍历叶子类型的 Task
+    forAllRootTasks() // 遍历 Root 类型的 Task
+    forAllDisplayAreas() // 遍历 DisplayArea 类型
+    forAllWallpaperWindows() //遍历 Wallpaper 窗口
+    forAllWindowContainers() //遍历 WindowContainer
+    forAllTaskFragments() // 遍历 TaskFragment
 }
 ```
 
@@ -607,6 +609,9 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
     // 注册指针事件监听
     void registerPointerEventListener(@NonNull PointerEventListener listener)
     void unregisterPointerEventListener(@NonNull PointerEventListener listener)
+    
+    // 为 WindowToken 查找它的父节点
+    DisplayArea findAreaForToken(WindowToken windowToken)
 ```
 
 代表一个屏幕，Android是支持多屏幕的，所以可能存在多个DisplayContent对象。    
@@ -630,7 +635,7 @@ class DisplayAreaGroup extends RootDisplayArea {
 除了WindowState可以显示图像以外，大部分的WindowContainer，如WindowToken、TaskDisplayArea是不会有内容显示的，都只是一个抽象的容器概念。极端点说，WMS如果只为了管理窗口，WMS也可以不创建这些个WindowContainer类，直接用一个类似列表的东西，将屏幕上显示的窗口全部添加到这个列表中，通过这一个列表来对所有的窗口进行管理。但是为了更有逻辑地管理屏幕上显示的窗口，还是需要创建各种各样的窗口容器类，即WindowContainer及其子类，来对WindowState进行分类，从而对窗口进行系统化的管理。      
 这样带来的好处也是显而易见的，如：      
 
-### 方便层级
+### 方便窗口管理
 
 1）、这些 WindowContainer 类都有着鲜明的上下级关系，一般不能越级处理，比如 DefaultTaskDisplayArea 只用来管理调度 Task，Task 用来管理调度 ActivityRecord，而 DefaultTaskDisplayArea 不能直接越过 Task 去调度 Task 中的 ActivityRecord。这样 TaskDisplayArea 只需要关注它的子容器们，即 Task 的管理，ActivityRecord 相关的事务让 Task 去操心就好，每一级与每一级之间的边界都很清晰，不会在管理逻辑上出现混乱，比如 DefaultTaskDisplayArea 强行去调整一个 ActivityRecord 的位置，导致这个 ActivityRecord 跳出它所在的 Task，变成和 Task 一个层级。      
 2）、保证了每一个 WindowContainer 不会越界，这个重要。      
@@ -641,7 +646,8 @@ class DisplayAreaGroup extends RootDisplayArea {
 
 ### 方便功能开发
 
-层级结构的设计为窗口功能的开发带来了便利，比如小窗，分屏，因为只需要将对应的窗口移动到所在的Task就可以了。    
+层级结构的设计为窗口功能的开发带来了便利，比如小窗，分屏，因为只需要将对应的窗口移动到所在的Task就可以了。     
+比如单手模式，针对窗口的位移都是只针对 FEATURE_ONE_HANDED 类型的节点来操作的，因为它们下面所有的所有子节点都是支持单手模式的，那么父节点的位移操作对它的子节点都影响，从而实现单手模式功能。      
 像现在的Activity启动，在system_service进程的处理的很多逻辑都是围绕着这个层级树来做的。     
 
 
@@ -680,7 +686,7 @@ class DisplayAreaGroup extends RootDisplayArea {
 
 2.把该应用的 ActivityRecord 从原来的 Task=141 移动到该 Task=147 下面。      
 
-3.还有创建了一个PIP控制窗口    
+3.还有创建了一个PIP控制窗口     
 
 <img src="/images/android-window-system-window-tree-basic/4.png" width="933" height="105"/>
 
@@ -736,7 +742,7 @@ ROOT 表示根节点，`#0 Display 0 name="内置屏幕"`，表示当前的手�
 体现在当前就是这个 #2 的容器叫 “Leaf”,表示一个叶子节点，比较特殊，主要看后面的频繁出现的HideDisplayCutout，ImePlaceholder，OneHanded等这些，都有具体的意义，我们知道所有的东西在源码中都能找到对应的代码， 像提到的HideDisplayCutout，ImePlaceholder，OneHanded在源码中称之为Feature（特征），即表示当前这个容器有具有这个特征，暂时知道就可以，后面会详细介绍源码对这些Feature的具体定义。      
 然后就是后面的起始层级:结束层级，因为虽然一共是分为39层，但是并不是说有39个Feature，比如“#1 ImePlaceholder:13:14 ” ImePlaceholder看着就是和输入法相关，那就代表着13，14都是和输入法相关的window。      
 android 14目前一共也只有5个Feature。      
-最大层数在 WindowManagerPolicy 中定义。    
+最大层数在 WindowManagerPolicy 中定义。     
 ```
 // WindowManagerPolicy.java
     default int getMaxWindowLayer() {

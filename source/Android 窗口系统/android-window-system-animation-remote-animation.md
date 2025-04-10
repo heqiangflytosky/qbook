@@ -109,7 +109,7 @@ QuickstepLauncher.startActivitySafely()
 
 ### 系统初始化参数
 
-创建 ActivityRecord，Task 以及 AppTransition 执行 prepareAppTransition()    
+包括创建 ActivityRecord，Task 以及 AppTransition 执行 prepareAppTransition()    
 
 ```
 ActivityTaskManagerService.startActivity()
@@ -118,6 +118,15 @@ ActivityTaskManagerService.startActivity()
         ActivityStarter.execute()
             ActivityStarter$Request.resolveActivity() //解析启动请求参数
             ActivityStarter.executeRequest()
+                ActivityStarter.computeSuggestedLaunchDisplayArea
+                    LaunchParamsController.calculate
+                        TaskLaunchParamsModifier.onCalculate
+                            TaskLaunchParamsModifier.calculate
+                                TaskLaunchParamsModifier.getPreferredLaunchTaskDisplayArea
+                                    // 获取 DefaultTaskDisplayArea
+                                    DisplayContent.getDefaultTaskDisplayArea()
+                                // 设置 DefaultTaskDisplayArea
+                                outParams.mPreferredTaskDisplayArea = suggestedDisplayArea;
                 ActivityRecord.Builder.build() // 创建 ActivityRecord
                     new ActivityRecord()
                         ActivityRecord.setOptions()
@@ -125,13 +134,17 @@ ActivityTaskManagerService.startActivity()
                             mPendingRemoteAnimation = options.getRemoteAnimationAdapter()
                             mPendingRemoteTransition = options.getRemoteTransition()
                 ActivityStarter.startActivityUnchecked()
-                    ActivityStarter.getOrCreateRootTask()
-                        RootWindowContainer.getOrCreateRootTask()
-                            TaskDisplayArea.getOrCreateRootTask()
-                                // 创建 Task
-                                new Task.Builder().build()
-                                    new Task()
                     ActivityStarter.startActivityInner()
+                        ActivityStarter.getOrCreateRootTask()
+                            RootWindowContainer.getOrCreateRootTask()
+                                // 设置 DefaultTaskDisplayArea，在前面配置，也就是前面介绍的挂载应用窗口的 TaskDisplayArea
+                                taskDisplayArea = launchParams.mPreferredTaskDisplayArea;
+                                // 如果前面没有配置，就调用 getDefaultTaskDisplayArea 还是获取默认的 TaskDisplayArea
+                                DisplayContent.getDefaultTaskDisplayArea()
+                                TaskDisplayArea.getOrCreateRootTask()
+                                    // 创建 Task，并设置父节点为 TaskDisplayArea
+                                    new Task.Builder().setParent(this).build()
+                                        new Task()
                         Task.startActivityLocked()
                             // 执行 prepareAppTransition
                             DisplayContent.prepareAppTransition(TRANSIT_OPEN)

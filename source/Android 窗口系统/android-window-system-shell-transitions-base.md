@@ -494,6 +494,9 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                                 DisplayContent.assignChildLayers()
                         // 获取用于挂载到 Leash 的图层
                         Transition.getLeashSurface()
+                    TransitionController.assignTrack()
+                        // 分屏 Track
+                        TransitionInfo.setTrack()
                     TransitionController.moveToPlaying()
                         mPlayingTransitions.add(transition)
                     // 动画结束后重置属性
@@ -509,17 +512,16 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                                     Transitions.getOrCreateTrack()
                                     // 设置动画初始状态的可见性、透明度和变换。
                                     Transitions.setupStartState()
-                                    Transitions.playTransition()
+                                    Transitions.processReadyQueue()
                                         //将动画参与者reparent到一个共同的父Layer上，然后设置它们的Z轴层级
                                         Transitions.setupAnimHierarchy()
                                             SurfaceControl.Transaction.reparent
                                             // 计算层级顺序
                                             Transitions.calculateAnimLayer() 
                                             SurfaceControl.Transaction.setLayer
-                                    Transitions.processReadyQueue()
-                                        // 构造回调函数 callback，在动画执行完毕后回调
-                                        Transitions.TransitionFinishCallback
                                         Transitions.playTransition()
+                                            // 构造回调函数 callback，在动画执行完毕后回调
+                                            Transitions.TransitionFinishCallback
                                             DefaultMixedHandler.startAnimation()
                                                 DefaultMixedTransition.startAnimation()
                                                     DefaultMixedTransition.animateOpenIntentWithRemoteAndPip()

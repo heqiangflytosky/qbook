@@ -9,6 +9,8 @@ date: 2017-3-10 10:00:00
 
 [Github源码地址](https://github.com/heqiangflytosky/LiveWallPaper)
 
+[Github源码地址](https://github.com/heqiangflytosky/AndroidDemo)
+
 ## 概述
 
 动态壁纸，顾名思义就是有动画效果的壁纸，它是针对静态壁纸的一种表述方式，它不但可以实现动态效果，而且还可以与用户的触摸事件进行交互。

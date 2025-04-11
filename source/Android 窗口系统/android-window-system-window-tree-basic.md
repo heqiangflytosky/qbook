@@ -208,6 +208,10 @@ class WindowContainer<E extends WindowContainer> extends ConfigurationContainer<
     forAllWallpaperWindows() //遍历 Wallpaper 窗口
     forAllWindowContainers() //遍历 WindowContainer
     forAllTaskFragments() // 遍历 TaskFragment
+    
+    // Android 窗口管理系统中的协调中枢，确保从根容器到每个子窗口的 Surface 状态在每一帧更新时保持同步。
+    // 容器的可见性设置在这个方法中进行
+    prepareSurfaces()
 }
 ```
 
@@ -308,6 +312,9 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
     boolean isOnScreen() 
     // 把窗口状态设置到HAS_DRAWN,同时还设置了窗口动画
     boolean performShowLocked()
+    
+    // 图层的显示和隐藏的逻辑在这里操作
+    prepareSurfaces()
 ```
 
 场景示例（电话APP界面弹出 Popupwindow）：      

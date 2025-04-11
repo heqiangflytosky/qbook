@@ -22,6 +22,7 @@ date: 2022-11-23 10:00:00
  - 应用层只要有Surface，就可以将View的数据绘制保存到Surface中，也就可以显示到屏幕上    
  - Layer 有多种类型，有的Layer是有UI数据的，有的Layer是没有UI数据的。    
  - 根据 Layer 显示效果不同，可以分为 Layer(普通的窗口)，LayerDim（后面的窗口产生一个变暗的透明效果），LayerBlur（在LayerDim的基础上，背景会产生模糊的效果）    
+ - 对于所有 DisplayContent 以下的 WindowContainer 来说，它的 mSurfaceControl 对象并非是直接进行内容显示的 Surface 载体，真正的载体是在 relayout() 过程中由 WindowSurfaceController 管理并创建的对于由 WindowState 管理的 mSurfaceControl 对象，而且 WindowContainer#mSurfaceControl 作为 WindowSurfaceController#mSurfaceControl 的父 SurfaceControl。对于 SurfaceFlinger 来说，WindowContainer#mSurfaceControl 是一个 ContainerLayer，WindowSurfaceController#mSurfaceControl 才真正进行绘制的 BufferQueueLayer。
 
 ## Surface 几种类型
 
@@ -271,7 +272,7 @@ relayoutWindow 的 outSurfaceControl 参数就是 WMS 端写入数据，然后 a
 ```
 
 所以我们才会在上面的 Winscope 抓取的Layer层级里面看到 WindowState 下面多出的一层 Layer，就是我们上面创建的这层。      
-
+它是通过 WindowState --> WindowStateAnimator --> WindowSurfaceController --> SurfaceControl 来进行管理的。      
 
 ### Surface 返回给应用端
 

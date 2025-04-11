@@ -330,7 +330,8 @@ Session调用 WMS.relayoutWindow 将客户端传入的参数传递给WMS。
 
 ### performSurfacePlacement
 
-WindowSurfacePlacer.performSurfacePlacement是一个确定所有窗口的Surface的如何摆放，如何显示、显示在什么位置、显示区域多大的一个入口方法。      
+WindowSurfacePlacer.performSurfacePlacement是一个确定所有窗口的Surface的如何摆放，如何显示、显示在什么位置、显示区域多大的一个入口方法。可以说是WMS中最核心的方法。      
+当WMS中任何状态发生变化，都会触发该方法的执行，对整个WMS树结构进行遍历，确定所有的Surface的可见与否。      
 这部分有一下四个流程：     
 
  - 处理有关窗口布局循环的逻辑。performSurfacePlacementLoop

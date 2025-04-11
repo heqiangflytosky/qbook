@@ -93,6 +93,7 @@
     * [Android 窗口层级树-添加窗口](source/Android 窗口系统/android-window-system-add-window.md)
     * [Android 窗口系统-窗口布局](source/Android 窗口系统/android-window-system-window-layout.md)
     * [Android 窗口系统-窗口刷新](source/Android 窗口系统/android-window-system-window-refresh.md)
+    * [Android 窗口系统-窗口的显示和隐藏](source/Android 窗口系统/android-window-system-window-show-hide.md)
     * [Android 窗口层级树-Layer树](source/Android 窗口系统/android-window-system-window-tree-layer-tree.md)
     * [Android 窗口系统-移栈](source/Android 窗口系统/android-window-system-move-task.md)
     * [Android 窗口动画概述](source/Android 窗口系统/android-window-system-animation-overview.md)

@@ -95,7 +95,7 @@ ViewRootImpl, WindowManagerImpl, WindowManagerGlobal 三者都存在于应用（
 
 ### WindowStateAnimator
 
-WindowStateAnimator 用来帮助WindowState管理 animator 和 surface 基本操作的    
+WindowStateAnimator 用来帮助 WindowState 管理 animator 和 surface 基本操作的，是窗口动画的总管。     
 
 ```
     private final WallpaperController mWallpaperControllerLocked;
@@ -121,16 +121,19 @@ WindowStateAnimator 用来帮助WindowState管理 animator 和 surface 基本操
     // 此时窗口已经完成绘制并显示在屏幕上
     static final int HAS_DRAWN = 4;
     
+    // 管理SurfaceControl 的 WindowSurfaceController 对象
+    WindowSurfaceController mSurfaceController;
+    
     // 显示 surface
     void prepareSurfaceLocked(SurfaceControl.Transaction t)
 ```
 
 ### WindowSurfaceController
 
-为WindowStateAnimator对象管理SurfaceControl对象。    
+为 WindowStateAnimator 对象管理SurfaceControl对象。    
 
 ```
-   // 真正用来绘制的带 buffer 的SurfaceControl
+   // 真正用来绘制的带 buffer 的 SurfaceControl，是WindowState对应的 SurfaceControl
    SurfaceControl mSurfaceControl;
 ```
 

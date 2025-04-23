@@ -10,7 +10,8 @@ date: 2022-11-23 10:00:00
 
 ## 概述
 
-adb shell dumpsys wallpaper
+WallpaperManagerService: adb shell dumpsys wallpaper
+WallpaperController: adb shell dumpsys window displays
 
 ## 动态壁纸实现方法
 
@@ -294,10 +295,12 @@ updateWallpaperTokens 方法用来设置壁纸窗口的可见性
 ```
     private void updateWallpaperTokens(boolean visibility, boolean keyguardLocked) {
         ...
+        // 获取壁纸窗口，mTopShowWhenLockedWallpaper 或者 mTopHideWhenLockedWallpaper
         WindowState topWallpaper = mFindResults.getTopWallpaper(keyguardLocked);
         WallpaperWindowToken topWallpaperToken =
                 topWallpaper == null ? null : topWallpaper.mToken.asWallpaperToken();
         for (int curTokenNdx = mWallpaperTokens.size() - 1; curTokenNdx >= 0; curTokenNdx--) {
+            // 遍历 mWallpaperTokens ，这里面就有锁屏壁纸和系统壁纸，根据条件更新它们的可见性
             final WallpaperWindowToken token = mWallpaperTokens.get(curTokenNdx);
             token.updateWallpaperWindows(visibility && (token == topWallpaperToken));
         }
@@ -433,6 +436,44 @@ WallpaperManagerService.setWallpaperComponentChecked
             WallpaperManagerService.bindWallpaperComponentLocked
             // 后面的流程和静态壁纸一样
 ```
+
+## 壁纸可见性更新流程
+
+壁纸的可见性更新流程主要是通过 adjustWallpaperWindows 来进行的。    
+部分调用 adjustWallpaperWindows 的时机。
+
+```
+Session.relayout
+    WindowManagerService.relayoutWindow
+        WindowManagerService.relayoutWindowInner
+            WindowSurfacePlacer.performSurfacePlacement
+                WindowSurfacePlacer.performSurfacePlacementLoop
+                    RootWindowContainer.performSurfacePlacement
+                        RootWindowContainer.performSurfacePlacementNoTrace
+                            RootWindowContainer.applySurfaceChangesTransaction
+                                DisplayContent.applySurfaceChangesTransaction
+
+```
+
+```
+Session.relayout
+    WindowManagerService.relayoutWindow
+        WindowManagerService.relayoutWindowInner
+            WallpaperController.adjustWallpaperWindows
+               
+```
+
+adjustWallpaperWindows 流程：     
+
+```
+WallpaperController.adjustWallpaperWindows
+    WallpaperController.updateWallpaperTokens
+        WallpaperWindowToken.updateWallpaperWindows
+            WallpaperWindowToken.setVisibility
+                WallpaperWindowToken.commitVisibility
+                    WallpaperWindowToken.setVisible
+```
+
 
 ## 息屏时壁纸切换流程
 

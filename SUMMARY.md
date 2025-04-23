@@ -78,6 +78,7 @@
     * [Android AMS 之 Activity 启动流程](source/Android 框架/android-framework-activity-starting-process.md)
     * [WM Shell 架构](source/Android 框架/android-framework-wmshell.md)
     * [Android 壁纸管理服务](source/Android 框架/android-framework-wallpaper-manager-service.md)
+    * [Activity 之 onActivityResult 原理](source/Android 框架/android-framework-onactivityresult.md)
 * [Android 事件分发体系]()
     * [Android View 事件处理基础知识](source/Android 事件分发体系/android-knowledge-event-transfer-process.md)
     * [Android 事件处理流程源码解析](source/Android 事件分发体系/android-knowledge-event-transfer-process-source-code.md)

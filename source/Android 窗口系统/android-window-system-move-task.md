@@ -169,7 +169,59 @@ ActivityManagerShellCommand.runDisplay
                 RootWindowContainer.moveRootTaskToTaskDisplayArea
                     Task.reparent(TaskDisplayArea)
                         WindowContainer.reparent(TaskDisplayArea)
+                            WindowContainer.onBeforeParentChanged()
+                                ......
+                                    SurfaceFreezer.freeze()
+                                        new Snapshot()
+                                            TaskDisplayArea.makeAnimationLeash().setName("snapshot anim: ").build()
+                                                WindowContainer.makeAnimationLeash()
+                            TaskDisplayArea.addChild()
+                                TaskDisplayArea.addChildTask()
+                                    ActivityTaskSupervisor.updateTopResumedActivityIfNeeded()
+                                        ActivityTaskManagerService.setLastResumedActivityUncheckLocked()
+                    Task.resumeNextFocusAfterReparent()
+                        Task.adjustFocusToNextFocusableTask()
+                            Task.moveToFront()
+                                TaskDisplayArea.positionChildAt()
+                                    TaskDisplayArea.positionChildTaskAt()
+                                        TaskDisplayArea.positionChildAt()
+                                            WindowContainer.positionChildAt()
+                                                RootWindowContainer.onChildPositionChanged()
+                                                    ActivityTaskSupervisor.updateTopResumedActivityIfNeeded()
+                                                        ActivityTaskManagerService.setLastResumedActivityUncheckLocked()
+                        RootWindowContainer.resumeFocusedTasksTopActivities()
+                        RootWindowContainer.ensureActivitiesVisible()
                     
+```
+
+开始移栈后，会把原来的Task做一个截图，等 Transition 准备好后，开始做截图动画：    
+
+```
+RootWindowContainer.performSurfacePlacementNoTrace
+    BLASTSyncEngine.onSurfacePlacement
+        BLASTSyncEngine$SyncGroup.tryFinish
+            BLASTSyncEngine$SyncGroup.finishNow
+                Transition.onTransactionReady
+                    consumeWindowAnimation()
+                        consumeWindowModeChangeAnimation
+                        consumePinWindowAnimationIfNeed
+                        consumeDisplaySwitchAnimation
+                            WindowContainer.startAnimation
+                                SurfaceAnimator.startAnimation
+                                    LocalAnimationAdapter.startAnimation
+                                        SurfaceAnimationRunner.startAnimation
+                                            mChoreographer.postFrameCallback(this::startAnimations)
+                                                SurfaceAnimationRunner.startAnimations
+                                                    SurfaceAnimationRunner.startPendingAnimationsLocked
+                                                        SurfaceAnimationRunner.startAnimationLocked
+                                                            ValueAnimator.addUpdateListener
+                                                                SurfaceAnimationRunner.applyTransformation()
+                                                                    WindowAnimationSpec.apply()
+                                                                SurfaceAnimationRunner.scheduleApplyTransaction()
+                                                            ValueAnimator.start()
+                                            SurfaceAnimationRunner.applyTransformation()
+                                                WindowAnimationSpec.apply()
+                                     SurfaceFreezer$Snapshot.startAnimation
 ```
 
 ```

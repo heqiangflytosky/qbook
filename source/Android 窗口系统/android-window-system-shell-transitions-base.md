@@ -484,7 +484,7 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                     mStartTransaction = transaction // 把 merge 赋值给 mStartTransaction
                     Transition.calculateTransitionInfo()
                         // 构建TransitionInfo对象
-                        new TransitionInfo
+                        new TransitionInfo()
                         // 
                         Transition.calculateTransitionRoots()
                             //创建 Transition Root Leash
@@ -492,8 +492,12 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                             // 管理窗口层级
                             Transition.assignLayers()
                                 DisplayContent.assignChildLayers()
+                        for 循环参与此次动画的 Target {
+                        // 为每个 Target 创建 Change
+                        new TransitionInfo.Change()
                         // 获取用于挂载到 Leash 的图层
                         Transition.getLeashSurface()
+                        }
                     TransitionController.assignTrack()
                         // 分屏 Track
                         TransitionInfo.setTrack()
@@ -1644,6 +1648,7 @@ canPromote 这个方法比较重要，我们来看一下代码实现。
     static TransitionInfo calculateTransitionInfo(@TransitionType int type, int flags,
             ArrayList<ChangeInfo> sortedTargets,
             @NonNull SurfaceControl.Transaction startT) {
+        // 创建 TransitionInfo
         final TransitionInfo out = new TransitionInfo(type, flags);
         calculateTransitionRoots(out, sortedTargets, startT);
         ......
@@ -1651,6 +1656,7 @@ canPromote 这个方法比较重要，我们来看一下代码实现。
         for (int i = 0; i < count; ++i) {
             final ChangeInfo info = sortedTargets.get(i);
             final WindowContainer target = info.mContainer;
+            // 创建 TransitionInfo.Change
             final TransitionInfo.Change change = new TransitionInfo.Change(
                     target.mRemoteToken != null ? target.mRemoteToken.toWindowContainerToken()
                             : null, getLeashSurface(target, startT));
@@ -1669,7 +1675,7 @@ canPromote 这个方法比较重要，我们来看一下代码实现。
             info.mReadyFlags = change.getFlags();
             change.setDisplayId(info.mDisplayId, getDisplayId(target));
             ......
-
+            // 把 Change 添加到 TransitionInfo 中去
             out.addChange(change);
         }
         return out;
@@ -1677,7 +1683,7 @@ canPromote 这个方法比较重要，我们来看一下代码实现。
 
 ```
 
-构建TransitionInfo对象     
+构建TransitionInfo对象，根据 Target 创建对应的 Change。     
 创建 Transition Root 图层，作为动画图层的根图层        
 
 ```

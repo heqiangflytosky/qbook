@@ -186,7 +186,7 @@ class WindowContainer<E extends WindowContainer> extends ConfigurationContainer<
     // 有了这两个成员变量，便为生成WindowContainer层级结构，WindowContainer树形结构提供了可能。
     protected final WindowList<E> mChildren = new WindowList<E>();        
     
-    // 实现窗口动画
+    // 用来实现窗口动画，每个容器都有一个它的实例
     protected final SurfaceAnimator mSurfaceAnimator;
     // 为做动画添加的 Leash
     private SurfaceControl mAnimationLeash;
@@ -212,6 +212,9 @@ class WindowContainer<E extends WindowContainer> extends ConfigurationContainer<
     // Android 窗口管理系统中的协调中枢，确保从根容器到每个子窗口的 Surface 状态在每一帧更新时保持同步。
     // 容器的可见性设置在这个方法中进行
     prepareSurfaces()
+    
+    // 为当前容器开启一个动画
+    startAnimation()
 }
 ```
 

@@ -414,8 +414,10 @@ ActivityStarter.startActivityUnchecked()
         TransitionController.collectExistenceChange()
             Transition.collectExistenceChange()
         TransitionController.requestStartTransition()
+            // 这里判断一下mIsWaitingForDisplayEnabled，一般不走这里
             WindowOrganizerController.startTransition()
                 Transition.start()
+            // else
             // 创建 TransitionRequestInfo
             new TransitionRequestInfo
             TransitionPlayerRecord.ITransitionPlayer.requestStartTransition
@@ -497,6 +499,7 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                         new TransitionInfo.Change()
                         // 获取用于挂载到 Leash 的图层
                         Transition.getLeashSurface()
+                        TransitionInfo.addChange()
                         }
                     TransitionController.assignTrack()
                         // 分屏 Track
@@ -509,8 +512,9 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                         // WMCore  ----> WMShell
                         Transitions.TransitionPlayerImpl.onTransitionReady
                             Transitions.onTransitionReady()
-                                // 获取前面创建的 ActiveTransition，并把从wmcore传递过来的一些参数配置给 ActiveTransition
+                                // 获取前面创建的 ActiveTransition，并把从wmcore传递过来的一些参数配置给 ActiveTransition，比如 TransitionInfo
                                 ActiveTransition active = mPendingTransitions.remove(activeIdx);
+                                active.mInfo = TransitionInfo
                                 Transitions.dispatchReady()
                                     // 分配一个 Track
                                     Transitions.getOrCreateTrack()
@@ -2220,3 +2224,51 @@ RemoteTransitionHandler.java
         
         remote.getRemoteTransition().startAnimation(transition, remoteInfo, remoteStartT, cb);
 ```
+
+## 总结
+
+ShellTransitions 动画流程：
+
+1、创建 Transition 并开始收集
+
+可以使用 TransitionController.createAndStartCollecting(int type) 方法创建 Transition 并开启收集参与到这个 Transition 的容器。然后通过 TransitionController.collect(WindowContainer wc) 把当前需要动画的容器添加到 Transition 中。        
+可以先创建一个 Transition，然后调用 TransitionController.startCollectOrQueue(Transition transit, OnStartCollect onStartCollect)，如果当前可以开始收集，那么就通过 moveToCollecting 开始收集，如果当前不能立即开始，就把它加入到队列里面，开始收集时调用 onStartCollect 回调，把当前的容器加入到 Transition 中。    
+每收集一个容器就会 new ChangeInfo() 对象，把它存储在 Transition.mChanges 列表中，容器存储在 Transition.mParticipants 列表中。    
+
+2、请求动画
+
+调用 TransitionController.requestStartTransition() 来请求开始动画。    
+在这一步骤，会创建一个 TransitionRequestInfo()，用来进行跨进程传递给 WMShell 端。     
+然后调用 mTransitionPlayers.getLast().mPlayer.requestStartTransition() 开始跨进程调用。     
+
+在此期间，当前 Transition 还可以继续收集其他需要做动画的容器。      
+
+3、WMShell 端准备
+
+WMShell 侧的 Transitions 的 TransitionPlayerImpl 实现了 ITransitionPlayer.Stub，响应 WmCore 的请求。    
+这会创建 new ActiveTransition 对象，然后遍历所有的 TransitionHandler，找到可以执行此次动画的执行者，存储在 ActiveTransition.mHandler 中，然后把这个ActiveTransition保存在 Transitions.mKnownTransitions 中。    
+然后再通过 WindowOrganizer.startTransition() 来通知 WMCore，通知同步组来修改相关状态。    
+
+4、WMCore 检查窗口绘制情况
+
+WMCore 在每次的 performSurfacePlacementNoTrace() 方法中通过 BLASTSyncEngine 来检测此次动画的所有参与的容器是否同步/绘制完成，如果都绘制完成，那么就更改他们的状态 mSyncState。
+
+然后通过 calculateTargets() 开始计算最终执行动画的容器，获取前面动画搜集阶段保存在 mChanges 列表中的 ChangeInfo，这个过程涉及到动画层级提升操作，保存在 Transition.mTargets 列表中。    
+
+然后，创建 new TransitionInfo() 对象，遍历 mTargets，为每个 ChangeInfo 创建 new TransitionInfo.Change() 对象，它是可以跨进程传递的对象，然后保存在 TransitionInfo.mChanges 列表中。
+接着创建 Transition Root Leash 图层。    
+
+最后通过 TransitionController.getTransitionPlayer().onTransitionReady(TransitionInfo info) 来通知 WMShell 来开始动画，把 TransitionInfo 参数传递到 WMShell 端。    
+
+5、开始动画
+
+当执行 Transition.onTransactionReady() 时，表示参与动画的各个容器都已经绘制完毕，可以开始动画了。    
+从 mKnownTransitions 中获取到前面创建的 ActiveTransition，并把从 WMCore 传递过来的 TransitionInfo 保存在 ActiveTransition.mInfo 中，配置 ActiveTransition.mStartT 和 ActiveTransition.mFinishT。    
+然后开始调用 ActiveTransition.mHandler 的 startAnimation 方法开始播放动画。并且把 TransitionInfo 作为参数进行传递。     
+
+6、执行动画
+
+动画执行器通过 TransitionInfo 参数获取到前面保存的 TransitionInfo.Change() 对象，根据动画类型分别来做对应的动画。     
+
+
+

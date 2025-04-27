@@ -10,8 +10,94 @@ date: 2022-11-23 10:00:00
 
 ## 概述
 
-WallpaperManagerService: adb shell dumpsys wallpaper
-WallpaperController: adb shell dumpsys window displays
+WallpaperManagerService: adb shell dumpsys wallpaper        
+
+```
+mDefaultWallpaperComponent=ComponentInfo{com.android.systemui/com.android.systemui.wallpapers.ImageWallpaper}
+mImageWallpaper=ComponentInfo{com.android.systemui/com.android.systemui.wallpapers.ImageWallpaper}
+System wallpaper state:
+ User 0: id=18: mWhich=1: mSystemWasBoth=false: mBindSource=SET_STATIC
+ Display state:
+  displayId=0
+  mWidth=4680  mHeight=2340
+  mPadding=Rect(0, 0 - 0, 0)
+  mCropHint=Rect(0, 0 - 108, 234)
+  mName=
+  mAllowBackup=true
+  mWallpaperComponent=ComponentInfo{com.android.systemui/com.android.systemui.wallpapers.ImageWallpaper}
+  mWallpaperDimAmount=0.0
+  isColorExtracted=false
+  mUidToDimAmount:
+  Wallpaper connection com.android.server.wallpaper.WallpaperManagerService$WallpaperConnection@6ae776b:
+     mDisplayId=0
+     mToken=android.os.Binder@91e4a9b
+     mEngine=android.service.wallpaper.IWallpaperEngine$Stub$Proxy@c062ff5
+    mService=android.service.wallpaper.IWallpaperService$Stub$Proxy@d9ae604
+    mLastDiedTime=-140754
+Lock wallpaper state:
+ User 0: id=17: mWhich=2: mSystemWasBoth=false: mBindSource=SET_STATIC
+ Display state:
+  displayId=0
+  mWidth=4680  mHeight=2340
+  mPadding=Rect(0, 0 - 0, 0)
+  mCropHint=Rect(0, 0 - 1080, 2340)
+  mName=
+  mAllowBackup=true
+  mWallpaperComponent=ComponentInfo{com.android.systemui/com.android.systemui.wallpapers.ImageWallpaper}
+  mWallpaperDimAmount=0.0
+  isColorExtracted=false
+  mUidToDimAmount:
+  Wallpaper connection com.android.server.wallpaper.WallpaperManagerService$WallpaperConnection@77518c7:
+     mDisplayId=0
+     mToken=android.os.Binder@2ea94c6
+     mEngine=android.service.wallpaper.IWallpaperEngine$Stub$Proxy@82157ed
+    mService=android.service.wallpaper.IWallpaperService$Stub$Proxy@d4ad622
+    mLastDiedTime=-140754
+Fallback wallpaper state:
+ User 0: id=1: mWhich=1: mSystemWasBoth=false: mBindSource=INITIALIZE_FALLBACK
+ Display state:
+  displayId=0
+  mWidth=4680  mHeight=2340
+  mPadding=Rect(0, 0 - 0, 0)
+  mCropHint=Rect(0, 0 - 0, 0)
+  mName=
+  mAllowBackup=false
+  mWallpaperComponent=ComponentInfo{com.android.systemui/com.android.systemui.wallpapers.ImageWallpaper}
+  mWallpaperDimAmount=0.0
+  isColorExtracted=false
+  mUidToDimAmount:
+  Wallpaper connection com.android.server.wallpaper.WallpaperManagerService$WallpaperConnection@568c0ad:
+    mService=android.service.wallpaper.IWallpaperService$Stub$Proxy@667b8b3
+    mLastDiedTime=-140754
+
+```
+
+WallpaperController: adb shell dumpsys window displays       
+
+```
+  displayId=0
+  mWallpaperTarget=Window{dfb5893 u0 com.meizu.flyme.launcher/com.android.launcher3.uioverrides.QuickstepLauncher}
+  mLastWallpaperZoomOut=1.0
+  token WallpaperWindowToken{b832e38 token=android.os.Binder@91e4a9b}:
+    canShowWhenLocked=false
+    mWallpaperX=0.0
+    mWallpaperY=0.5
+    mWallpaperXStep=NA
+    mWallpaperYStep=NA
+    mWallpaperDisplayOffsetX=NA
+    mWallpaperDisplayOffsetY=NA
+  token WallpaperWindowToken{e59dc87 token=android.os.Binder@2ea94c6}:
+    canShowWhenLocked=true
+    mWallpaperX=0.0
+    mWallpaperY=0.5
+    mWallpaperXStep=NA
+    mWallpaperYStep=NA
+    mWallpaperDisplayOffsetX=NA
+    mWallpaperDisplayOffsetY=NA
+```
+
+静态壁纸存放路径：      
+/data/system/users/0/wallpaper_info.xml      
 
 ## 动态壁纸实现方法
 
@@ -335,12 +421,29 @@ updateWallpaperTokens 方法用来设置壁纸窗口的可见性
 
 ## WallpaperService
 
-实现壁纸的应用需要继承 WallpaperService，因此它运行在 App  进程。    
+实现壁纸的应用需要继承 WallpaperService，因此它运行在 App  进程。     
 
 
 ## WallpaperData
 
+壁纸的数据类，包含有关壁纸的所有信息。       
+
 ## WallpaperObserver
+
+## 开机加载静态壁纸流程
+
+```
+SystemServer.startOtherServices
+    ActivityManagerService.systemReady
+        SystemServiceManager.startBootPhase
+            WallpaperManagerService.onBootPhase
+                WallpaperManagerService.systemReady
+                    WallpaperManagerService.initialize
+                        WallpaperManagerService.loadSettingsLocked
+                            WallpaperDataParser.loadSettingsLocked
+                                new WallpaperData
+                                new WallpaperLoadingResult
+```
 
 ## 设置壁纸流程
 
@@ -440,7 +543,7 @@ WallpaperManagerService.setWallpaperComponentChecked
 ## 壁纸可见性更新流程
 
 壁纸的可见性更新流程主要是通过 adjustWallpaperWindows 来进行的。    
-部分调用 adjustWallpaperWindows 的时机。
+部分调用 adjustWallpaperWindows 的时机。      
 
 ```
 Session.relayout
@@ -473,6 +576,9 @@ WallpaperController.adjustWallpaperWindows
                 WallpaperWindowToken.commitVisibility
                     WallpaperWindowToken.setVisible
 ```
+
+壁纸的可见性更新时，event 日志里面会有 wm_wallpaper_surface 相关日志打印。     
+
 
 
 ## 息屏时壁纸切换流程

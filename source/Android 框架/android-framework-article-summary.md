@@ -35,6 +35,7 @@ date: 2022-11-23 10:00:00
 
  - 千里马学框架
  - AndroidPerformance
+ - Android系统攻城狮
 
 ## 文章
 
@@ -42,6 +43,7 @@ date: 2022-11-23 10:00:00
 
 [Android图形架构缺陷](https://mp.weixin.qq.com/s/M61-uXnZz3mllMrn5HRNLg)
 [Android 和 iOS 渲染架构差异对比，孰胜孰负？](https://mp.weixin.qq.com/s/5s11skxtI5FHVTa3ZuqQ7g)
+[手机系统的D-Vsync渲染显示管线优化 ](https://mp.weixin.qq.com/s/qQxzWj8ZTv8ytY3NYzo17w)
 
 ### 窗口系统
 

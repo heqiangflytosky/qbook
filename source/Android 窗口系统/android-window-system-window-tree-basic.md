@@ -215,6 +215,9 @@ class WindowContainer<E extends WindowContainer> extends ConfigurationContainer<
     
     // 为当前容器开启一个动画
     startAnimation()
+    
+    // 计算Layer层级
+    assignChildLayers()
 }
 ```
 

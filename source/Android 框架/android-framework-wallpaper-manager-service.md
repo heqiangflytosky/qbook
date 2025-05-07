@@ -567,7 +567,7 @@ Session.relayout
 ```
 
 adjustWallpaperWindows 流程：     
-
+当壁纸可见性发生变化时，加到当前同步组中。      
 ```
 WallpaperController.adjustWallpaperWindows
     WallpaperController.updateWallpaperTokens
@@ -575,6 +575,11 @@ WallpaperController.adjustWallpaperWindows
             WallpaperWindowToken.setVisibility
                 WallpaperWindowToken.commitVisibility
                     WallpaperWindowToken.setVisible
+                        TransitionController.collect(this)
+                            Transition.collect()
+                                info = new ChangeInfo(wc)
+                                mChanges.put(wc, info)
+                                
 ```
 
 壁纸的可见性更新时，event 日志里面会有 wm_wallpaper_surface 相关日志打印。     

@@ -131,8 +131,11 @@ public class StageCoordinator implements SplitLayout.SplitLayoutHandler,
 
 ### SplitDecorManager
 
-通常我们在缩放分屏时，在被拉伸的 Task 上面会有个遮罩层，用来遮挡应用程序在拉伸过程中出现的奇怪的布局。    
-遮罩层的构成有 mIconLeash（显示图标），mBackgroundLeash 和 mGapBackgroundLeash。    
+通常我们在缩放分屏时，在被拉伸的 Task 上面会有个遮罩层，用来遮挡应用程序在拉伸过程中出现的奇怪的布局。一般是在分屏拉伸时显示遮罩层，缩小的分屏不会显示。    
+遮罩层的构成有：    
+ - mIconLeash：图层名称为 SplitDecorManager，用来显示应用图标。和 mBackgroundLeash 一起显示和隐藏。     
+ - mBackgroundLeash：图层名称为 ResizingBackground，用于分屏拉伸后从隐藏到显示的过渡动画。     
+ - mGapBackgroundLeash。图层名称为 GapBackground，用于在分屏图层隐藏到 mBackgroundLeash 显示这段事件的间隙显示个背景颜色，避免闪屏。    
 SplitDecorManager 继承自 WindowlessWindowManager，表示这个界面不需要 WMS 的窗口管理，直接操作 Layer 图层进行界面显示。      
 
 ```

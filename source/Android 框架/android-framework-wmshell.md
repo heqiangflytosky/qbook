@@ -60,6 +60,11 @@ adb shell dumpsys activity service SystemUIService WMShell protolog  enable-text
 
 相关 TAG 在 `frameworks/base/libs/WindowManager/Shell/src/com/android/wm/shell/protolog/ShellProtoLogGroup.java` 去看。    
 
+### dump WmShell 
+
+```
+adb shell dumpsys activity service SystemUIService WMShell
+```
 
 ## 相关类
 

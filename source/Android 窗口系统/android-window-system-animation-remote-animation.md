@@ -144,7 +144,14 @@ ActivityTaskManagerService.startActivity()
                                 TaskDisplayArea.getOrCreateRootTask()
                                     // 创建 Task，并设置父节点为 TaskDisplayArea
                                     new Task.Builder().setParent(this).build()
-                                        new Task()
+                                        Task.Builder.buildInner()
+                                            new Task()
+                                        TaskDisplayArea.addChild
+                                            TaskDisplayArea.addChildTask
+                                                TaskDisplayArea.findPositionForRootTask // 为task寻找层级位置
+                                                    TaskDisplayArea.findMaxPositionForRootTask
+                                                        TaskDisplayArea.getPriority
+                                                    TaskDisplayArea.findMinPositionForRootTask
                         Task.startActivityLocked()
                             // 执行 prepareAppTransition
                             DisplayContent.prepareAppTransition(TRANSIT_OPEN)

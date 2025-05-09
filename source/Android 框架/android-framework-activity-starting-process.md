@@ -13,6 +13,8 @@ date: 2022-11-23 10:00:00
 
 ## 分析启动时多个Activity之间生命周期
 
+### 通过 event 日志分析
+
 我们先通过 event 日志来大致看一下：    
 
 ```
@@ -57,8 +59,9 @@ system_server 和 App 进程通过 binder 进行通信，这里涉及到两个 b
 
 system_server 和 zygote 进程通过Socket进行通信。    
 
+### 流程图
 
-<img src="/images/android-framework-activity-starting-process/1.png" width="722" height="882"/>
+<img src="/images/android-framework-activity-starting-process/1.png" width="542" height="819"/>
 
 ## 桌面启动应用
 
@@ -103,6 +106,12 @@ ActivityTaskManagerService.startActivity()
                                     Task.Builder.build()
                                         Task.Builder.buildInner()
                                             new Task()  // 创建 Task
+                                        TaskDisplayArea.addChild
+                                            TaskDisplayArea.addChildTask
+                                                TaskDisplayArea.findPositionForRootTask // 为task寻找层级位置
+                                                    TaskDisplayArea.findMaxPositionForRootTask
+                                                        TaskDisplayArea.getPriority
+                                                    TaskDisplayArea.findMinPositionForRootTask
                         ActivityStarter.setNewTask() //将Task与activityRecord 绑定
                             ActivityStarter.addOrReparentStartingActivity()
                         Task.moveToFront()  //移动Task到栈顶

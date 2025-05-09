@@ -61,7 +61,7 @@ system_server 和 zygote 进程通过Socket进行通信。
 
 ### 流程图
 
-<img src="/images/android-framework-activity-starting-process/1.png" width="542" height="819"/>
+<img src="/images/android-framework-activity-starting-process/1.png" width="813" height="1229"/>
 
 ## 桌面启动应用
 

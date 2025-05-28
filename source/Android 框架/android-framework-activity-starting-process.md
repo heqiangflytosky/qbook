@@ -69,6 +69,7 @@ system_server 和 zygote 进程通过Socket进行通信。
 
 ### system_server 流程
 
+#### 代码流程
 
 ```
 ActivityTaskManagerService.startActivity()
@@ -77,6 +78,8 @@ ActivityTaskManagerService.startActivity()
         ActivityStarter.execute()
             ActivityStarter$Request.resolveActivity() //解析启动请求参数
             ActivityStarter.executeRequest()
+                // 前面后执行一些列的启动拦截流程
+                ......
                 ActivityRecord.Builder.build() // 创建 ActivityRecord
                     new ActivityRecord()
                 ActivityStarter.startActivityUnchecked()
@@ -153,6 +156,39 @@ ActivityTaskManagerService.startActivity()
 ```
 
 这个流程有三个主要的地方和App进程交互，一个是通知 Launcher onTopResumedActivityChanged，一个是通知Launcher 执行pause流程，还有一个就是创建新 App 的进程。    
+
+#### 拦截流程
+
+```
+ActivityStarter.executeRequest() 方法中有很多中拦截启动的动作。    
+
+```
+    private int executeRequest(Request request) {
+        ...
+        // 拦截开始
+        boolean abort;
+        try {
+            abort = !mSupervisor.checkStartAnyActivityPermission(intent, aInfo, resultWho,
+                    requestCode, callingPid, callingUid, callingPackage, callingFeatureId,
+                    request.ignoreTargetSecurity, inTask != null, callerApp, resultRecord,
+                    resultRootTask);
+        ...
+        abort |= !mService.mIntentFirewall.checkStartActivity(intent, callingUid,
+                callingPid, resolvedType, aInfo.applicationInfo);
+        abort |= !mService.getPermissionPolicyInternal().checkStartActivity(intent, callingUid,
+                callingPackage);
+        ...
+                // 后台应用启动Activity拦截
+                BackgroundActivityStartController balController =
+                        mSupervisor.getBackgroundActivityLaunchController();
+                balVerdict =
+                        balController.checkBackgroundActivityStart(.....)
+        ......               
+                // ActivityController 拦截
+                abort |= !mService.mController.activityStarting(watchIntent,
+                        aInfo.applicationInfo.packageName);
+```
+```
 
 ### Launcher 执行 onTopResumedActivityChanged
 

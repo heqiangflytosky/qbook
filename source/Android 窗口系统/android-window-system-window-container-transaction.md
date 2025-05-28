@@ -224,6 +224,46 @@ WindowContainerTransaction 提供了很多针对 HierarchyOp 操作的方法：
  - startTask：通过taskId来启动一个task，这个task是已经启动过的，比如最近任务中的task。这个里面传递的options，存放了一些启动操作项。例如，分屏操作中调用的addActivityOptions(options1, mSideStage);,就是在options1中存放了关联SideStage的WindowContainerToken与ActivityOptions的KEY_LAUNCH_ROOT_TASK_TOKEN的映射关系。     
  - removeTask：移除task
 
+## WindowContainerTransaction 的发送
+
+应用层可以通过下面两种方式来想系统发送 WindowContainerTransaction 。    
+### WindowOrganizer发送
+
+```
+public class WindowOrganizer {
+
+    // 分屏场景
+    @RequiresPermission(value = android.Manifest.permission.MANAGE_ACTIVITY_TASKS)
+    public void applyTransaction(@NonNull WindowContainerTransaction t) {
+        ...
+    }
+
+
+    public int applySyncTransaction(@NonNull WindowContainerTransaction t,
+            @NonNull WindowContainerTransactionCallback callback) {
+        ...
+    }
+    
+    // 多任务场景
+    public IBinder startNewTransition(int type, @Nullable WindowContainerTransaction t) {
+        ....
+    }
+    
+    public void startTransition(@NonNull IBinder transitionToken,
+            @Nullable WindowContainerTransaction t) {
+        ....
+    }
+}
+```
+
+### SyncTransactionQueue 发送
+
+// 分屏场景
+
+```
+SyncTransactionQueue.queue(WindowContainerTransaction wct)
+SyncTransactionQueue.runInSync(TransactionRunnable runnable)
+```
 
 ## 相关文章
 

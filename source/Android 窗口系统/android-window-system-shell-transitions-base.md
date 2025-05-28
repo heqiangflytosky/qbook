@@ -499,6 +499,8 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                         new TransitionInfo.Change()
                         // 获取用于挂载到 Leash 的图层
                         Transition.getLeashSurface()
+                        // 设置该 Change 的动画类型
+                        Change.setMode()
                         TransitionInfo.addChange()
                         }
                     TransitionController.assignTrack()
@@ -518,17 +520,21 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                                 Transitions.dispatchReady()
                                     // 分配一个 Track
                                     Transitions.getOrCreateTrack()
+                                        // 根据 trackId 来决定是新建一个 Track 还是使用原有 Track。
+                                        mTracks.get(trackId)
                                     // 设置动画初始状态的可见性、透明度和变换。
                                     Transitions.setupStartState()
                                     Transitions.processReadyQueue()
-                                        //将动画参与者reparent到一个共同的父Layer上，然后设置它们的Z轴层级
-                                        Transitions.setupAnimHierarchy()
-                                            SurfaceControl.Transaction.reparent
-                                            // 计算层级顺序
-                                            Transitions.calculateAnimLayer() 
-                                            SurfaceControl.Transaction.setLayer
+                                        // 为 Track 的 mActiveTransition 赋值
+                                        track.mActiveTransition = ready;
                                         Transitions.playTransition()
-                                            // 构造回调函数 callback，在动画执行完毕后回调
+                                            //将动画参与者reparent到一个共同的父Layer上，然后设置它们的Z轴层级
+                                            Transitions.setupAnimHierarchy()
+                                                SurfaceControl.Transaction.reparent
+                                                // 计算层级顺序
+                                                Transitions.calculateAnimLayer() 
+                                                SurfaceControl.Transaction.setLayer
+                                            // 构造回调函数 TransitionFinishCallback，在动画执行完毕后回调
                                             Transitions.TransitionFinishCallback
                                             DefaultMixedHandler.startAnimation()
                                                 DefaultMixedTransition.startAnimation()
@@ -584,7 +590,13 @@ Transitions.TransitionFinishCallback.onTransitionFinished // startAnimation 时�
                 // ------> WMCore
                 WindowOrganizerController.finishTransition()
                     TransitionController.finishTransition()
+                        mTrackCount = 0
                         Transition.finishTransition()
+                            for (int i = 0; i < mParticipants.size(); ++i)
+                            // 遍历动画参与者，修改ActivityRecord可见性
+                            ActivityRecord.commitVisibility
+                                ActivityRecord.setVisible
+                                ActivityRecord.setVisibleRequested
                             mState = STATE_FINISHED // 修改状态为 STATE_FINISHED
 ```
 
@@ -1672,6 +1684,7 @@ canPromote 这个方法比较重要，我们来看一下代码实现。
                     && target.getParent() != info.mStartParent) {
                 change.setLastParent(info.mStartParent.mRemoteToken.toWindowContainerToken());
             }
+            // 设置 TransitionMode 动画类型
             change.setMode(info.getTransitMode(target));
             info.mReadyMode = change.getMode();
             change.setStartAbsBounds(info.mAbsoluteBounds);
@@ -2114,16 +2127,16 @@ setupAnimHierarchy用来在动画开始前，将动画参与者reparent到一个
 ### 动画执行完毕
 
 
-这里主要涉及一些动画执行完毕的重置操作，主要是执行 WMCore 传递过来的 mFinishTransaction。     
+这里主要涉及一些动画执行完毕的重置操作，主要是执行 WMCore 传递过来的 mFinishTransaction，还有就是执行 WindowOrganizerController.finishTransition() 方法。     
 具体参考前面的代码流程图。      
 
-现在来看一下桌面启动 Activity 时 finish 回调的构建过程。     
+一、现在来看一下桌面启动 Activity 时 finish 回调的构建过程。     
 
-1. 首先构建 mFinishTransaction，这个构建在 Transition.buildFinishTransaction。      
+1.首先构建 mFinishTransaction，这个构建在 Transition.buildFinishTransaction。      
 
 Transition.onTransactionReady()  --> Transition.buildFinishTransaction(mFinishTransaction, info)
 
-2. 传递给 WMShell
+2.传递给 WMShell
 
 把动画结束时的动作保存在 mFinishTransaction 中，在传递给 WMShell。后面的执行也在 WMShell。     
 
@@ -2134,7 +2147,7 @@ Transition.java
                         mToken, info, transaction, mFinishTransaction);
 ```
 
-3. WMShell 收到后把 mFinishTransaction 保存在 ActiveTransition 的 mFinishT 中或者与其进行合并。       
+3.WMShell 收到后把 mFinishTransaction 保存在 ActiveTransition 的 mFinishT 中或者与其进行合并。       
 
 ```
     void onTransitionReady(@NonNull IBinder transitionToken, @NonNull TransitionInfo info,
@@ -2146,7 +2159,7 @@ Transition.java
         active.mFinishT = finishT;            
 ```
 
-4. 然后就在执行 active.mHandler.startAnimation 除了传递 active.mFinishT 外，还构造了一个回调方法。当桌面执行完动画后，会回调这个方法。      
+4.然后就在执行 active.mHandler.startAnimation 除了传递 active.mFinishT 外，还构造了一个回调方法。当桌面执行完动画后，会回调这个方法。      
 
 ```
 Transitions.java
@@ -2225,6 +2238,8 @@ RemoteTransitionHandler.java
         remote.getRemoteTransition().startAnimation(transition, remoteInfo, remoteStartT, cb);
 ```
 
+二、执行 WindowOrganizerController.finishTransition() 方法主要是修改mState状态，更新 ActivityRecord 可见性。
+
 ## 总结
 
 ShellTransitions 动画流程：
@@ -2251,11 +2266,11 @@ WMShell 侧的 Transitions 的 TransitionPlayerImpl 实现了 ITransitionPlayer.
 
 4、WMCore 检查窗口绘制情况
 
-WMCore 在每次的 performSurfacePlacementNoTrace() 方法中通过 BLASTSyncEngine 来检测此次动画的所有参与的容器是否同步/绘制完成，如果都绘制完成，那么就更改他们的状态 mSyncState。
+WMCore 在每次的 performSurfacePlacementNoTrace() 方法中通过 BLASTSyncEngine 来检测此次动画的所有参与的容器是否同步/绘制完成，如果都绘制完成，那么就更改他们的状态 mSyncState。      
 
-然后通过 calculateTargets() 开始计算最终执行动画的容器，获取前面动画搜集阶段保存在 mChanges 列表中的 ChangeInfo，这个过程涉及到动画层级提升操作，保存在 Transition.mTargets 列表中。    
+然后通过 calculateTargets() 开始计算最终执行动画的容器，获取前面动画搜集阶段保存在 mChanges 列表中的 ChangeInfo，这个过程涉及到动画层级提升操作 Transition.tryPromote()，保存在 Transition.mTargets 列表中。    
 
-然后，创建 new TransitionInfo() 对象，遍历 mTargets，为每个 ChangeInfo 创建 new TransitionInfo.Change() 对象，它是可以跨进程传递的对象，然后保存在 TransitionInfo.mChanges 列表中。
+然后，在 calculateTransitionInfo() 方法中创建 new TransitionInfo() 对象，遍历 mTargets，为每个 ChangeInfo 创建 new TransitionInfo.Change() 对象，它是可以跨进程传递的对象，，change.setMode 设置动画类型，getLeashSurface 创建leash 图层。然后 Change 对象保存在 TransitionInfo.mChanges 列表中。      
 接着创建 Transition Root Leash 图层。    
 
 最后通过 TransitionController.getTransitionPlayer().onTransitionReady(TransitionInfo info) 来通知 WMShell 来开始动画，把 TransitionInfo 参数传递到 WMShell 端。    
@@ -2270,5 +2285,7 @@ WMCore 在每次的 performSurfacePlacementNoTrace() 方法中通过 BLASTSyncEn
 
 动画执行器通过 TransitionInfo 参数获取到前面保存的 TransitionInfo.Change() 对象，根据动画类型分别来做对应的动画。     
 
+7、动画执行完毕
 
+回调到 WMCore 的 Transition.finishTransition()，修改mState状态，更新 ActivityRecord 可见性。     
 

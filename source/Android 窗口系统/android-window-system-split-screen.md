@@ -7,7 +7,45 @@ description: 介绍 Android 分屏
 date: 2022-11-23 10:00:00
 ---
 
-## 相关类
+## 分屏
+
+### 分屏模式判断
+
+1.
+
+通过 `WindowConfiguration.getWindowingMode()` 或者 `TaskInfo.getWindowingMode()` 等方法来获取 windowMode 是否是 `WINDOWING_MODE_MULTI_WINDOW`。    
+
+2.
+
+可以参考 `updateSystemBarsLw()` 方法中的判断方法，通过 `getAdjacentTask()` 来判断。     
+
+```
+    private int updateSystemBarsLw(WindowState win, int disableFlags) {
+        final TaskDisplayArea defaultTaskDisplayArea = mDisplayContent.getDefaultTaskDisplayArea();
+        final boolean adjacentTasksVisible =
+                defaultTaskDisplayArea.getRootTask(task -> task.isVisible()
+                        && task.getTopLeafTask().getAdjacentTask() != null)
+                        != null;
+```
+
+AdjacentTask 的设置流程：
+
+WMShell:
+
+```
+StageCoordinator.onRootTaskAppeared()
+    WindowContainerTransaction.setAdjacentRoots()
+        HierarchyOp.createForAdjacentRoots()
+        HierarchyOps.add()
+```
+
+WMCore:
+
+```
+WindowOrganizerController.applyHierarchyOp
+    WindowOrganizerController.setAdjacentRootsHierarchyOp
+        TaskFragment.setAdjacentTaskFragment
+```
 
 ### 窗口层级
 
@@ -15,6 +53,8 @@ date: 2022-11-23 10:00:00
 分屏后，Task 12 和 Task 13 移动到了 Task 9 下面的 Task 10 和 Task 11。mode 变成了 MULTI-WINDOW。      
 
 <img src="/images/android-window-system-split-screen/0.png" width="757" height="142"/>
+
+## 相关类
 
 ### SplitScreenController
 
@@ -117,6 +157,7 @@ public class StageCoordinator implements SplitLayout.SplitLayoutHandler,
         wct.reparent(mMainStage.mRootTaskInfo.token, mRootTaskInfo.token, true);
         wct.reparent(mSideStage.mRootTaskInfo.token, mRootTaskInfo.token, true);
         // Make the stages adjacent to each other so they occlude what's behind them.
+        // 设置 AdjacentRoots，保证上下分屏的 task 与彼此相邻
         wct.setAdjacentRoots(mMainStage.mRootTaskInfo.token, mSideStage.mRootTaskInfo.token);
         setRootForceTranslucent(true, wct);
         mSplitLayout.getInvisibleBounds(mTempRect1);
@@ -511,8 +552,11 @@ DividerView$DoubleTapListener.onDoubleTap
             StageCoordinator.switchSplitPosition
                 // 对上下两个分屏进行截图，
                 // 将这两个截图图层挂载到两个分屏的RootTask对应节点上
+                // 那么它就会跟着两个分屏的RootTask一起移动
                 ScreenshotUtils.takeScreenshot()
                 ScreenshotUtils.takeScreenshot()
+                SyncTransactionQueue.queue()
+                SyncTransactionQueue.splitSwitching()
                 SplitLayout.splitSwitching
                     // 分屏构造上下分屏和分割线动画
                     SplitLayout.moveSurface
@@ -523,11 +567,23 @@ DividerView$DoubleTapListener.onDoubleTap
                         StageCoordinator.setSideStagePosition()
                             StageCoordinator.updateWindowBounds()
                                 SplitLayout.applyTaskChanges()
+                                    // 设置 Task 区域
                                     SplitLayout.setTaskBounds()
                                         WindowContainerTransaction.setBounds()
                                         WindowContainerTransaction.setSmallestScreenWidthDp()
                     AnimatorSet.start()
 ```
+
+Task 显示区域改变后，回调改变多任务的一些配置信息，通知上分屏的信息，多任务需要知道来设置多任务卡片的位置。    
+
+```
+ShellTaskOrganizer.onTaskInfoChanged
+    StageTaskListener.onTaskInfoChanged
+        StageCoordinator$StageListenerImpl.onChildTaskStatusChanged
+            StageCoordinator.onStageChildTaskStatusChanged
+                StageCoordinator.updateRecentTasksSplitPair
+```
+
 
 ScreenshotUtils screenshot 图层：    
 

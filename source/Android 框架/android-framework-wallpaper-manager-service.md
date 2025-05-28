@@ -96,6 +96,16 @@ WallpaperController: adb shell dumpsys window displays
     mWallpaperDisplayOffsetY=NA
 ```
 
+查看静态壁纸服务信息：
+
+```
+adb shell dumpsys activity service ImageWallpaper
+```
+
+```
+
+```
+
 静态壁纸存放路径：      
 /data/system/users/0/wallpaper_info.xml      
 
@@ -536,6 +546,9 @@ WallpaperService$IWallpaperEngineWrapper.executeMessage
 WallpaperManagerService.setWallpaperComponentChecked
     WallpaperManagerService.setWallpaperComponent
         WallpaperManagerService.setWallpaperComponentInternal
+            //WallpaperDestinationChangeHandler 用来跟踪壁纸切换时的一些信息，
+            // 并且在壁纸更换完毕后更新壁纸信息，比如：WallpaperData，WallpaperData.mWhich 等等
+            new WallpaperDestinationChangeHandler()
             WallpaperManagerService.bindWallpaperComponentLocked
             // 后面的流程和静态壁纸一样
 ```

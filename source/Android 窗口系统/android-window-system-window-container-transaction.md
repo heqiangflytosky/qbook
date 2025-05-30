@@ -227,7 +227,9 @@ WindowContainerTransaction 提供了很多针对 HierarchyOp 操作的方法：
 ## WindowContainerTransaction 的发送
 
 应用层可以通过下面两种方式来想系统发送 WindowContainerTransaction 。    
-### WindowOrganizer发送
+### WindowOrganizer.applyTransaction发送
+
+通过 applyTransaction 发送异步 WindowContainerTransaction。  
 
 ```
 public class WindowOrganizer {
@@ -238,7 +240,7 @@ public class WindowOrganizer {
         ...
     }
 
-
+    // 分屏，PIP等场景，通过 SyncTransactionQueue 发送
     public int applySyncTransaction(@NonNull WindowContainerTransaction t,
             @NonNull WindowContainerTransactionCallback callback) {
         ...
@@ -258,6 +260,7 @@ public class WindowOrganizer {
 
 ### SyncTransactionQueue 发送
 
+发送同步 WindowContainerTransaction，最终也是通过 WindowOrganizer.applySyncTransaction 执行。    
 // 分屏场景
 
 ```

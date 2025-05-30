@@ -159,7 +159,7 @@ ActivityTaskManagerService.startActivity()
 
 #### 拦截流程
 
-```
+
 ActivityStarter.executeRequest() 方法中有很多中拦截启动的动作。    
 
 ```
@@ -188,7 +188,7 @@ ActivityStarter.executeRequest() 方法中有很多中拦截启动的动作。
                 abort |= !mService.mController.activityStarting(watchIntent,
                         aInfo.applicationInfo.packageName);
 ```
-```
+
 
 ### Launcher 执行 onTopResumedActivityChanged
 

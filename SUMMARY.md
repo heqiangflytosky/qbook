@@ -110,6 +110,7 @@
     * [Android Surface 同步机制 SurfaceSyncGroup](source/Android 窗口系统/android-window-system-surface-sync-group.md)
     * [Android WindowContainerTransaction](source/Android 窗口系统/android-window-system-window-container-transaction.md)
     * [Android WindowOrganizerController](source/Android 窗口系统/android-window-system-window-organizer-controller.md)
+    * [Android SyncTransactionQueue](source/Android 窗口系统/android-window-system-sync-transaction-queue.md)
     * [Android 分屏](source/Android 窗口系统/android-window-system-split-screen.md)
     * [Android 单手模式](source/Android 窗口系统/android-window-system-one-hand.md)
     * [Android Task 切换动画](source/Android 窗口系统/android-window-system-task-switch-animation.md)

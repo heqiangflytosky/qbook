@@ -13,6 +13,7 @@ date: 2022-11-23 10:00:00
 
 ## applyTransaction
 
+相对于 applySyncTransaction 我们可以称 applyTransaction 为异步发送 WindowContainerTransacton。    
 applyTransaction 方法主要是实施在应用侧对窗口的修改，主要分为 Change 相关、HierarchyOp 相关、setBoundsChangeTransaction 相关以及更新 Activity 可见性和 Configuration 等部分，核心是对应用侧传来的 WindowContainerTransaction 对象进行解析和应用到系统侧窗口数据。    
 
 ```
@@ -528,6 +529,58 @@ sanitizeAndApplyHierarchyOp 分别对 reorder 和 reparent 进行操作。
         }
         return TRANSACT_EFFECTS_LIFECYCLE;
     }
+```
+
+## startNewTransition
+
+```
+    public IBinder startNewTransition(int type, @Nullable WindowContainerTransaction t) {
+        return startTransition(type, null /* transitionToken */, t);
+    }
+```
+
+```
+WindowOrganizerController.startNewTransition
+    WindowOrganizerController.startTransition
+        TransitionController.startCollectOrQueue
+            TransitionController.moveToCollecting
+                Transition.startCollecting
+                    BLASTSyncEngine.startSyncSet
+                        BLASTSyncEngine.prepareSyncSet
+                            new BLASTSyncEngine$SyncGroup
+```
+
+## applySyncTransaction
+
+同步WindowContainerTransaction的发送需要借助 SyncTransactionQueue 来实现。    
+
+```
+    public int applySyncTransaction(WindowContainerTransaction t,
+            IWindowContainerTransactionCallback callback) {
+```
+
+```
+WindowOrganizerController.applySyncTransaction
+    WindowOrganizerController.prepareSyncWithOrganizer
+        BLASTSyncEngine.prepareSyncSet
+            new BLASTSyncEngine$SyncGroup
+```
+
+## finishTransition
+
+更新 WindowContainer 的可见性和 Transition 状态。     
+
+```
+WindowOrganizerController.finishTransition()
+    TransitionController.finishTransition()
+        mTrackCount = 0
+        Transition.finishTransition()
+            for (int i = 0; i < mParticipants.size(); ++i)
+            // 遍历动画参与者，修改ActivityRecord可见性
+            ActivityRecord.commitVisibility
+                ActivityRecord.setVisible
+                 ActivityRecord.setVisibleRequested
+            mState = STATE_FINISHED // 修改状态为 STATE_FINISHED
 ```
 
 ## 相关文章

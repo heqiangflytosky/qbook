@@ -472,6 +472,13 @@ HW_VSYNC_ON_0：  代表 HW_VSYNC 开启。  0 代表display id，
 
 <img src="/images/android-performance-optimization-tools-perfetto/hw-vsync.png" width="483" height="267"/>
 
+### system_server
+
+Focused app：焦点所在的 App
+AnrConsumer：AnrConsumerThread 的工作状态，用来执行 appNotResponding，可以看到发生 ANR 的时间
+InputReader:
+InputDispatcher:
+
 ### Slice Details：
 
 ### 线程状态

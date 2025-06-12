@@ -482,6 +482,9 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                     Transition.calculateTargets()
                         // 动画层级提升
                         Transition.tryPromote()
+                    //状态判断
+                    if(mState == STATE_ABORT) return
+                    if(mState == STATE_FINISHED) return
                     mState = STATE_PLAYING // 修改状态为 STATE_PLAYING
                     mStartTransaction = transaction // 把 merge 赋值给 mStartTransaction
                     Transition.calculateTransitionInfo()
@@ -2262,7 +2265,7 @@ ShellTransitions 动画流程：
 
 WMShell 侧的 Transitions 的 TransitionPlayerImpl 实现了 ITransitionPlayer.Stub，响应 WmCore 的请求。    
 这会创建 new ActiveTransition 对象，然后遍历所有的 TransitionHandler，找到可以执行此次动画的执行者，存储在 ActiveTransition.mHandler 中，然后把这个ActiveTransition保存在 Transitions.mKnownTransitions 中。    
-然后再通过 WindowOrganizer.startTransition() 来通知 WMCore，通知同步组来修改相关状态。    
+然后再通过 WindowOrganizer.startTransition() 来通知 WMCore，主要调用 Transition.start()，通知同步组来修改相关状态。    
 
 4、WMCore 检查窗口绘制情况
 

@@ -84,8 +84,16 @@ ActivityTaskManagerService.startActivity()
                     new ActivityRecord()
                 ActivityStarter.startActivityUnchecked()
                     ActivityStarter.startActivityInner()
+                        // 设置一些初始状态
+                        ActivityStarter.setInitialState()
+                            ActivityStarter.reset()
+                                mAddingToTask = false;
+                                mMovedToFront = false;
+                                ......
+                        //根据launchMode、来源Activity的属性等进行初步计算，确认LaunchFlags
+                        ActivityStarter.computeLaunchingTaskFlags()
                         // 判断是否有可以重复使用的 Task，比如挂在已经存在的 Task
-                        ActivityStarter.getReusableTask()
+                        ActivityStarter.resolveReusableTask()
                         // 判断是否有可以回收使用的 Task
                         ActivityStarter.recycleTask()
                             ActivityStarter.setTargetRootTaskIfNeeded()
@@ -99,6 +107,9 @@ ActivityTaskManagerService.startActivity()
                                                             TopResumedActivityChangeItem.obtain()
                                                             // 通知 Launcher 客户端执行 TopResumedActivityChanged
                                                             ClientLifecycleManager.scheduleTransaction()
+                             ActivityStarter.complyActivityFlags
+                                 Task.performClearTop
+                                     Task.clearTopActivities 
                         // 如果有可以复用的 Task，这里直接返回
                         if (startResult != START_SUCCESS) {
                             return startResult;
@@ -152,7 +163,8 @@ ActivityTaskManagerService.startActivity()
                                             ActivityManagerService.LocalService.startProcess()
                                                 ActivityManagerService.startProcessLocked()
                                                     ProcessList.startProcessLocked()
-        
+                    // 做一些后续处理：配置信息，Transition动画相关
+                    ActivityStarter.handleStartResult()       
 ```
 
 这个流程有三个主要的地方和App进程交互，一个是通知 Launcher onTopResumedActivityChanged，一个是通知Launcher 执行pause流程，还有一个就是创建新 App 的进程。    

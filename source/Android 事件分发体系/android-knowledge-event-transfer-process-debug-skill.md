@@ -47,6 +47,7 @@ view_enqueue_input_event:
 InputManager-JNI：input JNI 层相关日志。    
 InputEventReceiver:    
 SystemGesture-XXXXX:SystemGesture相关日志，比如 SystemGesture-GestureManager，GestureManager-MzPhoneWindowManager等等。    
+InputDispatcher:     
 
 
 ## Dumpsys

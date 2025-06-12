@@ -160,6 +160,7 @@ WindowManagerService.updateFocusedWindowLocked
             // <-----
             //向InputMonitor中设置焦点窗口
             InputMonitor.setInputFocusLw()
+                `Input focus has changed to` // 日志
                 InputMonitor.setUpdateInputWindowsNeededLw()
                 // 更新焦点窗口，这个方法在很多地方调用
                 InputMonitor.updateInputWindowsLw()
@@ -191,7 +192,8 @@ WindowManagerService.updateFocusedWindowLocked
                                     InputMonitor.requestFocus()
                                         mInputFocus = focusToken;
                                         SurfaceControl.Transaction.setFocusedWindow() --> surfaceFlinger
-                                        `Focus request ****` // event 日志
+                                        'Focus request ****' // event 日志
+                                        'Focus requested for window' // WindowManager 日志
             // 调整ime窗口
             DisplayContent.adjustForImeIfNeeded()
             DisplayContent.updateKeepClearAreas()

@@ -262,7 +262,8 @@ Total RAM: 5,863,228K (status normal)
  - adb shell dumpsys activity r[recents]：最近任务activity状态
  - adb shell dumpsys activity p[rocesses] <包名>：查看该包名的进程状态，包括进程间依赖等
  - adb shell dumpsys activity o[om]:打印进程oom状态，执行 `ActivityManagerService.dumpOomLocked` 方法。
- - b[roadcasts] [PACKAGE_NAME] [history [-s]]：查看广播状态，包括：1.注册的广播接收列表，2.所有的注册了的BroadcastFilter列表，包括它们对应的 Receiver， 3.前台广播的历史记录，4.后台广播的历史记录。可以指定包名，执行 `ActivityManagerService.dumpBroadcastsLocked` 方法。
+ - adb shell dumpsys activity b[roadcasts] [PACKAGE_NAME] [history [-s]]：查看广播状态，包括：1.注册的广播接收列表，2.所有的注册了的BroadcastFilter列表，包括它们对应的 Receiver， 3.前台广播的历史记录，4.后台广播的历史记录。可以指定包名，执行 `ActivityManagerService.dumpBroadcastsLocked` 方法。
+ - adb shell dumpsys activity exit-info [PACKAGE_NAME]：查看Activity退出的原因
 
 所有上面的命令还可以添加下面的参数来定制输出结果：
 

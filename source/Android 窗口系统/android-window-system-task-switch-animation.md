@@ -182,6 +182,15 @@ getTransitMode 方法会根据当前的 mVisibleRequested 和 mExistenceChanged 
         }
 ```
 
+此时看日志，TransitionInfo 中参与此次 Transition 的动画有 Task=660 的 OPEN 动画和 Task=657 的 TO_BACK 动画。      
+
+```
+06-16 10:33:53.319  2090  3024 V WindowManager:     info={id=13733 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[
+06-16 10:33:53.319  2090  3024 V WindowManager:         {WCT{RemoteToken{a3106b0 Task{71d83dd #660 type=standard A=10242:com.hq.android.androiddemo}}} m=OPEN f=NONE leash=Surface(name=Task=660)/@0xc241e23 sb=Rect(0, 0 - 1080, 2340) eb=Rect(0, 0 - 1080, 2340) d=0 taskParent=-1},
+06-16 10:33:53.319  2090  3024 V WindowManager:         {WCT{RemoteToken{7c03b41 Task{8aa1a7b #657 type=standard A=10242:com.hq.android.androiddemo}}} m=TO_BACK f=NONE leash=Surface(name=Task=657)/@0xd64f0f1 sb=Rect(0, 0 - 1080, 2340) eb=Rect(0, 0 - 1080, 2340) d=0 taskParent=-1}
+06-16 10:33:53.319  2090  3024 V WindowManager:     ]}
+```
+
 ### WMShell 播放动画
 
 ```

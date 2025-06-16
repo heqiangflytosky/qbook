@@ -7,6 +7,10 @@ description: 介绍 Android 窗口焦点
 date: 2022-11-23 10:00:00
 ---
 
+## 概述
+
+本文基于 Android 15。     
+
 ## 整体流程
 
 Focus App的设置是从 WMS-> InputFlinger，Focus Window的设置是WMS -> SurfaceFlinger -> InputFlinger。     
@@ -402,11 +406,14 @@ SurfaceFlinger::setTransactionState
 SurfaceFlinger::commit
     SurfaceFlinger::updateInputFlinger
         SurfaceFlinger::buildWindowInfos
+            LayerSnapshotBuilder::forEachInputSnapshot()
+                LayerSnapshot::hasInputInfo()
         WindowInfosListenerInvoker.windowInfosChanged
             WindowInfosListenerInvoker::windowInfosChanged()
                 WindowInfosListenerReporter::onWindowInfosChanged  --> inputFlinger
         InputManager::setFocusedWindow  --> inputFlinger
 ```
+
 
 ### inputFlinger
 
@@ -616,3 +623,4 @@ Session.remove
 
 [Android R WindowManagerService模块(5) 焦点窗口和InputWindows的更新](https://juejin.cn/post/6955857985151336484)      
 [Android焦点之SurfaceFlinger传递给InputFinger](https://blog.csdn.net/wenwang88/article/details/140401230)      
+[InputDispatcher中窗口列表的更新逻辑](https://blog.csdn.net/weixin_44088874/article/details/133845737)     

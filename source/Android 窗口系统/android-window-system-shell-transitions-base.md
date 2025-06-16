@@ -392,11 +392,13 @@ ActivityStarter.startActivityUnchecked()
                     BLASTSyncEngine.startSyncSet()
                         //将当前SyncGroup添加到成员变量mActiveSyncs中
                         BLASTSyncEngine.mActiveSyncs.add(SyncGroup)
+                        `WindowManager: SyncGroup **: Started for listener:` // 重要日志
     // 将当前启动的ActivityRecord收集到刚刚创建的Transition对象中。
     TransitionController.collect()
         Transition.collect()
             BLASTSyncEngine.addToSyncSet()
                 BLASTSyncEngine.SyncGroup.addToSync()
+                    `WindowManager: SyncGroup **: Adding to group:` // 重要日志
                     // 添加到 mRootMembers
                     mRootMembers.add(wc);
                     WindowContainer.prepareSync()
@@ -460,10 +462,13 @@ ActivityStarter.startActivityUnchecked()
 RootWindowContainer.performSurfacePlacementNoTrace()
     BLASTSyncEngine.onSurfacePlacement()
         BLASTSyncEngine.SyncGroup.tryFinish()
+            `WindowManager: SyncGroup ** : onSurfacePlacement checking` // 重要日志
             // 检查是否 同步/绘制 完成
             ActivityRecord.isSyncFinished()
                 WindowContainer.isSyncFinished()
+            `WindowManager: SyncGroup **:  Unfinished container` // 重要日志
             BLASTSyncEngine.SyncGroup.finishNow()
+                `WindowManager: SyncGroup **: Finished!` // 重要日志
                 WindowContainer.finishSync()
                     // 执行合并操作
                     Transaction.merge(mSyncTransaction)
@@ -527,6 +532,8 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                                         mTracks.get(trackId)
                                     // 设置动画初始状态的可见性、透明度和变换。
                                     Transitions.setupStartState()
+                                        `ShellTransitions: Transitions setupStartState change` // 重要日志
+                                        `ShellTransitions: Transitions setupStartState mode  =`// 重要日志
                                     Transitions.processReadyQueue()
                                         // 为 Track 的 mActiveTransition 赋值
                                         track.mActiveTransition = ready;
@@ -577,7 +584,7 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                                     // 这部分 TransitionHandler 中每个有自己的实现
                                     // 这种情况的多动画处理场景另外文章中介绍
                                     TransitionHandler.mergeAnimation() 
-                                                                                        
+                // `WindowManager: Sent Transition (#13733) createdAt=` // 关键日志                                                                                        
 ```
 当桌面执行完动画，执行 onTransitionFinished 回调到 WMShell     
 
@@ -595,6 +602,7 @@ Transitions.TransitionFinishCallback.onTransitionFinished // startAnimation 时�
                     TransitionController.finishTransition()
                         mTrackCount = 0
                         Transition.finishTransition()
+                            // `Finish Transition (#` // 关键日志
                             for (int i = 0; i < mParticipants.size(); ++i)
                             // 遍历动画参与者，修改ActivityRecord可见性
                             ActivityRecord.commitVisibility
@@ -1438,6 +1446,11 @@ mSyncTransaction 的apply方法的调用时机则是和 Transition 的流程密�
                 mController.getTransitionPlayer().onTransitionReady(
                         mToken, info, transaction, mFinishTransaction);
                 ......
+        // 打印 `Sent Transition` 、`startWCT=WindowContainerTransaction`、`info={` 等日志
+        if (mLogger.mInfo != null) {
+            mLogger.logOnSendAsync(mController.mLoggerHandler);
+            mController.mTransitionTracer.logSentTransition(this, mTargets);
+        }
     }
 ```
 
@@ -2242,6 +2255,152 @@ RemoteTransitionHandler.java
 ```
 
 二、执行 WindowOrganizerController.finishTransition() 方法主要是修改mState状态，更新 ActivityRecord 可见性。
+
+## 关键日志
+
+### BLASTSyncEngine.startSyncSet
+
+开始一个同步组。    
+
+```
+        ProtoLog.v(WM_DEBUG_SYNC_ENGINE, "SyncGroup %d: Started %sfor listener: %s",
+                s.mSyncId, (parallel && alreadyRunning ? "(in parallel) " : ""), s.mListener);
+```
+
+```
+V WindowManager: SyncGroup 13: Started for listener: TransitionRecord{83fc172 id=-1 type=OPEN flags=0x0}
+```
+
+### BLASTSyncEngine.SyncGroup.addToSync
+
+在动画搜集阶段，将容器添加到同步组。    
+
+```
+            ProtoLog.v(WM_DEBUG_SYNC_ENGINE, "SyncGroup %d: Adding to group: %s", mSyncId, wc);
+```
+
+```
+V WindowManager: SyncGroup 13: Adding to group: ActivityRecord{f74bce6 u0 com.hq.android.androiddemo/.common.CommonTestActivity2 t-1}
+```
+
+### BLASTSyncEngine.SyncGroup.tryFinish
+
+检查同步组内容器的绘制情况。    
+
+```
+            ProtoLog.v(WM_DEBUG_SYNC_ENGINE, "SyncGroup %d: onSurfacePlacement checking %s",
+                    mSyncId, mRootMembers);
+                    ProtoLog.v(WM_DEBUG_SYNC_ENGINE, "SyncGroup %d:  Unfinished container: %s",
+                            mSyncId, wc);
+```
+
+```
+            ProtoLog.v(WM_DEBUG_SYNC_ENGINE, "SyncGroup %d: Finished!", mSyncId);
+```
+
+```
+V WindowManager: SyncGroup 13: onSurfacePlacement checking {Task{4249c3 #668 type=standard A=10242:com.hq.android.androiddemo}, ActivityRecord{7be48e3 u0 com.hq.android.androiddemo/.common.CommonTestActivity t666}, ActivityRecord{f74bce6 u0 com.hq.android.androiddemo/.common.CommonTestActivity2 t668}}
+...
+V WindowManager: SyncGroup 13:  Unfinished container: ActivityRecord{f74bce6 u0 com.hq.android.androiddemo/.common.CommonTestActivity2 t668}
+....
+V WindowManager: SyncGroup 13: Finished!
+```
+
+### Transitions.setupStartState
+
+打印 TransitionInfo 中包含的 TransitionInfo.Change 中的 TaskInfo。      
+
+```
+I ShellTransitions: Transitions setupStartState change =TaskInfo{userId=0 taskId=666 displayId=0 isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 pkg=com.hq.android.androiddemo cmp=com.hq.android.androiddemo/.MainActivity } baseActivity=ComponentInfo{com.hq.android.androiddemo/com.hq.android.androiddemo.MainActivity} topActivity=ComponentInfo{com.hq.android.androiddemo/com.hq.android.androiddemo.common.CommonTestActivity} origActivity=null realActivity=ComponentInfo{com.hq.android.androiddemo/com.hq.android.androiddemo.MainActivity} numActivities=2 lastActiveTime=247044034 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@cb87dd4} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 92 - 0, 0) topActivityInfo=ActivityInfo{6dc5b7d com.hq.android.androiddemo.common.CommonTestActivity} launchCookies=[android.os.BinderProxy@b7d1733] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=true isVisibleRequested=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= falseisLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false topActivityEligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=1080 topActivityLetterboxHeight=2340 isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false cameraCompatTaskInfo=CameraCompatTaskInfo { cameraCompatControlState=hidden freeformCameraCompatMode=inactive}}}
+I ShellTransitions: Transitions setupStartState mode  =4
+```
+
+### Transition.calculateTargets
+
+计算参与动画的容器。包括计算前搜集的容器信息，Promote 信息，删除的容器信息，以及最终参与动画的容器信息。      
+
+```
+V WindowManager: Start calculating TransitionInfo based on participants: {ActivityRecord{166adf8 u0 com.hq.android.androiddemo/.common.CommonTestActivity t657}, Task{71d83dd #660 type=standard A=10242:com.hq.android.androiddemo}, ActivityRecord{91b0708 u0 com.hq.android.androiddemo/.common.CommonTestActivity2 t660}}
+V WindowManager: Rejecting as detached: **********
+V WindowManager:   Initial targets: {734=Task{71d83dd #660 type=standard A=10242:com.hq.android.androiddemo}, 832=ActivityRecord{166adf8 u0 com.hq.android.androiddemo/.common.CommonTestActivity t657}, 835=ActivityRecord{91b0708 u0 com.hq.android.androiddemo/.common.CommonTestActivity2 t660}}
+V WindowManager:     checking ActivityRecord{91b0708 u0 com.hq.android.androiddemo/.common.CommonTestActivity2 t660}
+V WindowManager:         remove from targets ActivityRecord{91b0708 u0 com.hq.android.androiddemo/.common.CommonTestActivity2 t660}
+V WindowManager:     checking ActivityRecord{166adf8 u0 com.hq.android.androiddemo/.common.CommonTestActivity t657}
+V WindowManager:       check sibling ActivityRecord{66383b9 u0 com.hq.android.androiddemo/.MainActivity t657}
+V WindowManager:         unrelated invisible sibling ActivityRecord{66383b9 u0 com.hq.android.androiddemo/.MainActivity t657}
+V WindowManager:         remove from targets ActivityRecord{166adf8 u0 com.hq.android.androiddemo/.common.CommonTestActivity t657}
+V WindowManager:       CAN PROMOTE: promoting to parent Task{8aa1a7b #657 type=standard A=10242:com.hq.android.androiddemo}
+V WindowManager:     checking Task{71d83dd #660 type=standard A=10242:com.hq.android.androiddemo}
+V WindowManager:       SKIP: parent can't be target DefaultTaskDisplayArea@53236468
+V WindowManager:     checking Task{8aa1a7b #657 type=standard A=10242:com.hq.android.androiddemo}
+V WindowManager:       SKIP: its sibling was rejected
+V WindowManager:   Final targets: [Task{71d83dd #660 type=standard A=10242:com.hq.android.androiddemo}, Task{8aa1a7b #657 type=standard A=10242:com.hq.android.androiddemo}]
+```
+
+### Transition.onTransactionReady
+
+通过 Logger.logOnSendAsync 打印当前 Transaction 的一些信息。      
+
+```
+        void logOnSend() {
+            ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS_MIN, "%s", buildOnSendLog());
+            ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS_MIN, "    startWCT=%s", mStartWCT);
+            ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS_MIN, "    info=%s",
+                    mInfo.toString("    " /* prefix */));
+        }
+```
+
+包含 TransitionRequestInfo 信息、WindowContainerTransaction 信息、TransitionInfo 信息等。     
+```
+V WindowManager: Sent Transition (#13733) createdAt=06-16 10:33:53.247 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=660 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.hq.android.androiddemo/.common.CommonTestActivity2 } baseActivity=ComponentInfo{com.hq.android.androiddemo/com.hq.android.androiddemo.common.CommonTestActivity2} topActivity=ComponentInfo{com.hq.android.androiddemo/com.hq.android.androiddemo.common.CommonTestActivity2} origActivity=null realActivity=ComponentInfo{com.hq.android.androiddemo/com.hq.android.androiddemo.common.CommonTestActivity2} numActivities=1 lastActiveTime=230569797 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{a3106b0 Task{71d83dd #660 type=standard A=10242:com.hq.android.androiddemo}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 92 - 0, 0) topActivityInfo=ActivityInfo{309a929 com.hq.android.androiddemo.common.CommonTestActivity2} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= falseisLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false topActivityEligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=1080 topActivityLetterboxHeight=2340 isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false cameraCompatTaskInfo=CameraCompatTaskInfo { cameraCompatControlState=hidden freeformCameraCompatMode=inactive}}}, pipTask = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 13733 }
+V WindowManager:     startWCT=WindowContainerTransaction { changes = {} hops = [] errorCallbackToken=null taskFragmentOrganizer=null }
+V WindowManager:     info={id=13733 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[
+V WindowManager:         {WCT{RemoteToken{a3106b0 Task{71d83dd #660 type=standard A=10242:com.hq.android.androiddemo}}} m=OPEN f=NONE leash=Surface(name=Task=660)/@0xc241e23 sb=Rect(0, 0 - 1080, 2340) eb=Rect(0, 0 - 1080, 2340) d=0 taskParent=-1},
+V WindowManager:         {WCT{RemoteToken{7c03b41 Task{8aa1a7b #657 type=standard A=10242:com.hq.android.androiddemo}}} m=TO_BACK f=NONE leash=Surface(name=Task=657)/@0xd64f0f1 sb=Rect(0, 0 - 1080, 2340) eb=Rect(0, 0 - 1080, 2340) d=0 taskParent=-1}
+V WindowManager:     ]}
+```
+
+## TransitionController.finishTransition
+
+```
+        ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS, "Finish Transition: %s", record);
+```
+
+打印 Transition 的信息。     
+
+```
+V WindowManager: Finish Transition: TransitionRecord{18b794b id=10344 type=OPEN flags=0x0}
+```
+
+## Transition.finishTransition()
+
+通过 `Logger::logOnFinish` 来打印 Transition 结束的信息。    
+
+```
+        private String buildOnFinishLog() {
+            StringBuilder sb = new StringBuilder("Finish Transition (#").append(mSyncId)
+                    .append("): created at ").append(TimeUtils.logTimeOfDay(mCreateWallTimeMs));
+            sb.append(" collect-started=").append(toMsString(mCollectTimeNs - mCreateTimeNs));
+            if (mRequestTimeNs != 0) {
+                sb.append(" request-sent=").append(toMsString(mRequestTimeNs - mCreateTimeNs));
+            }
+            sb.append(" started=").append(toMsString(mStartTimeNs - mCreateTimeNs));
+            sb.append(" ready=").append(toMsString(mReadyTimeNs - mCreateTimeNs));
+            sb.append(" sent=").append(toMsString(mSendTimeNs - mCreateTimeNs));
+            sb.append(" finished=").append(toMsString(mFinishTimeNs - mCreateTimeNs));
+            return sb.toString();
+        }
+
+        void logOnFinish() {
+            ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS_MIN, "%s", buildOnFinishLog());
+        }
+```
+
+包含 mSyncId，以及动画的一些时间信息。    
+
+```
+V WindowManager: Finish Transition (#9): created at 06-16 14:29:00.748 collect-started=0.374ms request-sent=20.332ms started=32.478ms ready=43.621ms sent=67.964ms finished=806.478ms
+```
 
 ## 总结
 

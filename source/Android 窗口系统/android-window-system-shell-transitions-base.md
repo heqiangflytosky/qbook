@@ -355,11 +355,11 @@ ShellTransition 会创建一个 Transition Root 图层，作为动画图层的�
 
 <img src="/images/android-window-system-shell-transitions-base/6.png" width="695" height="503"/>
 
-## 代码流程
+## 流程介绍
 
 具体的桌面启动应用流程参考前面的博客，这里只着重介绍 ShellTransition 相关部分。    
 
-桌面注册远程动画：
+### 桌面注册远程动画
 
 ```
 // QuickstepTransitionManager.java
@@ -376,8 +376,10 @@ Transitions.IShellTransitionsImpl.registerRemote
     ExternalInterfaceBinder.executeRemoteCallWithTaskPermission
 ```
 
-桌面启动应用：
+### 启动应用开始准备动画
+
 前期的动画准备工作。    
+
 ```
 ActivityStarter.startActivityUnchecked()
     // 创建类型为 TRANSIT_OPEN 的 Transition 对象
@@ -456,8 +458,10 @@ ActivityStarter.startActivityUnchecked()
                                                     WindowPlacerLocked.requestTraversal()
 ```
 
+### 绘制完成启动动画
 
 准备工作完成，当参与动画的所有窗口绘制完成时，可以开启动画了。    
+
 ```
 RootWindowContainer.performSurfacePlacementNoTrace()
     BLASTSyncEngine.onSurfacePlacement()
@@ -586,7 +590,10 @@ RootWindowContainer.performSurfacePlacementNoTrace()
                                     TransitionHandler.mergeAnimation() 
                 // `WindowManager: Sent Transition (#13733) createdAt=` // 关键日志                                                                                        
 ```
-当桌面执行完动画，执行 onTransitionFinished 回调到 WMShell     
+
+### 动画执行完毕
+
+当桌面执行完动画，执行 onTransitionFinished 回调到 WMShell 执行 mFinishT。然后回调到 WMCore ，执行 finishTransition()。     
 
 ```
 // ------> WMShell
@@ -613,7 +620,7 @@ Transitions.TransitionFinishCallback.onTransitionFinished // startAnimation 时�
 
 ## 流程分析
 
-这里以从桌面启动 Activity 这个场景来分析一下 Transition 动画的执行流程。    
+这里以从桌面启动 Activity 这个场景来分析一下 Transition 动画的执行流程。     
 
 ```
 // ActivityStarter.java
@@ -2360,19 +2367,32 @@ V WindowManager:         {WCT{RemoteToken{7c03b41 Task{8aa1a7b #657 type=standar
 V WindowManager:     ]}
 ```
 
-## TransitionController.finishTransition
+### Transitions.onFinish
+
+```
+        ProtoLog.v(ShellProtoLogGroup.WM_SHELL_TRANSITIONS, "Transition animation finished "
+                + "(aborted=%b), notifying core %s", active.mAborted, active);
+```
+
+动画执行完毕在 WMShell 端打印 Transition 的信息。
+
+```
+V WindowManagerShell: Transition animation finished (aborted=false), notifying core (#15) android.os.BinderProxy@ee0bee5@0
+```
+
+### TransitionController.finishTransition
 
 ```
         ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS, "Finish Transition: %s", record);
 ```
 
-打印 Transition 的信息。     
+动画执行完毕在 WMCore 端打印 Transition 的信息。     
 
 ```
 V WindowManager: Finish Transition: TransitionRecord{18b794b id=10344 type=OPEN flags=0x0}
 ```
 
-## Transition.finishTransition()
+### Transition.finishTransition()
 
 通过 `Logger::logOnFinish` 来打印 Transition 结束的信息。    
 
@@ -2449,5 +2469,5 @@ WMCore 在每次的 performSurfacePlacementNoTrace() 方法中通过 BLASTSyncEn
 
 7、动画执行完毕
 
-回调到 WMCore 的 Transition.finishTransition()，修改mState状态，更新 ActivityRecord 可见性。     
+回调执行 Transitions.onFinish()，在这里执行 WMCore 传递过来的 mFinishTransaction，也就是 active.mFinishT.apply()。然后再回调到 WMCore 的 Transition.finishTransition()，修改 mState 状态，更新 ActivityRecord 可见性。     
 

@@ -29,13 +29,14 @@ date: 2022-11-23 10:00:00
 [掘金：Android图像系统与绘制流程](https://juejin.cn/column/7370244444282814490)：Android 图像系统和SurfaceFlinger相关       
 [CSDN:Android图形/显示系统系列](https://blog.csdn.net/u010164190/category_8115449.html)      
 
-[Framework 问题分析](https://juejin.cn/column/7345379893235122239)：作者在分析Framework bug时的问题记录
+[Framework 问题分析](https://juejin.cn/column/7345379893235122239)：作者在分析Framework 窗口相关 bug时的问题记录
 
 ## 微信公众号
 
  - 千里马学框架
  - AndroidPerformance
  - Android系统攻城狮
+ - haha视界
 
 ## 文章
 

@@ -2290,6 +2290,19 @@ V WindowManager: SyncGroup 13: Started for listener: TransitionRecord{83fc172 id
 V WindowManager: SyncGroup 13: Adding to group: ActivityRecord{f74bce6 u0 com.hq.android.androiddemo/.common.CommonTestActivity2 t-1}
 ```
 
+### Transitions.requestStartTransition
+
+WMShell 开始请求Transition。       
+
+```
+        ProtoLog.v(ShellProtoLogGroup.WM_SHELL_TRANSITIONS, "Transition requested (#%d): %s %s",
+                request.getDebugId(), transitionToken, request);
+```
+
+```
+V WindowManagerShell: Transition requested (#86): android.os.BinderProxy@e55e8d0 TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=675 displayId=0 isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 pkg=com.hq.android.androiddemo cmp=com.hq.android.androiddemo/.MainActivity } baseActivity=ComponentInfo{com.hq.android.androiddemo/com.hq.android.androiddemo.MainActivity} topActivity=ComponentInfo{com.hq.android.androiddemo/com.hq.android.androiddemo.performance.CleanActivity} origActivity=null realActivity=ComponentInfo{com.hq.android.androiddemo/com.hq.android.androiddemo.MainActivity} numActivities=3 lastActiveTime=316649513 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@863b0c9} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 92 - 0, 0) topActivityInfo=ActivityInfo{6c5b3ce com.hq.android.androiddemo.performance.CleanActivity} launchCookies=[android.os.BinderProxy@6a9def0] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=true isVisible=true isVisibleRequested=true isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= falseisLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false topActivityEligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=1080 topActivityLetterboxHeight=2340 isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false cameraCompatTaskInfo=CameraCompatTaskInfo { cameraCompatControlState=hidden freeformCameraCompatMode=inactive}}}, pipTask = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 86 }
+```
+
 ### BLASTSyncEngine.SyncGroup.tryFinish
 
 检查同步组内容器的绘制情况。    

@@ -307,7 +307,7 @@ Session.addToDisplayAsUser(IWindow window)
 ```
 
 type TYPE_APPLICATION_PANEL token 默认 如图：    
-<img src="/images/android-window-system-window-tree-layer-tree/sub-window.png" width="411" height="348"/>
+<img src="/images/android-window-system-add-window-type-token/sub-window.png" width="411" height="348"/>
 
 ### 应用窗口
 
@@ -375,7 +375,7 @@ mWm.mWindowMap.put(win.mClient.asBinder(), win);
 ```
 
 type TYPE_APPLICATION token 默认，如图：     
-<img src="/images/android-window-system-window-tree-layer-tree/app-window.png" width="428" height="475"/>
+<img src="/images/android-window-system-add-window-type-token/app-window.png" width="428" height="475"/>
 
 ### 系统窗口
 
@@ -401,7 +401,7 @@ WindowManagerService.addWindow
 
 type TYPE_APPLICATION_OVERLAY token 无，如图：     
 
-<img src="/images/android-window-system-window-tree-layer-tree/system-window.png" width="468" height="360"/>
+<img src="/images/android-window-system-add-window-type-token/system-window.png" width="468" height="360"/>
 
 ### 定制token
 
@@ -433,7 +433,7 @@ class CommonTestActivity2 : AppCompatActivity() {
 
 type 为TYPE_APPLICATION_SUB_PANEL，token 为其他Activity的 window.decorView.windowToken，如图：       
 
-<img src="/images/android-window-system-window-tree-layer-tree/custom-window.png" width="704" height="384"/>
+<img src="/images/android-window-system-add-window-type-token/custom-window.png" width="704" height="384"/>
 
 其实只要能拿到对应的 token，跨进程添加窗口也是可以的。        
 添加的进程杀掉后，被添加窗口的进程也会把窗口 remove 掉。     

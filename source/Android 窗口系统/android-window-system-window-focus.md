@@ -70,10 +70,10 @@ Display 4630947064936706947 (active) HWC layers:
 `adb shell dumpsys input`    
 
 ```
-  FocusedDisplayId: 0
-  FocusedApplications:
+  FocusedDisplayId: 0   // Focused Display
+  FocusedApplications:  // Focused App
     displayId=0, name='ActivityRecord{b3a1ec9 u0 com.hq.android.androiddemo/.MainActivity t82}', dispatchingTimeout=5000ms
-  FocusedWindows:
+  FocusedWindows:       // Focused Window
     displayId=0, name='5c4591 com.hq.android.androiddemo/com.hq.android.androiddemo.MainActivity'
   FocusRequests:
     displayId=0, name='5c4591 com.hq.android.androiddemo/com.hq.android.androiddemo.MainActivity' result='OK'
@@ -107,7 +107,7 @@ adb shell wm logging enable-text WM_DEBUG_FOCUS WM_DEBUG_FOCUS_LIGHT
 
 ## 窗口焦点更新
 
-焦点的更新是首先要设置焦点 App（mFocusedApp），然后再设置 焦点窗口（mCurrentFocus）。    
+焦点的更新是首先要设置焦点 App（mFocusedApp），然后再设置 焦点窗口（mCurrentFocus）然后更新焦点屏幕(mTopFocusedDisplayId)。    
 焦点窗口的更新是通过 `WindowManagerService.updateFocusedWindowLocked()` 进行，更新焦点窗口有不同的时机，这个时机通过 `WindowManagerService.updateFocusedWindowLocked()` 的第一个参数体现出来：    
 
 ```
@@ -203,6 +203,7 @@ WindowManagerService.updateFocusedWindowLocked
             DisplayContent.updateKeepClearAreas()
             DisplayContent.scheduleToastWindowsTimeoutIfNeededLocked()
         // 更新焦点屏幕
+        mTopFocusedDisplayId = topFocusedDisplayId;
         PhoneWindowManager.setTopFocusedDisplay()
 ```
 

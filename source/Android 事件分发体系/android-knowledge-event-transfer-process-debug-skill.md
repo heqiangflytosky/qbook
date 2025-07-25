@@ -63,7 +63,7 @@ InputDispatcher:
  - Input Manager Service (Java) State
 
 
-dump 调用流程：
+### dump 调用流程：
 
 ```
 InputManagerService.dump()
@@ -100,7 +100,7 @@ Input Manager State:
     Spot Controllers:
 ```
 
-Event Hub 状态:    
+### Event Hub 状态:    
 
 ```
 Event Hub State:
@@ -140,7 +140,7 @@ Event Hub State:
     <none>
 ```
 
-Input Reader 状态:    
+### Input Reader 状态:    
 
 ```
 Input Reader State (Nums of device: 8):
@@ -297,7 +297,7 @@ Input Reader State (Nums of device: 8):
         Viewport INTERNAL: displayId=0, uniqueId=local:4630947064936706947, port=131, orientation=0, logicalFrame=[0, 0, 1080, 2340], physicalFrame=[0, 0, 1080, 2340], deviceSize=[1080, 2340], isActive=[1]
 ```
 
-UnwantedInteractionBlocker 和 Processor 的状态    
+### UnwantedInteractionBlocker 和 Processor 的状态    
 
 ```
 UnwantedInteractionBlocker:
@@ -317,9 +317,11 @@ Input Processor State:
 
 ```
 
-接下来的输出由 `InputDispatcher::dump` 提供，包含Input Dispatcher 状态和最近ANR信息。
-Input Dispatcher 状态    
-对应 `InputDispatcher::dumpDispatchStateLocked` 方法，包括正在轻触哪个窗口、输入队列的状态、是否正在进行 ANR 以及其他输入事件信息：    
+
+### Input Dispatcher 状态    
+接下来的输出由 `InputDispatcher::dump` 提供，包含Input Dispatcher 状态和最近ANR信息。      
+
+对应 `InputDispatcher::dumpDispatchStateLocked` 方法，包括目前的窗口信息、窗口焦点情况、输入队列的状态、是否正在进行 ANR 以及其他输入事件信息：    
 
 ```
 

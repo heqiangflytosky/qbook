@@ -97,6 +97,7 @@
     * [Android 窗口系统-窗口的显示和隐藏](source/Android 窗口系统/android-window-system-window-show-hide.md)
     * [Android 窗口层级树-Layer树](source/Android 窗口系统/android-window-system-window-tree-layer-tree.md)
     * [Android 窗口系统-移栈](source/Android 窗口系统/android-window-system-move-task.md)
+    * [Android Android 添加窗口的 token 和 type 与窗口层级](source/Android 窗口系统/android-window-system-add-window-type-token.md)
     * [Android 窗口动画概述](source/Android 窗口系统/android-window-system-animation-overview.md)
     * [Android 本地窗口动画流程](source/Android 窗口系统/android-window-system-animation-add-local-animation.md)
     * [Android StartingWindow](source/Android 窗口系统/android-window-system-startingwindow.md)

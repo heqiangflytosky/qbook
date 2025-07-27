@@ -433,7 +433,7 @@ class CommonTestActivity2 : AppCompatActivity() {
 
 type 为TYPE_APPLICATION_SUB_PANEL，token 为其他Activity的 window.decorView.windowToken，如图：       
 
-<img src="/images/android-window-system-add-window-type-token/custom-window.png" width="704" height="384"/>
+<img src="/images/android-window-system-add-window-type-token/custom-window.png" width="494" height="241"/>
 
 其实只要能拿到对应的 token，跨进程添加窗口也是可以的。        
 添加的进程杀掉后，被添加窗口的进程也会把窗口 remove 掉。     

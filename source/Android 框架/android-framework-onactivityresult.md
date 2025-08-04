@@ -50,6 +50,8 @@ startActivityForResult(intent,101);
     }
 ```
 
+注意：如果启动Activity时添加了 `intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)`，在启动时会直接返回 `Activity.RESULT_CANCELED`，不会返回 Result。
+
 ### 多个 Activity 之间传值
 
 使用场景：
@@ -122,6 +124,13 @@ ActivityTaskManagerService.startActivity
                     ActivityRecord.Builder.setResultTo(resultRecord)
                     ActivityRecord.Builder.build()
                         new ActivityRecord(mResultTo,mRequestCode)
+                    ActivityStarter.startActivityUnchecked
+                        ActivityStarter.startActivityInner
+                            ActivityStarter.setInitialState
+                                ActivityStarter.sendNewTaskResultRequestIfNeeded()
+                                    // 如果设置 FLAG_ACTIVITY_NEW_TASK，直接发送 RESULT_CANCELED
+                                    if (mStartActivity.resultTo != null && (mLaunchFlags & FLAG_ACTIVITY_NEW_TASK) != 0) {
+                                    mStartActivity.resultTo.sendResult(RESULT_CANCELED)
 ```
 
 ```
@@ -265,4 +274,23 @@ ActivityThread$ApplicationThread.scheduleTransaction
 ```
 
 
+ActivityResult 和 `FLAG_ACTIVITY_NEW_TASK` 的关系：     
 
+```
+    private void sendNewTaskResultRequestIfNeeded() {
+        if (mStartActivity.resultTo != null && (mLaunchFlags & FLAG_ACTIVITY_NEW_TASK) != 0) {
+            // 无论出于何种原因，这项活动正在启动到一项新任务中......然而，呼叫者已要求返回结果。
+            // 好吧，这很混乱，所以立即发回取消并让新任务继续正常启动，而不依赖于其发起者。
+            // For whatever reason this activity is being launched into a new task...
+            // yet the caller has requested a result back.  Well, that is pretty messed up,
+            // so instead immediately send back a cancel and let the new task continue launched
+            // as normal without a dependency on its originator.
+
+            Slog.w(TAG, "Activity is launching as a new task, so cancelling activity result.");
+            mStartActivity.resultTo.sendResult(INVALID_UID, mStartActivity.resultWho,
+                    mStartActivity.requestCode, RESULT_CANCELED,
+                    null /* data */, null /* callerToken */, null /* dataGrants */);
+            mStartActivity.resultTo = null;
+        }
+    }
+```

@@ -2290,6 +2290,19 @@ V WindowManager: SyncGroup 13: Started for listener: TransitionRecord{83fc172 id
 V WindowManager: SyncGroup 13: Adding to group: ActivityRecord{f74bce6 u0 com.hq.android.androiddemo/.common.CommonTestActivity2 t-1}
 ```
 
+### TransitionController.requestStartTransition
+
+WMCore 开始请求Transition。       
+
+```
+            ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS,
+                    "Requesting StartTransition: %s", transition);
+```
+
+```
+V WindowManager: Requesting StartTransition: TransitionRecord{ba7a461 id=33 type=OPEN flags=0x0}
+```
+
 ### Transitions.requestStartTransition
 
 WMShell 开始请求Transition。       

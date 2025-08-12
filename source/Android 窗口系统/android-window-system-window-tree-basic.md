@@ -443,7 +443,10 @@ WallpaperWindowToken 用来存放和Wallpaper相关的窗口。
 ```
 class TaskFragment extends WindowContainer<WindowContainer> {
     // 该 TaskFragment 是否应该可见
-    boolean shouldBeVisible(ActivityRecord starting) {
+    boolean shouldBeVisible(ActivityRecord starting)
+    
+    // 获取改 TaskFragment 的可见性，重要方法
+    int getVisibility(ActivityRecord starting) {
 ```
 
 #### Task（ActivityRecord的容器）

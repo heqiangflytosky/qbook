@@ -262,6 +262,7 @@ DefaultTransitionHandler.startAnimation
         final Runnable onAnimFinish = () -> {
             if (!animations.isEmpty()) return;
             mAnimations.remove(transition);
+            // 传递的 WindowContainerTransaction 为空，没有相关变更
             finishCallback.onTransitionFinished(null /* wct */);
         };
 

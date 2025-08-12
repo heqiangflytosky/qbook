@@ -327,6 +327,7 @@ SplitScreenController.ISplitScreenImpl.startTasks()
                 WindowContainerTransaction.startTask()
                 SplitScreenTransitions.startEnterTransition(TRANSIT_TO_FRONT)
                     //启动动画和提交WindowContainerTransaction相关事务
+                    // 通过 WMShell 侧直接发起
                     Transitions.startTransition()
                         // 通过mOrganizer.startNewTransition启动一个新的事务，调到 system_servr 端
                         new ActiveTransition(mOrganizer.startNewTransition(type, wct))

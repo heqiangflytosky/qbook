@@ -23,7 +23,9 @@ date: 2022-11-23 10:00:00
 ```
         final WindowContainerTransaction wct = new WindowContainerTransaction();
         // wct do something
+        // 把 WindowContainerTransaction 放到队列中
         mSyncQueue.queue(wct);
+        // 放入一个回调，如果 wct 中的变更绘制完成，就会调用 st 回调。
         mSyncQueue.runInSync(st -> {})
 ```
 

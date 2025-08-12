@@ -116,6 +116,7 @@
     * [窗口动画和Activity生命周期与窗口可见性设置](source/Android 窗口系统/android-window-system-window-container-visibility-settings.md)
     * [Android 分屏](source/Android 窗口系统/android-window-system-split-screen.md)
     * [Android 单手模式](source/Android 窗口系统/android-window-system-one-hand.md)
+    * [Android PIP模式](source/Android 窗口系统/android-window-system-pip.md)
 * [Android 图形系统]()
     * [Android 图形系统基础知识和相关类](source/Android 图形系统/android-graphic-system-basic-class.md)
     * [Android SurfaceFlinger dump 信息分析](source/Android 图形系统/android-graphic-system-surfaceflinger-dump.md)

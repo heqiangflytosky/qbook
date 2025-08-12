@@ -12,7 +12,7 @@ date: 2022-11-23 10:00:00
 用于存储对 WindowContainer 修改的集合的类。由于应用层无法直接操作 WindowContainer，需要通过系统层进行修改，因此 WindowContainerTransaction 类实现了 Parcelable 接口，支持跨进程传输。     
 这种机制确保了应用层可以通过系统层安全地修改 WindowContainer。    
 这些变更主要包含 Change 相关和 HierarchyOp。    
-比如，切换分屏模式时，在 SystemUI 侧对 Task 的层级、位置和宽高边界做修改，那么就应用了 WindowContainerTransaction。这些属性的变更需要传入到 system_server 侧来对对应的窗口进行应用。     
+比如，切换分屏模式时，在 SystemUI 侧对 Task 的层级、位置和宽高边界做修改，那么就应用了 WindowContainerTransaction。这些属性的变更需要通过 `WindowOrganizer.startTransition(WindowContainerTransaction t)` ，`WindowOrganizer.finishTransition(WindowContainerTransaction t)` 或者 `WindowOrganizer.applyTransaction(WindowContainerTransaction t)` 传入到 system_server 侧来对对应的窗口进行应用。     
 
 ## Change
 
@@ -226,10 +226,31 @@ WindowContainerTransaction 提供了很多针对 HierarchyOp 操作的方法：
 
 ## WindowContainerTransaction 的发送
 
-应用层可以通过下面两种方式来想系统发送 WindowContainerTransaction 。    
+应用层可以通过下面几种方式来想系统发送 WindowContainerTransaction 。    
+
+### WindowOrganizer.startTransition 和 WindowOrganizer.finishTransition
+
+ShellTransitions 动画的开始和结束时可以传递 WindowContainerTransaction 参数，如果参数不为空，WMCore 就会 apply 这些变更。     
+
+```
+```
+public class WindowOrganizer {
+    // 
+    public void startTransition(@NonNull IBinder transitionToken,
+            @Nullable WindowContainerTransaction t) {
+        ....
+    }
+    public void finishTransition(@NonNull IBinder transitionToken, @Nullable WindowContainerTransaction t) {
+        ....
+    }
+}
+```
+```
+
 ### WindowOrganizer.applyTransaction发送
 
-通过 applyTransaction 发送异步 WindowContainerTransaction。  
+通过 applyTransaction 发送异步 WindowContainerTransaction。     
+通过 startTransition 或者 startNewTransition 发起 ShellTransition 动画，参考 Transitions.startTransition()。      
 
 ```
 public class WindowOrganizer {
@@ -246,11 +267,12 @@ public class WindowOrganizer {
         ...
     }
     
-    // 多任务场景
+    // 多任务场景，PIP 退出动画场景
     public IBinder startNewTransition(int type, @Nullable WindowContainerTransaction t) {
         ....
     }
     
+    // 分屏 场景
     public void startTransition(@NonNull IBinder transitionToken,
             @Nullable WindowContainerTransaction t) {
         ....

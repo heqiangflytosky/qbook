@@ -23,7 +23,7 @@ date: 2022-11-23 10:00:00
 ### 支持并行动画的场景
 
 TransitionController.getIsIndependent 方法用来判断当前动画和正在运行的动画是否支持并行运行。    
-可以看到，目前支持并行动画的场景仅仅只有多任务动画和 Activity 级别的动画。    
+可以看到，目前支持并行动画的场景仅仅只有多任务动画和 Activity 级别的动画。也就是说只支持多任务动画和Activity切换动画同时进行。     
 
 ```
 // TransitionController.java
@@ -146,6 +146,7 @@ TransitionController.getIsIndependent 方法用来判断当前动画和正在运
 
 (#1408194)    
 如果一个动画的启动在正在运行的动画的 Playing 阶段，而且又不支持并行动画，那么就会执行串行动画，会在第一个动画执行完后执行后面的动画。     
+merge的策略由当前的 Handler 来定，一般的 merge 策略是立即结束当前动画，从而可以立即开始等待的动画。        
 这里我们构造一个场景，在退出分屏动画时，启动一个Activity，并且，这里延长一下分屏动画的执行时长，确保 TRANSIT_OPEN 动画来的时候分屏动画完成了收集而且正在执行动画。      
 这样第二个动画来时就会创建新的 Transition，由于在这种场景中，不符合并行动画场景，那么就会合并动画，第二个动画会等待第一个动画完成后再去执行。     
 实现：由于退出分屏会执行 Activity 的 onConfigurationChanged ，可以在 onConfigurationChanged 中启动另外一个 Activity。    

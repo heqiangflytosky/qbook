@@ -456,6 +456,8 @@ ActivityStarter.startActivityUnchecked()
                                                 SyncGroup.setReady
                                                     mReady = ready
                                                     WindowPlacerLocked.requestTraversal()
+                                    WindowOrganizerController.applyTransaction 
+                                    // 如果有 WindowContainerTransaction.Change 就apply
 ```
 
 ### 绘制完成启动动画
@@ -606,6 +608,8 @@ Transitions.TransitionFinishCallback.onTransitionFinished // startAnimation 时�
             getWindowOrganizerController().finishTransition()
                 // ------> WMCore
                 WindowOrganizerController.finishTransition()
+                    // 如果 WindowContainerTransaction Change等操作，就 apply
+                    WindowOrganizerController.applyTransaction()
                     TransitionController.finishTransition()
                         mTrackCount = 0
                         Transition.finishTransition()

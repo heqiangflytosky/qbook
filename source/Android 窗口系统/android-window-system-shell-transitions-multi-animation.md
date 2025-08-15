@@ -144,6 +144,8 @@ TransitionController.getIsIndependent 方法用来判断当前动画和正在运
 
 ## 串行动画
 
+### 第一个动画的 Handler 决定 merge 策略
+
 (#1408194)    
 如果一个动画的启动在正在运行的动画的 Playing 阶段，而且又不支持并行动画，那么就会执行串行动画，会在第一个动画执行完后执行后面的动画。     
 merge的策略由当前的 Handler 来定，一般的 merge 策略是立即结束当前动画，从而可以立即开始等待的动画。        
@@ -187,8 +189,161 @@ SplitDecorManager$3.onAnimationEnd
                             DefaultTransitionHandler.startAnimation
 ```
 
+### WMShell 取消第二个动画
 
+在 `Transitions.dispatchReady()` 方法中在某些条件下会调用 `onAbort(active)` 方法。    
+在这个方法中，会设置 mAborted 为true，然后在 processReadyQueue 方法中执行 `onMerged()` 方法。
 
+```
+    private void onAbort(ActiveTransition transition) {
+        final Track track = mTracks.get(transition.getTrack());
+        transition.mAborted = true;
+
+        ......
+        processReadyQueue(track);
+    }
+```
+```
+    void processReadyQueue(Track track) {
+        ......
+        // An existing animation is playing, so see if we can merge.
+        final ActiveTransition playing = track.mActiveTransition;
+        if (ready.mAborted) {
+            // record as merged since it is no-op. Calls back into processReadyQueue
+            onMerged(playing, ready);
+            return;
+        }
+        ......
+    }
+```
+
+onMerged 方法会把当前的 ActiveTransition 保存在正在执行的动画的 mMerged 数组中。
+
+```
+    private void onMerged(@NonNull ActiveTransition playing, @NonNull ActiveTransition merged) {
+        ......
+        track.mReadyTransitions.remove(readyIdx);
+        if (playing.mMerged == null) {
+            playing.mMerged = new ArrayList<>();
+        }
+        playing.mMerged.add(merged);
+        // if it was aborted, then onConsumed has already been reported.
+        if (merged.mHandler != null && !merged.mAborted) {
+            merged.mHandler.onTransitionConsumed(merged.mToken, false /* abort */, merged.mFinishT);
+        }
+        for (int i = 0; i < mObservers.size(); ++i) {
+            mObservers.get(i).onTransitionMerged(merged.mToken, playing.mToken);
+        }
+        mTransitionTracer.logMerged(merged.mInfo.getDebugId(), playing.mInfo.getDebugId());
+        // See if we should merge another transition.
+        processReadyQueue(track);
+    }
+```
+
+在第一个动画执行 onFinish 时，会把第二个动画的 mStartT 和 mFinishT Transaction merge 到第一个动画的 mFinishT 中一起执行。    
+然后还会通知被取消的第二个动画执行 finishTransition。      
+因此这两个动画的 finishTransition 基本是同步执行的。    
+
+```
+    private void onFinish(IBinder token,
+            @Nullable WindowContainerTransaction wct) {
+        ......
+
+        // Merge all associated transactions together
+        SurfaceControl.Transaction fullFinish = active.mFinishT;
+        if (active.mMerged != null) {
+            for (int iM = 0; iM < active.mMerged.size(); ++iM) {
+                final ActiveTransition toMerge = active.mMerged.get(iM);
+                // Include start. It will be a no-op if it was already applied. Otherwise, we need
+                // it to maintain consistent state.
+                if (toMerge.mStartT != null) {
+                    if (fullFinish == null) {
+                        fullFinish = toMerge.mStartT;
+                    } else {
+                        fullFinish.merge(toMerge.mStartT);
+                    }
+                }
+                if (toMerge.mFinishT != null) {
+                    if (fullFinish == null) {
+                        fullFinish = toMerge.mFinishT;
+                    } else {
+                        fullFinish.merge(toMerge.mFinishT);
+                    }
+                }
+            }
+        }
+        if (fullFinish != null) {
+            fullFinish.apply();
+        }
+        // Now perform all the finish callbacks (starting with the playing one and then all the
+        // transitions merged into it).
+        releaseSurfaces(active.mInfo);
+        mOrganizer.finishTransition(active.mToken, wct);
+        if (active.mMerged != null) {
+            for (int iM = 0; iM < active.mMerged.size(); ++iM) {
+                ActiveTransition merged = active.mMerged.get(iM);
+                mOrganizer.finishTransition(merged.mToken, null /* wct */);
+                releaseSurfaces(merged.mInfo);
+                mKnownTransitions.remove(merged.mToken);
+            }
+            active.mMerged.clear();
+        }
+        ......
+    }
+```
+
+什么场景下会执行这样的merge操作呢？     
+第一个场景是没有 Transition Root。      
+第二个场景是第二个动画和第一个动画是在同一个 Task，而且这两个动画标记了 FLAG_STARTING_WINDOW_TRANSFER_RECIPIENT时。      
+
+```
+    boolean dispatchReady(ActiveTransition active) {
+    
+        if (info.getRootCount() == 0 && !KeyguardTransitionHandler.handles(info)) {
+            ...
+            onAbort(active);
+            return true;
+        }
+        ....
+        final int changeSize = info.getChanges().size();
+        boolean taskChange = false;
+        boolean transferStartingWindow = false;
+        int animBehindStartingWindow = 0;
+        boolean allOccluded = changeSize > 0;
+        for (int i = changeSize - 1; i >= 0; --i) {
+            final TransitionInfo.Change change = info.getChanges().get(i);
+            taskChange |= change.getTaskInfo() != null;
+            transferStartingWindow |= change.hasFlags(FLAG_STARTING_WINDOW_TRANSFER_RECIPIENT);
+            if (change.hasAllFlags(FLAG_IS_BEHIND_STARTING_WINDOW | FLAG_NO_ANIMATION)
+                    || change.hasAllFlags(
+                            FLAG_IS_BEHIND_STARTING_WINDOW | FLAG_IN_TASK_WITH_EMBEDDED_ACTIVITY)) {
+                animBehindStartingWindow++;
+            }
+            if (!change.hasFlags(FLAG_IS_OCCLUDED)) {
+                allOccluded = false;
+            } else if (change.hasAllFlags(TransitionInfo.FLAGS_IS_OCCLUDED_NO_ANIMATION)) {
+                // Remove the change because it should be invisible in the animation.
+                info.getChanges().remove(i);
+                continue;
+            }
+            // The change has already animated by back gesture, don't need to play transition
+            // animation on it.
+            if (change.hasFlags(FLAG_BACK_GESTURE_ANIMATED)) {
+                info.getChanges().remove(i);
+            }
+        }
+        ....
+        if (!taskChange && (transferStartingWindow || animBehindStartingWindow == changeSize)
+                && changeSize >= 1
+                // B. It's visibility change if the TRANSIT_TO_BACK/TO_FRONT happened when all
+                // changes are underneath another change.
+                || ((info.getType() == TRANSIT_TO_BACK || info.getType() == TRANSIT_TO_FRONT)
+                && allOccluded)) {
+            ....
+            onAbort(active);
+            return true;
+        }
+```
 ## 其他文章
 
 WM Shell多动画场景处理 https://blog.csdn.net/xiaoyantan/article/details/138583890

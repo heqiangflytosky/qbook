@@ -21,8 +21,8 @@ date: 2022-11-23 10:00:00
 ## 相关类
 
 PipSurfaceTransactionHelper：处理图层变换的类    
-PipAnimationController:
-PipTransitionController，PipTransition：执行 PIP 的 Transition
+PipAnimationController:     
+PipTransitionController，PipTransition：执行 PIP 的 Transition      
 
 ## App 配置支持 PIP
 
@@ -578,6 +578,8 @@ public class WindowConfiguration implements Parcelable, Comparable<WindowConfigu
     }
 ```
 
+就会在前面设置的区域内以小窗形式打开。     
 
+<img src="/images/android-window-system-pip/1.png" width="578" height="722"/>
 
 

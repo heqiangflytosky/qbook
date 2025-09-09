@@ -191,8 +191,8 @@ SplitDecorManager$3.onAnimationEnd
 
 ### WMShell 取消第二个动画
 
-在 `Transitions.dispatchReady()` 方法中在某些条件下会调用 `onAbort(active)` 方法。    
-在这个方法中，会设置 mAborted 为true，然后在 processReadyQueue 方法中执行 `onMerged()` 方法。
+在 `Transitions.dispatchReady()` 方法中在某些条件下会调用 `onAbort(active)` 方法。       
+在这个方法中，会设置 mAborted 为true，然后在 processReadyQueue 方法中如果当前有正在执行的动画，那么就执行 `onMerged()` 方法进行合并。      
 
 ```
     private void onAbort(ActiveTransition transition) {
@@ -292,9 +292,10 @@ onMerged 方法会把当前的 ActiveTransition 保存在正在执行的动画�
     }
 ```
 
-什么场景下会执行这样的merge操作呢？     
+什么场景下会执行这样的merge操作呢？      
 第一个场景是没有 Transition Root。      
-第二个场景是第二个动画和第一个动画是在同一个 Task，而且这两个动画标记了 FLAG_STARTING_WINDOW_TRANSFER_RECIPIENT时。      
+第二个场景是动画中没有 Task 相关动画，而且这动画有 TransitionInfo.Change 标记了 FLAG_STARTING_WINDOW_TRANSFER_RECIPIENT 时。      
+
 
 ```
     boolean dispatchReady(ActiveTransition active) {
@@ -312,7 +313,9 @@ onMerged 方法会把当前的 ActiveTransition 保存在正在执行的动画�
         boolean allOccluded = changeSize > 0;
         for (int i = changeSize - 1; i >= 0; --i) {
             final TransitionInfo.Change change = info.getChanges().get(i);
+            // 是否有 Task 切换
             taskChange |= change.getTaskInfo() != null;
+            // 是否有 FLAG_STARTING_WINDOW_TRANSFER_RECIPIENT
             transferStartingWindow |= change.hasFlags(FLAG_STARTING_WINDOW_TRANSFER_RECIPIENT);
             if (change.hasAllFlags(FLAG_IS_BEHIND_STARTING_WINDOW | FLAG_NO_ANIMATION)
                     || change.hasAllFlags(
@@ -343,6 +346,54 @@ onMerged 方法会把当前的 ActiveTransition 保存在正在执行的动画�
             onAbort(active);
             return true;
         }
+```
+
+第一个要求是动画中没有 Task 相关动画，这个比较好理解，因为如果是 Task 内的Activity切换动画就满足，那么第二个 FLAG_STARTING_WINDOW_TRANSFER_RECIPIENT 这个 Flag 是什么时候设置的呢？      
+在第二个Activity添加 StartingWindow 会进行 transferStartingWindow() 判断，fromActivity 参数是启动它的那个 Activity。      
+
+```
+// ActivityRecord.java
+    private boolean transferStartingWindow(@NonNull ActivityRecord fromActivity) {
+        final WindowState tStartingWindow = fromActivity.mStartingWindow;
+        if (tStartingWindow != null && fromActivity.mStartingSurface != null) {
+            if (tStartingWindow.getParent() == null) {
+                // 如果第一个 Activity 的 StartingWindow 已经 deattach 那么这里返回false
+                return false;
+            }
+            ......
+
+                if (fromActivity.isAnimating()) {
+                    transferAnimation(fromActivity);
+
+                    // When transferring an animation, we no longer need to apply an animation to
+                    // the token we transfer the animation over. Thus, set this flag to indicate
+                    // we've transferred the animation.
+                    mTransitionChangeFlags |= FLAG_STARTING_WINDOW_TRANSFER_RECIPIENT;
+                } else if (mTransitionController.getTransitionPlayer() != null) {
+                    // 使用 Shell Trasition 动画 ，添加 FLAG_STARTING_WINDOW_TRANSFER_RECIPIENT
+                    mTransitionChangeFlags |= FLAG_STARTING_WINDOW_TRANSFER_RECIPIENT;
+                }
+                //////
+            } finally {
+                Binder.restoreCallingIdentity(origId);
+            }
+            return true;
+        } else if (fromActivity.mStartingData != null) {
+            // The previous app was getting ready to show a
+            // starting window, but hasn't yet done so.  Steal it!
+            ProtoLog.v(WM_DEBUG_STARTING_WINDOW,
+                    "Moving pending starting from %s to %s", fromActivity, this);
+            mStartingData = fromActivity.mStartingData;
+            fromActivity.mStartingData = null;
+            fromActivity.startingMoved = true;
+            scheduleAddStartingWindow();
+            return true;
+        }
+
+        // TODO: Transfer thumbnail
+
+        return false;
+    }
 ```
 ## 其他文章
 

@@ -191,25 +191,25 @@ WindowOrganizerController.finishTransition()
               ConfigurationContainer.updateRequestedOverrideConfiguration
                 //把 shell 传递来的配置给 mRequestedOverrideConfiguration
                 mRequestedOverrideConfiguration.setTo(overrideConfiguration)
-                Task.onConfigurationChanged(getParent().getConfiguration())
-                  Task.onConfigurationChangedInner
-                    TaskFragment.onConfigurationChanged
-                      WindowContainer.onConfigurationChanged
-                        ConfigurationContainer.onConfigurationChanged
-                          TaskFragment.resolveOverrideConfiguration
-                            ConfigurationContainer.resolveOverrideConfiguration
-                              // 把 mRequestedOverrideConfiguration 设置给 mResolvedOverrideConfiguration
-                              mResolvedOverrideConfiguration.setTo(mRequestedOverrideConfiguration)
-                            Task.resolveLeafTaskOnlyOverrideConfigs
-                          // 把 mResolvedOverrideConfiguration 设置给 mFullConfiguration
-                          mFullConfiguration.updateFrom(mResolvedOverrideConfiguration);
-                          ConfigurationContainer.onMergedOverrideConfigurationChanged()
-                            // 把 mResolvedOverrideConfiguration 设置给 mMergedOverrideConfiguration
-                            mMergedOverrideConfiguration.updateFrom(mResolvedOverrideConfiguration)
-                          // 分发给子容器
-                          for (int i = getChildCount() - 1; i >= 0; --i) {
-                          dispatchConfigurationToChild(getChildAt(i), mFullConfiguration);
-                          }
+              Task.onConfigurationChanged(getParent().getConfiguration())
+                Task.onConfigurationChangedInner
+                  TaskFragment.onConfigurationChanged
+                    WindowContainer.onConfigurationChanged
+                      ConfigurationContainer.onConfigurationChanged
+                        TaskFragment.resolveOverrideConfiguration
+                          ConfigurationContainer.resolveOverrideConfiguration
+                            // 把 mRequestedOverrideConfiguration 设置给 mResolvedOverrideConfiguration
+                            mResolvedOverrideConfiguration.setTo(mRequestedOverrideConfiguration)
+                          Task.resolveLeafTaskOnlyOverrideConfigs
+                        // 把 mResolvedOverrideConfiguration 设置给 mFullConfiguration
+                        mFullConfiguration.updateFrom(mResolvedOverrideConfiguration);
+                        ConfigurationContainer.onMergedOverrideConfigurationChanged()
+                          // 把 mResolvedOverrideConfiguration 设置给 mMergedOverrideConfiguration
+                          mMergedOverrideConfiguration.updateFrom(mResolvedOverrideConfiguration)
+                        // 分发给子容器
+                        for (int i = getChildCount() - 1; i >= 0; --i) {
+                        dispatchConfigurationToChild(getChildAt(i), mFullConfiguration);
+                        }
 ```
 
 
@@ -257,6 +257,9 @@ WindowOrganizerController.applyTransaction()
 ## 退出
 
 退出动画由 Transitions.startTransition() 直接发起。    
+这里有一个动画实现的细节：在PIP退出动画时，是一个全屏后的界面从小放大的过程，这就要求在动画前，全屏界面是已经绘制好一帧的，然后在开始进行放大动画，这个实现方式有两种。      
+第一个就是通过 `WindowOrganizer.startNewTransition` 发起 ShellTransition 动画时，把设置全屏的 WindowContainerTransaction 作为参数传入，那么就会在动画前执行 wct，提前绘制全屏。     
+另外一种就是通过 SyncTransactionQueue，这个在前面文章中已经介绍了，SyncTransactionQueue.queue() 发送设置全屏的 wct，然后WMCore绘制好后，会执行通过 SyncTransactionQueue.runInSync 设置的回调函数，在回调函数中再开始动画。      
 
 SystemUI
 ```
@@ -277,7 +280,7 @@ PipMenuView.expandPip()
                                 PipTransition.startExitTransition()
                                     // WMShell 直接发起 ShellTransition 动画
                                     Transitions.startTransition()
-                                        WindowOrganizer.startNewTransition()
+                                        WindowOrganizer.startNewTransition(wct)
                                         active = new ActiveTransition()
                                         // 直接设置动画 Handler，
                                         // WMShell 发起的动画省去了requestStartTransition
@@ -519,6 +522,21 @@ public class WindowConfiguration implements Parcelable, Comparable<WindowConfigu
             //finishCallback.onTransitionFinished(null /* wct */);
 ```
 
+在 WindowContainerTransaction 中添加方法：    
+
+```
+    /**
+     * @hide
+     */
+    @NonNull
+    public WindowContainerTransaction setTestMiniWindow(
+            @NonNull WindowContainerToken container, boolean isMiniWindow) {
+        Change chg = getOrCreateChange(container.asBinder());
+        chg.mConfiguration.windowConfiguration.setIsTestMiniWindow(isMiniWindow);
+        return this;
+    }
+```
+
 还需要在 Task.resolveLeafTaskOnlyOverrideConfigs 方法中添加下面判断：     
 
 ```
@@ -581,5 +599,7 @@ public class WindowConfiguration implements Parcelable, Comparable<WindowConfigu
 就会在前面设置的区域内以小窗形式打开。     
 
 <img src="/images/android-window-system-pip/1.png" width="578" height="722"/>
+
+通过这个作业，主要是学习了窗口可见性设置的关键方法，以及 `WindowContainerTransaction() ` 的运用。      
 
 

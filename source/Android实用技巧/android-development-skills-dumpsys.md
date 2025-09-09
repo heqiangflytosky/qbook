@@ -166,7 +166,7 @@ Window manager dump options:
 
 ## 一些常用命令解释
 
-### adb shell dumpsys meminfo
+### dumpsys meminfo
 
 `adb shell dumpsys meminfo` 可以查看所有进程的状态以及内存使用情况。
 
@@ -247,11 +247,11 @@ Total RAM: 5,863,228K (status normal)
    Tuning: 256 (large 512), oom   483,840K, restore limit   107,520K (high-end-gfx)
 ```
 
-`meminfo $package_name or $pid` 使用程序的包名或者进程id显示内存信息比如浏览器：`adb shell dumpsys meminfo com.android.browser`
+`meminfo $package_name or $pid` 使用程序的包名或者进程id显示内存信息比如浏览器：`adb shell dumpsys meminfo com.android.browser`    
 
-### adb shell dumpsys activity
+### dumpsys activity
 
-用来显示ams的一些信息，包括任务栈，activity信息，进程信息等。
+用来显示ams的一些信息，包括任务栈，activity信息，进程信息等。     
 
  - adb shell dumpsys activity -h：帮助
  - adb shell dumpsys activity containers:可以查看当前容器层级信息
@@ -263,10 +263,12 @@ Total RAM: 5,863,228K (status normal)
  - adb shell dumpsys activity p[rocesses] <包名>：查看该包名的进程状态，包括进程间依赖等
  - adb shell dumpsys activity o[om]:打印进程oom状态，执行 `ActivityManagerService.dumpOomLocked` 方法。
  - adb shell dumpsys activity b[roadcasts] [PACKAGE_NAME] [history [-s]]：查看广播状态，包括：1.注册的广播接收列表，2.所有的注册了的BroadcastFilter列表，包括它们对应的 Receiver， 3.前台广播的历史记录，4.后台广播的历史记录。可以指定包名，执行 `ActivityManagerService.dumpBroadcastsLocked` 方法。
- - adb shell dumpsys activity exit-info [PACKAGE_NAME]：查看Activity退出的原因
+ - adb shell dumpsys activity exit-info [PACKAGE_NAME]：查看进程退出的原因，如果需要查看一些进程被杀或者退出的原因，这里看这里的信息
+ - adb shell dumpsys activity start-info [PACKAGE_NAME]:查看进程的启动信息
 
 所有上面的命令还可以添加下面的参数来定制输出结果：
 
+```
   WHAT may also be a COMP_SPEC to dump activities.
   COMP_SPEC may be a component name (com.foo/.myApp),
     a partial substring in a component name, a
@@ -278,11 +280,45 @@ Total RAM: 5,863,228K (status normal)
   --C: output checkin format, not resetting data.
   --proto: output dump in protocol buffer format.
   --autofill: dump just the autofill-related state of an activity
+```
+
+### dumpsys window
+
+查看窗口相关信息。      
+
+```
+Window manager dump options:
+  [-a] [-h] [cmd] ...
+  cmd may be one of:
+    l[astanr]: last ANR information
+    p[policy]: policy state
+    a[animator]: animator state
+    s[essions]: active sessions
+    surfaces: active surfaces (debugging enabled only)
+    d[isplays]: active display contents
+    t[okens]: token list
+    w[indows]: window list
+    a11y[accessibility]: accessibility-related state
+    package-config: installed packages having app-specific config
+    trace: print trace status and write Winscope trace to file
+  cmd may also be a NAME to dump windows.  NAME may
+    be a partial substring in a window name, a
+    Window hex object identifier, or
+    "all" for all windows, or
+    "visible" for the visible windows.
+    "visible-apps" for the visible app windows.
+  -a: include all available server state.
+  --proto: output dump in protocol buffer format.
+```
+
+ - adb shell dumpsys window w[indows]:查看当前系统的窗口列表的信息。      
+ - adb shell dumpsys window t[okens]:查看windowToken信息
+ - adb shell dumpsys window l[astanr]：查看上个 anr 信息
+
 
 ### 其他
 
  - adb shell dumpsys SurfaceFlinger： 查看UI绘制的各个层级信息
- - adb shell dumpsys window： 显示键盘，窗口和它们的关系
  - adb shell dumpsys package <包名>： 查看该包的具体信息
  - adb shell dumpsys statusbar： 显示状态栏相关信息
  - adb shell dumpsys usagestats： 每个应用的启动次数和时间

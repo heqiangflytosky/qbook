@@ -487,6 +487,10 @@ FileObserver$ObserverThread.onEvent
                 Context.bindServiceAsUser()
                 // detach 上一个壁纸的 WallpaperData
                 WallpaperManagerService.maybeDetachLastWallpapers
+                    WallpaperManagerService.detachWallpaperLocked
+                        WallpaperManagerService.WallpaperConnection.disconnectLocked()
+                            connection.mService.detach(mToken)
+                            ------> 壁纸服务进程
                 wallpaper.connection = newConn
                 // 更新 mLastWallpaper
                 updateCurrentWallpapers()
@@ -497,6 +501,19 @@ FileObserver$ObserverThread.onEvent
                         WallpaperWindowToken.setShowWhenLocked
             WallpaperManagerService.saveSettingsLocked
                 
+```
+
+壁纸服务的detach流程：    
+
+```
+WallpaperService$IWallpaperServiceWrapper.detach:2893
+    WallpaperService$IWallpaperEngineWrapper.destroy:2633
+        HandlerCaller.obtainMessage(DO_DETACH)
+        HandlerCaller.sendMessage
+            WallpaperService$IWallpaperEngineWrapper.doDetachEngine()
+                WallpaperService.Engine.detach()
+                    // 删除旧的壁纸窗口
+                    Session.remove(mWindow.asBinder())
 ```
 
 连接壁纸服务成功后进行创建 WallpaperWindowToken、attach壁纸服务等工作。    
@@ -530,9 +547,12 @@ IWallpaperService$Stub.onTransact
 WallpaperService$IWallpaperEngineWrapper.executeMessage
     case DO_ATTACH:
         WallpaperService$IWallpaperEngineWrapper.doAttachEngine
+            IWallpaperConnection.attachEngine()
+                ------> system_server
+                    WallpaperManagerService.WallpaperConnection.attachEngine()
             WallpaperService$Engine.attach
                 WallpaperService$Engine.updateSurface
-                    // 添加窗口
+                    // 添加新壁纸窗口
                     Session.addToDisplay()
                         --------> system_server
                             new WindowState()

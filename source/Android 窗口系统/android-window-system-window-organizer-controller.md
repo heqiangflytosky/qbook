@@ -533,6 +533,8 @@ sanitizeAndApplyHierarchyOp 分别对 reorder 和 reparent 进行操作。
 
 ## startNewTransition
 
+开启一个新的 Transition 动画，支持传入 WindowContainerTransaction 参数，它包含的属性变更将会在动画前被应用。      
+
 ```
     public IBinder startNewTransition(int type, @Nullable WindowContainerTransaction t) {
         return startTransition(type, null /* transitionToken */, t);
@@ -540,14 +542,17 @@ sanitizeAndApplyHierarchyOp 分别对 reorder 和 reparent 进行操作。
 ```
 
 ```
-WindowOrganizerController.startNewTransition
-    WindowOrganizerController.startTransition
-        TransitionController.startCollectOrQueue
+WindowOrganizerController.startNewTransition(wct)
+    WindowOrganizerController.startTransition(wct)
+        TransitionController.startCollectOrQueue(OnStartCollect onStartCollect)
             TransitionController.moveToCollecting
                 Transition.startCollecting
                     BLASTSyncEngine.startSyncSet
                         BLASTSyncEngine.prepareSyncSet
                             new BLASTSyncEngine$SyncGroup
+            onStartCollect.onCollectStarted()
+                // 这里会先apply传入的wct
+                WindowOrganizerController.applyTransaction(wct)
 ```
 
 ## applySyncTransaction
@@ -571,8 +576,10 @@ WindowOrganizerController.applySyncTransaction
 更新 WindowContainer 的可见性和 Transition 状态。     
 
 ```
-WindowOrganizerController.finishTransition()
-    TransitionController.finishTransition()
+WindowOrganizerController.finishTransition(wct)
+    // 先执行 wct 中的属性变更
+    WindowOrganizerController.applyTransaction(wct)
+    TransitionController.finishTransition(wct)
         mTrackCount = 0
         Transition.finishTransition()
             for (int i = 0; i < mParticipants.size(); ++i)

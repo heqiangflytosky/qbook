@@ -2397,6 +2397,24 @@ V WindowManager:         {WCT{RemoteToken{7c03b41 Task{8aa1a7b #657 type=standar
 V WindowManager:     ]}
 ```
 
+### Transitions.onTransitionReady
+
+```
+            ProtoLog.v(ShellProtoLogGroup.WM_SHELL_TRANSITIONS, "onTransitionReady(transaction=%d)",
+                    t.getId());
+```
+
+```
+        ProtoLog.v(ShellProtoLogGroup.WM_SHELL_TRANSITIONS, "onTransitionReady (#%d) %s: %s",
+                info.getDebugId(), transitionToken, info);
+```
+
+```
+V WindowManagerShell: onTransitionReady(transaction=78434692771200)
+V WindowManagerShell: onTransitionReady (#116) android.os.BinderProxy@5917ffa: {id=116 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{android.window.IWindowContainerToken$Stub$Proxy@b4ef9d6} m=OPEN f=NONE leash=Surface(name=Task=40)/@0x793285f sb=Rect(0, 0 - 1080, 2340) eb=Rect(0, 0 - 1080, 2340) d=0 endFixedRotation=1 taskParent=-1},{WCT{android.window.IWindowContainerToken$Stub$Proxy@243c457} m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0xa18770a sb=Rect(0, 0 - 1080, 2340) eb=Rect(0, 0 - 1080, 2340) d=0 taskParent=-1}]}
+
+```
+
 ### Transitions.onFinish
 
 ```

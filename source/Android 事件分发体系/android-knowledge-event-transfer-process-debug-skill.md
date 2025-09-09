@@ -44,9 +44,9 @@ view_enqueue_input_event:
 ## Main 日志
 
 
-InputManager-JNI：input JNI 层相关日志。    
+InputManager-JNI：input JNI 层相关日志。     
 InputEventReceiver:    
-SystemGesture-XXXXX:SystemGesture相关日志，比如 SystemGesture-GestureManager，GestureManager-MzPhoneWindowManager等等。    
+SystemGesture-XXXXX:SystemGesture相关日志，比如 SystemGesture-GestureManager，SystemGesture-MzPhoneWindowManager，GestureManager-MzPhoneWindowManager等等。SystemGesture-MzPhoneWindowManager 可以查看具体的事件名称。    
 InputDispatcher:     
 
 

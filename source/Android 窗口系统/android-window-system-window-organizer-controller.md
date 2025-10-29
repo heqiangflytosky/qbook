@@ -10,6 +10,7 @@ date: 2022-11-23 10:00:00
 ## WindowOrganizerController
 
 服务端用来组织管理窗口的实现。主要是对应用侧传递过来的 WindowContainerTransaction 的变更应用的对应的窗口上面。          
+类似的还有 TaskFragmentOrganizerController、TaskOrganizerController、DisplayAreaOrganizerController。      
 
 ## applyTransaction
 

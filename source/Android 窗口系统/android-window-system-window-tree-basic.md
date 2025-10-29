@@ -388,6 +388,10 @@ public final class ActivityRecord extends WindowToken implements WindowManagerSe
     
     // 获取 StartingWindow 窗口类型
     getStartingWindowType()
+    
+    // 判断是否设置了 FLAG_DISMISS_KEYGUARD 和 FLAG_SHOW_WHEN_LOCKED
+    containsDismissKeyguardWindow()
+    containsShowWhenLockedWindow()
 ```
 
 ActivityRecord 是 WindowToken 的子类，如上面所说，在 WMS 中一个 ActivityRecord 对象就代表一个 Activity 对象。      

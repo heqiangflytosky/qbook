@@ -825,7 +825,13 @@ crw-rw---- 1 root input 13,  72 1970-07-12 04:58 event8
 
 `adb shell input [<source>] [-d DISPLAY_ID] <command> [<arg>...]` 具体命令可以通过 `adb shell input -h`     
 比如 `adb shell input motionevent DOWN 400 800` 可以模拟屏幕(400,800)点处的Down事件。    
-`adb shell input keyevent key-value` 可以模拟进行按键的点击，将点击事件直接通过InputDispatcher的injectInputEvent方法发送到Native层，若这边有问题表示InputDispatcher的拦截和分发存在问题。
+`adb shell input keyevent key-value` 可以模拟进行按键的点击，将点击事件直接通过InputDispatcher的injectInputEvent方法发送到Native层，若这边有问题表示InputDispatcher的拦截和分发存在问题。    
+
+```
+    public static final int KEYCODE_HOME            = 3;
+    public static final int KEYCODE_BACK            = 4;
+    public static final int KEYCODE_0               = 7;
+```
 
 ## adb shell getevent 
 

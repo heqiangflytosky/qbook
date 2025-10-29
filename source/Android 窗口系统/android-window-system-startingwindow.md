@@ -218,7 +218,14 @@ ActivityTaskManagerService.startActivity
                                                 mStartingData = new SnapshotStartingData
                                                 // 走 scheduleAddStartingWindow 流程，和下面一样
                                                 ActivityRecord.scheduleAddStartingWindow()
-                                            // SPLASH_SCREEN 类型 添加 StartingWindow
+                                            // SPLASH_SCREEN 类型 
+                                            // 看看是否可以 transfer StartingWindow
+                                            ActivityRecord.transferStartingWindow
+                                              mStartingData = fromActivity.mStartingData
+                                              mStartingSurface = fromActivity.mStartingSurface
+                                              mStartingWindow = tStartingWindow
+                                              WindowState.reparent()
+                                            // 如果不可以就添加 StartingWindow
                                             ActivityRecord.scheduleAddStartingWindow
                                                 AddStartingWindow.run()
                                                     SplashScreenStartingData.createStartingSurface
@@ -344,7 +351,7 @@ WindowSurfacePlacer$Traverser.run
 ```
 
 在 SystemUI 也会根据 PhoneStartingWindowTypeAlgorithm.getSuggestedWindowType() 再次获取 StartingWindow 类型，为什么要获取两次呢？     
-我们来看一下 makeStartingWindowTypeParameter 方法：    
+我们来看一下 makeStartingWindowTypeParameter 方法：     
 
 ```
     static int makeStartingWindowTypeParameter(boolean newTask, boolean taskSwitch,
@@ -374,7 +381,7 @@ WindowSurfacePlacer$Traverser.run
     }
 ```
 
-它把 `STARTING_WINDOW_TYPE_*` 转换成 `TYPE_PARAMETER_ACTIVITY_CREATED` 或者 `TYPE_PARAMETER_ALLOW_HANDLE_SOLID_COLOR_SCREEN`，而在 SystemUI 中调用 `PhoneStartingWindowTypeAlgorithm.getSuggestedWindowType()` 中又会根据 server 传来的参数转换成 `STARTING_WINDOW_TYPE_*` 参数。    
+它把 `STARTING_WINDOW_TYPE_*` 转换成 `TYPE_PARAMETER_ACTIVITY_CREATED` 或者 `TYPE_PARAMETER_ALLOW_HANDLE_SOLID_COLOR_SCREEN`，而在 SystemUI 中调用 `PhoneStartingWindowTypeAlgorithm.getSuggestedWindowType()` 中又会根据 server 传来的参数转换成 `STARTING_WINDOW_TYPE_*` 参数。     
 
 ```
     public int getSuggestedWindowType(StartingWindowInfo windowInfo) {
@@ -593,14 +600,154 @@ App:
 ```
 TransferSplashScreenViewStateItem.execute()
     ActivityThread.handleAttachSplashScreenView()
-        ActivityThread.createSplashScreen
+        ActivityThread.createSplashScreen()
             SplashScreenView view = builder.createFromParcel(parcelable).build()
             OnPreDrawListener.onPreDraw()
                 ActivityThread.syncTransferSplashscreenViewTransaction()
-                    ActivityThread.reportSplashscreenViewShown
+                    ActivityThread.reportSplashscreenViewShown()
                         SplashScreen.SplashScreenManagerGlobal.handOverSplashScreenView()
-                            SplashScreen.SplashScreenManagerGlobal.dispatchOnExitAnimation
+                            SplashScreen.SplashScreenManagerGlobal.dispatchOnExitAnimation()
                                 ExitAnimationListener.onSplashScreenExit(SplashScreenView view)
+```
+
+## 关于 Transfer StartingWindow
+
+
+```
+// Task.java
+    void startActivityLocked(ActivityRecord r, @Nullable Task topTask, boolean newTask,
+            boolean isTaskSwitch, ActivityOptions options, @Nullable ActivityRecord sourceRecord) {
+        .......
+        } else if (SHOW_APP_STARTING_PREVIEW && doShow) {
+            // 在同一个Task内找到前面还在做Starting动画的Activity prev
+            Task baseTask = r.getTask();
+            final ActivityRecord prev = baseTask.getActivity(
+                    a -> a.mStartingData != null && a.showToCurrentUser());
+            // mStartingData 不为 null 表示正在做 Starting 动画
+            mWmService.mStartingSurfaceController.showStartingWindow(r, prev, newTask,
+                    isTaskSwitch, sourceRecord);
+        }
+    }
+```
+
+ActivityRecord.transferStartingWindow() 方法会 fromActivity 的 StartingWindow 添加到当前的 ActivityRecord。      
+
+```
+// ActivityRecord.java
+    private boolean transferStartingWindow(@NonNull ActivityRecord fromActivity) {
+        final WindowState tStartingWindow = fromActivity.mStartingWindow;
+        if (tStartingWindow != null && fromActivity.mStartingSurface != null) {
+            if (tStartingWindow.getParent() == null) {
+                // The window has been detached from the parent, so the window cannot be transfer
+                // to another activity because it may be in the remove process.
+                // Don't need to remove the starting window at this point because that will happen
+                // at #postWindowRemoveCleanupLocked
+                return false;
+            }
+            // Do not transfer if the orientation doesn't match, redraw starting window while it is
+            // on top will cause flicker.
+            if (fromActivity.getRequestedConfigurationOrientation()
+                    != getRequestedConfigurationOrientation()) {
+            // In this case, the starting icon has already been displayed, so start
+            // letting windows get shown immediately without any more transitions.
+            if (fromActivity.mVisible) {
+                mDisplayContent.mSkipAppTransitionAnimation = true;
+            }
+
+            ProtoLog.v(WM_DEBUG_STARTING_WINDOW, "Moving existing starting %s"
+                    + " from %s to %s", tStartingWindow, fromActivity, this);
+
+            final long origId = Binder.clearCallingIdentity();
+            try {
+                // Link the fixed rotation transform to this activity since we are transferring the
+                // starting window.
+                if (fromActivity.hasFixedRotationTransform()) {
+                    mDisplayContent.handleTopActivityLaunchingInDifferentOrientation(this,
+                            false /* checkOpening */);
+                }
+
+                // Transfer the starting window over to the new token.
+                mStartingData = fromActivity.mStartingData;
+                mStartingSurface = fromActivity.mStartingSurface;
+                mStartingWindow = tStartingWindow;
+                reportedVisible = fromActivity.reportedVisible;
+                fromActivity.mStartingData = null;
+                fromActivity.mStartingSurface = null;
+                fromActivity.mStartingWindow = null;
+                fromActivity.startingMoved = true;
+                tStartingWindow.mToken = this;
+                tStartingWindow.mActivityRecord = this;
+
+                if (mStartingData.mRemoveAfterTransaction == AFTER_TRANSITION_FINISH) {
+                    mStartingData.mRemoveAfterTransaction = AFTER_TRANSACTION_IDLE;
+                }
+
+                ProtoLog.v(WM_DEBUG_ADD_REMOVE,
+                        "Removing starting %s from %s", tStartingWindow, fromActivity);
+                mTransitionController.collect(tStartingWindow);
+                tStartingWindow.reparent(this, POSITION_TOP);
+
+                // Clear the frozen insets state when transferring the existing starting window to
+                // the next target activity.  In case the frozen state from a trampoline activity
+                // affecting the starting window frame computation to see the window being
+                // clipped if the rotation change during the transition animation.
+                tStartingWindow.clearFrozenInsetsState();
+
+                // Propagate other interesting state between the tokens. If the old token is
+                // displayed, we should immediately force the new one to be displayed. If it is
+                // animating, we need to move that animation to the new one.
+                if (fromActivity.allDrawn) {
+                    allDrawn = true;
+                }
+                if (fromActivity.firstWindowDrawn) {
+                    firstWindowDrawn = true;
+                }
+                if (fromActivity.isVisible()) {
+                    setVisible(true);
+                    setVisibleRequested(true);
+                    mVisibleSetFromTransferredStartingWindow = true;
+                }
+                setClientVisible(fromActivity.isClientVisible());
+
+                if (fromActivity.isAnimating()) {
+                    transferAnimation(fromActivity);
+
+                    // When transferring an animation, we no longer need to apply an animation to
+                    // the token we transfer the animation over. Thus, set this flag to indicate
+                    // we've transferred the animation.
+                    mTransitionChangeFlags |= FLAG_STARTING_WINDOW_TRANSFER_RECIPIENT;
+                } else if (mTransitionController.getTransitionPlayer() != null) {
+                    // In the new transit system, just set this every time we transfer the window
+                    mTransitionChangeFlags |= FLAG_STARTING_WINDOW_TRANSFER_RECIPIENT;
+                }
+                // Post cleanup after the visibility and animation are transferred.
+                fromActivity.postWindowRemoveStartingWindowCleanup(tStartingWindow);
+                fromActivity.mVisibleSetFromTransferredStartingWindow = false;
+
+                mWmService.updateFocusedWindowLocked(
+                        UPDATE_FOCUS_WILL_PLACE_SURFACES, true /*updateInputWindows*/);
+                getDisplayContent().setLayoutNeeded();
+                mWmService.mWindowPlacerLocked.performSurfacePlacement();
+            } finally {
+                Binder.restoreCallingIdentity(origId);
+            }
+            return true;
+        } else if (fromActivity.mStartingData != null) {
+            // The previous app was getting ready to show a
+            // starting window, but hasn't yet done so.  Steal it!
+            ProtoLog.v(WM_DEBUG_STARTING_WINDOW,
+                    "Moving pending starting from %s to %s", fromActivity, this);
+            mStartingData = fromActivity.mStartingData;
+            fromActivity.mStartingData = null;
+            fromActivity.startingMoved = true;
+            scheduleAddStartingWindow();
+            return true;
+        }
+
+        // TODO: Transfer thumbnail
+
+        return false;
+    }
 ```
 
 ## 去除系统默认 SPLASH_SCREEN

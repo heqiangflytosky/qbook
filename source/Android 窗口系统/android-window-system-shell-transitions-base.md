@@ -395,6 +395,7 @@ ActivityStarter.startActivityUnchecked()
                         //将当前SyncGroup添加到成员变量mActiveSyncs中
                         BLASTSyncEngine.mActiveSyncs.add(SyncGroup)
                         `WindowManager: SyncGroup **: Started for listener:` // 重要日志
+                    BLASTSyncEngine.scheduleTimeout() // 设置超时
     // 将当前启动的ActivityRecord收集到刚刚创建的Transition对象中。
     TransitionController.collect()
         Transition.collect()
@@ -771,6 +772,7 @@ SyncGroup 用来保存当前有哪些WindowContainer参与到了动画当中，�
         // For now, parallel implies this.
         s.mIgnoreIndirectMembers = parallel;
         .......
+        // 设置同步超时，超时会强制结束同步
         scheduleTimeout(s, timeoutMs);
     }
 ```
@@ -2282,6 +2284,19 @@ RemoteTransitionHandler.java
 V WindowManager: SyncGroup 13: Started for listener: TransitionRecord{83fc172 id=-1 type=OPEN flags=0x0}
 ```
 
+### TransitionController.moveToCollecting
+
+开始收集参与动画的容器。    
+
+```
+        ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS, "Start collecting in Transition: %s",
+                mCollectingTransition);
+```
+
+```
+V WindowManager: Start collecting in Transition: TransitionRecord{5e1dbb9 id=73 type=OPEN flags=0x0}
+```
+
 ### BLASTSyncEngine.SyncGroup.addToSync
 
 在动画搜集阶段，将容器添加到同步组。    
@@ -2341,6 +2356,21 @@ V WindowManager: SyncGroup 13: onSurfacePlacement checking {Task{4249c3 #668 typ
 V WindowManager: SyncGroup 13:  Unfinished container: ActivityRecord{f74bce6 u0 com.hq.android.androiddemo/.common.CommonTestActivity2 t668}
 ....
 V WindowManager: SyncGroup 13: Finished!
+```
+
+
+### BLASTSyncEngine.SyncGroup.onTimeout()
+
+同步超时，由于某个容器绘制时间较长，结束同步等待。    
+
+```
+                Slog.w(TAG, "Sync group " + mSyncId + " timeout");
+```
+
+```
+V WindowManager: SyncGroup 83: Unfinished container: WallpaperWindowToken{a71fdc0 token=android.os.Binder@193d3a7}
+......
+W BLASTSyncEngine: Sync group 83 timeout
 ```
 
 ### Transitions.setupStartState
@@ -2413,6 +2443,47 @@ V WindowManager:     ]}
 V WindowManagerShell: onTransitionReady(transaction=78434692771200)
 V WindowManagerShell: onTransitionReady (#116) android.os.BinderProxy@5917ffa: {id=116 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{android.window.IWindowContainerToken$Stub$Proxy@b4ef9d6} m=OPEN f=NONE leash=Surface(name=Task=40)/@0x793285f sb=Rect(0, 0 - 1080, 2340) eb=Rect(0, 0 - 1080, 2340) d=0 endFixedRotation=1 taskParent=-1},{WCT{android.window.IWindowContainerToken$Stub$Proxy@243c457} m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0xa18770a sb=Rect(0, 0 - 1080, 2340) eb=Rect(0, 0 - 1080, 2340) d=0 taskParent=-1}]}
 
+```
+
+### Transitions.onMerged
+
+```
+        ProtoLog.v(ShellProtoLogGroup.WM_SHELL_TRANSITIONS, "Transition was merged: %s into %s",
+                merged, playing);
+```
+
+发生动画 merge，并不一定会merge到另外一个动画执行，有可能是第二个动画取消，只是把 Transaction merge过去。     
+
+```
+V WindowManagerShell: Transition was merged: (#776) android.os.BinderProxy@55d87c2@0 into (#775) android.os.BinderProxy@81ca5f3@0
+```
+
+### Transitions.processReadyQueue
+
+```
+        ProtoLog.v(ShellProtoLogGroup.WM_SHELL_TRANSITIONS, "Transition %s ready while"
+                + " %s is still animating. Notify the animating transition"
+                + " in case they can be merged", ready, playing);
+```
+
+动画准备好时当前是否有其他动画正在执行，并且是需要merge到其他动画的情况。真正的merge。    
+
+
+```
+WindowManagerShell: Transition (#777) android.os.BinderProxy@a24802f@0 ready while (#775) android.os.BinderProxy@81ca5f3@0 is still animating. Notify the animating transition in case they can be merged
+```
+
+### RemoteTransitionHandler.mergeAnimation
+
+```
+        ProtoLog.v(ShellProtoLogGroup.WM_SHELL_TRANSITIONS, "   Merge into remote: %s",
+                remoteTransition);
+```
+
+当前动画被真正merge到正在执行的 Remote 动画。    
+
+```
+V WindowManagerShell:    Merge into remote: RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@451ae4f, appThread = android.app.IApplicationThread$Stub$Proxy@9fd79dc, debugName = QuickstepLaunch }
 ```
 
 ### Transitions.onFinish

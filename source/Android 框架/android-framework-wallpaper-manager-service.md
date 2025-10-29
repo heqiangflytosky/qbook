@@ -479,6 +479,9 @@ WallpaperManagerService.setWallpaper // 设置静态壁纸时调用这个方法
 FileObserver$ObserverThread.onEvent
     WallpaperManagerService$WallpaperObserver.onEvent
         WallpaperManagerService$WallpaperObserver.updateWallpapers
+            WallpaperManagerService.notifyCallbacksLocked(wallpaper)
+                //发送广播
+                sendBroadcastAsUser(ACTION_WALLPAPER_CHANGED)
             WallpaperManagerService.loadSettingsLocked
             WallpaperManagerService.bindWallpaperComponentLocked
                 // 新建 WallpaperConnection
@@ -578,6 +581,23 @@ WallpaperManagerService.setWallpaperComponentChecked
 壁纸的可见性更新流程主要是通过 adjustWallpaperWindows 来进行的。    
 部分调用 adjustWallpaperWindows 的时机。      
 
+首先需要请求更新壁纸，写入 FINISH_LAYOUT_REDO_WALLPAPER 标记，下次在 performSurfacePlacement 时就可以更新壁纸可见性了。      
+
+```
+requestUpdateWallpaperIfNeeded:4516, WindowState (com.android.server.wm)
+requestUpdateWallpaperIfNeeded:8143, ActivityRecord (com.android.server.wm)
+setVisibility:5937, ActivityRecord (com.android.server.wm)
+setVisibility:5827, ActivityRecord (com.android.server.wm)
+resumeTopActivity:1639, TaskFragment (com.android.server.wm)
+resumeTopActivityInnerLocked:5377, Task (com.android.server.wm)
+resumeTopActivityUncheckedLocked:5308, Task (com.android.server.wm)
+resumeTopActivityUncheckedLocked:5327, Task (com.android.server.wm)
+resumeFocusedTasksTopActivities:2669, RootWindowContainer (com.android.server.wm)
+resumeTargetRootTaskIfNeeded:3347, ActivityStarter (com.android.server.wm)
+recycleTask:2593, ActivityStarter (com.android.server.wm)
+startActivityInner:2172, ActivityStarter (com.android.server.wm)
+```
+
 ```
 Session.relayout
     WindowManagerService.relayoutWindow
@@ -588,8 +608,12 @@ Session.relayout
                         RootWindowContainer.performSurfacePlacementNoTrace
                             RootWindowContainer.applySurfaceChangesTransaction
                                 DisplayContent.applySurfaceChangesTransaction
+                                    if ((pendingLayoutChanges & FINISH_LAYOUT_REDO_WALLPAPER) != 0) {
+                                    WallpaperController.adjustWallpaperWindows
 
 ```
+
+另外就是在 relayout 时：     
 
 ```
 Session.relayout
@@ -649,6 +673,94 @@ WallpaperService.IWallpaperEngineWrapper.dispatchWallpaperCommand()
                 case MSG_WALLPAPER_COMMAND
                 Engine.doCommand()
 ```
+
+## 壁纸的一些重绘流程
+
+比如在修改字体或者显示大小等 config 变更的场景下，再次显示壁纸时会重置绘制状态进行重新绘制。      
+
+返回桌面时请求更新壁纸：    
+
+```
+ActivityClientController.onBackPressed:1758
+  ActivityClientController.moveActivityTaskToBack:379
+    Task.moveTaskToBack:6046
+      TransitionController.startCollectOrQueue:1500
+        Task.moveTaskToBackInner:6100
+          RootWindowContainer.ensureVisibilityAndConfig:1818
+            RootWindowContainer.ensureActivitiesVisible:1966
+              DisplayContent.ensureActivitiesVisible:6783
+                WindowContainer.forAllRootTasks
+                  Task.ensureActivitiesVisible:5176
+                    Task.forAllLeafTasks
+                      TaskFragment.updateActivityVisibilities:1367
+                        EnsureActivitiesVisibleHelper.process:136
+                          EnsureActivitiesVisibleHelper.setActivityVisibilityState:217
+                            ActivityRecord.makeVisibleIfNeeded:6673
+                              ActivityRecord.setVisibility
+                                ActivityRecord.requestUpdateWallpaperIfNeeded:8143
+                                  WindowState.requestUpdateWallpaperIfNeeded:4518
+                                    // 配置 FINISH_LAYOUT_REDO_WALLPAPER
+                                    dc.pendingLayoutChanges |= FINISH_LAYOUT_REDO_WALLPAPER
+          ActivityTaskManagerService.continueWindowLayout:4904
+            WindowSurfacePlacer.continueLayout:97
+              WindowSurfacePlacer.performSurfacePlacement
+                RootWindowContainer.performSurfacePlacement:776
+                  RootWindowContainer.performSurfacePlacementNoTrace:813
+                    RootWindowContainer.applySurfaceChangesTransaction:1019
+                      DisplayContent.applySurfaceChangesTransaction:5209
+                        if ((pendingLayoutChanges & FINISH_LAYOUT_REDO_WALLPAPER) != 0)
+                        WallpaperController.adjustWallpaperWindows:974
+```
+
+
+
+```
+Session.relayout:290
+  WindowManagerService.relayoutWindow:2330
+    WindowManagerService.relayoutWindowInner:2602
+      WindowSurfacePlacer.performSurfacePlacement:126
+        RootWindowContainer.performSurfacePlacementNoTrace:813
+          RootWindowContainer.applySurfaceChangesTransaction:1019
+            DisplayContent.applySurfaceChangesTransaction:5242
+              WindowContainer.forAllWindows
+                WindowState.applyInOrderWithImeWindows:4822
+                  WindowState.updateResizingWindowIfNeeded:1527
+                    // 重置壁纸窗口的绘制状态
+                    winAnimator.mDrawState = DRAW_PENDING;
+                    mWmService.mResizingWindows.add(this)
+          RootWindowContainer.handleResizingWindows()
+            WindowState.reportResized()
+              WindowStateResizeItem.obtain()
+              getProcess().scheduleClientTransactionItem()
+```
+
+壁纸执行 Resize，updateSurface之后执行 Session.finishDrawing。     
+
+
+```
+Session.finishDrawing:353
+  WindowManagerService.finishDrawingWindow:2914
+    WindowState.finishDrawing:6081
+      WindowStateAnimator.finishDrawingLocked:233
+        mDrawState = COMMIT_DRAW_PENDING;
+```
+
+```
+Session.relayout:290
+  WindowManagerService.relayoutWindow:2330
+    WindowManagerService.relayoutWindowInner:2602
+      WindowSurfacePlacer.performSurfacePlacement:126
+        RootWindowContainer.performSurfacePlacementNoTrace:813
+          RootWindowContainer.applySurfaceChangesTransaction:1019
+            DisplayContent.applySurfaceChangesTransaction:5242
+              WindowContainer.forAllWindows
+                WindowState.applyInOrderWithImeWindows:4822
+                  WindowStateAnimator.commitFinishDrawingLocked:257
+                    // 更新绘制状态
+                    mDrawState = READY_TO_SHOW;
+```
+
+
 
 ## 相关文章
 

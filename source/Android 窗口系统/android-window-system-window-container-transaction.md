@@ -233,7 +233,6 @@ WindowContainerTransaction 提供了很多针对 HierarchyOp 操作的方法：
 ShellTransitions 动画的开始和结束时可以传递 WindowContainerTransaction 参数，如果参数不为空，WMCore 就会 apply 这些变更。     
 
 ```
-```
 public class WindowOrganizer {
     // 
     public void startTransition(@NonNull IBinder transitionToken,
@@ -244,7 +243,6 @@ public class WindowOrganizer {
         ....
     }
 }
-```
 ```
 
 ### WindowOrganizer.applyTransaction发送

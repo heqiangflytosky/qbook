@@ -12,8 +12,10 @@ date: 2022-11-23 10:00:00
 
 在 WMShell 侧通过 WindowContainerTransaction 来修改 Task 的大小和显示区域，然后传递到 WMCore 侧变更窗口容器的属性来实现。    
 通过下图可以看到，PIP的实现是通过修改窗口容器的显示范围来实现的。       
+
 <img src="/images/android-window-system-pip/1.png" width="578" height="722"/>
-<img src="/images/android-window-system-pip/2.png" width="604" height="735"/>
+<img src="/images/android-window-system-pip/2.png" width="604" height="735"/> 
+
 另外PIP所在的 Task 所在的图层是可见状态，是被绘制的，而普通 Activity 所在的 Task 容器在 sf 是不会被绘制的。原因是什么呢？后面再解释。      
 
 本文基于 Android 15。    
@@ -217,6 +219,114 @@ WindowOrganizerController.finishTransition()
 
 ## 移动
 
+
+### 注册事件监听：
+
+https://juejin.cn/post/7265939798795026466
+
+```
+// PipInputConsumer.java
+
+    public void registerInputConsumer() {
+        if (mInputEventReceiver != null) {
+            return;
+        }
+        final InputChannel inputChannel = new InputChannel();
+        try {
+            // TODO(b/113087003): Support Picture-in-picture in multi-display.
+            mWindowManager.destroyInputConsumer(mToken, DEFAULT_DISPLAY);
+            mWindowManager.createInputConsumer(mToken, mName, DEFAULT_DISPLAY, inputChannel);
+        } catch (RemoteException e) {
+            ProtoLog.e(ShellProtoLogGroup.WM_SHELL_PICTURE_IN_PICTURE,
+                    "%s: Failed to create input consumer, %s", TAG, e);
+        }
+        mMainExecutor.execute(() -> {
+            mInputEventReceiver = new InputEventReceiver(inputChannel,
+                Looper.myLooper(), Choreographer.getInstance());
+            if (mRegistrationListener != null) {
+                mRegistrationListener.onRegistrationChanged(true /* isRegistered */);
+            }
+        });
+    }
+```
+
+WMS 创建 InputConsumer      
+
+```
+    public void createInputConsumer(IBinder token, String name, int displayId,
+            InputChannel inputChannel) {
+        if (!mAtmService.isCallerRecents(Binder.getCallingUid())
+                && mContext.checkCallingOrSelfPermission(INPUT_CONSUMER) != PERMISSION_GRANTED) {
+            throw new SecurityException("createInputConsumer requires INPUT_CONSUMER permission");
+        }
+
+        synchronized (mGlobalLock) {
+            DisplayContent display = mRoot.getDisplayContent(displayId);
+            if (display != null) {
+                display.getInputMonitor().createInputConsumer(token, name, inputChannel,
+                        Binder.getCallingPid(), Binder.getCallingUserHandle());
+            }
+        }
+    }
+```
+
+创建 Surface(name=Input Consumer pip_input_consumer#325) 图层：     
+
+```
+    InputConsumerImpl(WindowManagerService service, IBinder token, String name,
+            InputChannel inputChannel, int clientPid, UserHandle clientUser, int displayId,
+            SurfaceControl.Transaction t) {
+        ......
+
+        mInputSurface = mService.makeSurfaceBuilder()
+                .setContainerLayer()
+                .setName("Input Consumer " + name)
+                .setCallsite("InputConsumerImpl")
+                .build();
+        mWindowHandle.setTrustedOverlay(t, mInputSurface, true);
+    }
+```
+
+初始设置 mInputSurface 的大小和位置：      
+
+```
+    void layout(SurfaceControl.Transaction t, Rect r) {
+        mTmpClipRect.set(0, 0, r.width(), r.height());
+
+        if (mOldPosition.equals(r.left, r.top) && mOldWindowCrop.equals(mTmpClipRect)) {
+            return;
+        }
+
+        t.setPosition(mInputSurface, r.left, r.top);
+        t.setWindowCrop(mInputSurface, mTmpClipRect);
+
+        mOldPosition.set(r.left, r.top);
+        mOldWindowCrop.set(mTmpClipRect);
+    }
+```
+
+更新 Surface(name=Input Consumer pip_input_consumer#325) 图层的位置以及将其挂载到 DefaultTaskDisplayArea 上。      
+
+```
+InputMonitor$UpdateInputForAllWindowsConsumer.updateInputWindows:615
+  WindowContainer.forAllWindows
+    WindowState.forAllWindows:4471
+      WindowState.applyInOrderWithImeWindows:4597
+        WindowContainer$ForAllWindowsConsumerWrapper.apply
+          InputMonitor$UpdateInputForAllWindowsConsumer.accept
+            InputConsumerImpl.layout
+              t.setPosition(mInputSurface, r.left, r.top)
+              t.setWindowCrop(mInputSurface, mTmpClipRect)
+            PipInputConsumer.reparent(mInputTransaction, targetDA)
+```
+
+可以看到 PIP 的触摸事件其实是自己使用独立的图层来进行的事件接受，和 pip 这个activity的窗口inputchannel没有啥关系。       
+
+
+<img src="/images/android-window-system-pip/pip-surface.png" width="411" height="342"/>
+### 拖动流程
+
+
 SystemUI
 
 ```
@@ -256,10 +366,10 @@ WindowOrganizerController.applyTransaction()
 
 ## 退出
 
-退出动画由 Transitions.startTransition() 直接发起。    
+退出动画由 Transitions.startTransition() 直接发起。     
 这里有一个动画实现的细节：在PIP退出动画时，是一个全屏后的界面从小放大的过程，这就要求在动画前，全屏界面是已经绘制好一帧的，然后在开始进行放大动画，这个实现方式有两种。      
-第一个就是通过 `WindowOrganizer.startNewTransition` 发起 ShellTransition 动画时，把设置全屏的 WindowContainerTransaction 作为参数传入，那么就会在动画前执行 wct，提前绘制全屏。     
-另外一种就是通过 SyncTransactionQueue，这个在前面文章中已经介绍了，SyncTransactionQueue.queue() 发送设置全屏的 wct，然后WMCore绘制好后，会执行通过 SyncTransactionQueue.runInSync 设置的回调函数，在回调函数中再开始动画。      
+第一个就是通过 `WindowOrganizer.startNewTransition` 发起 ShellTransition 动画时，把设置全屏的 WindowContainerTransaction 作为参数传入，那么就会在动画前执行 wct，提前绘制全屏。这种是在开启ShellTransition 动画时使用。      
+另外一种就是通过 SyncTransactionQueue，这个在前面文章中已经介绍了，SyncTransactionQueue.queue() 发送设置全屏的 wct，然后WMCore绘制好后，会执行通过 SyncTransactionQueue.runInSync 设置的回调函数，在回调函数中再开始动画。这种是在以前的动画时使用。      
 
 SystemUI
 ```
@@ -420,11 +530,21 @@ PipMenuView.expandPip()
     }
 ```
 
+## 焦点处理
+
+设置 WINDOWING_MODE_PINNED 类型的窗口不能获取焦点。        
+
+```
+// WindowConfiguration.java
+    public boolean canReceiveKeys() {
+        return mWindowingMode != WINDOWING_MODE_PINNED;
+    }
+```
+
 ## 实战作业
 
-启动某个 Activity 时，以自定义的某个尺寸打开。
-
-在 DefaultTransitionHandler.startAnimation 的 onAnimFinish 回调中添加下面的代码，在 OPEN 动画完成后，修改 Task 的 Bounds 属性，设置自动以的大小。    
+启动某个 Activity 时，以自定义的某个尺寸打开。        
+在 DefaultTransitionHandler.startAnimation 的 onAnimFinish 回调中添加下面的代码，在 OPEN 动画完成后，修改 Task 的 Bounds 属性，设置自动以的大小。      
 
 ```
     @Override
@@ -451,7 +571,7 @@ PipMenuView.expandPip()
         };
 ```
 
-发现打开 Activity 还是以全屏的方式，通过 Debug 发现，Task 的 mResolvedOverrideConfiguration 的 Bounds 在设置为自定义大小后，又被重置为 (0,0,0,0)，具体在下面的逻辑中：
+发现打开 Activity 还是以全屏的方式，通过 Debug 发现，Task 的 mResolvedOverrideConfiguration 的 Bounds 在设置为自定义大小后，又被重置为 (0,0,0,0)，具体在下面的逻辑中：      
 
 ```
 // Task.java
@@ -474,8 +594,8 @@ PipMenuView.expandPip()
     }
 ```
 
-因此，需要添加一个标记来让 Task 知道，在这个需求下面不对 mResolvedOverrideConfiguration 的 Bounds 置空。    
-在 WindowConfiguration 中添加下面方法：    
+因此，需要添加一个标记来让 Task 知道，在这个需求下面不对 mResolvedOverrideConfiguration 的 Bounds 置空。     
+在 WindowConfiguration 中添加下面方法：     
 
 ```
 public class WindowConfiguration implements Parcelable, Comparable<WindowConfiguration> {
@@ -495,7 +615,7 @@ public class WindowConfiguration implements Parcelable, Comparable<WindowConfigu
     }
 ```
 
-然后在 在 DefaultTransitionHandler.startAnimation 方法中设置 setIsTestMiniWindow。    
+然后在 在 DefaultTransitionHandler.startAnimation 方法中设置 setIsTestMiniWindow。     
 
 ```
     @Override
@@ -522,7 +642,7 @@ public class WindowConfiguration implements Parcelable, Comparable<WindowConfigu
             //finishCallback.onTransitionFinished(null /* wct */);
 ```
 
-在 WindowContainerTransaction 中添加方法：    
+在 WindowContainerTransaction 中添加方法：     
 
 ```
     /**
@@ -537,7 +657,7 @@ public class WindowConfiguration implements Parcelable, Comparable<WindowConfigu
     }
 ```
 
-还需要在 Task.resolveLeafTaskOnlyOverrideConfigs 方法中添加下面判断：     
+还需要在 Task.resolveLeafTaskOnlyOverrideConfigs 方法中添加下面判断：      
 
 ```
 // Task.java

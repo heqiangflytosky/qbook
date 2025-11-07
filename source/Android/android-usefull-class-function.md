@@ -85,6 +85,7 @@ date: 2016-6-12 10:00:00
 ### 应用配置
 
  1. 如果应用想使用 android:resizeableActivity=false 停用多窗口模式时但是又想支持调整大小，请在应用清单中添加以下 <meta-data> 标记 `<meta-data android:name="android.supports_size_changes" android:value="true" />`。    
+ 2. Activity 配置 `android:resumeWhilePausing="true"`，用于控制Activity的启动行为，允许在前一个Activity尚未完成onPause()时启动当前Activity。      
 
 ## Java
 

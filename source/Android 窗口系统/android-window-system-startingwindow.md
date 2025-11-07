@@ -68,7 +68,7 @@ WmShell侧:
 StartingWindowController:startingwindow的添加和移除最终的调用都在这里     
 StartingSurfaceDrawer:startingwindow的添加和移除的实现     
 SplashscreenWindowCreator:     
-SplashScreenView：     
+SplashScreenView：用来显示SplashScreen的View，使用 `R.layout.splash_screen_view` 布局。       
 
 ## StartingWindow Demo
 

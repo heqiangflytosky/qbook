@@ -16,7 +16,7 @@ date: 2022-11-23 10:00:00
 <img src="/images/android-window-system-pip/1.png" width="578" height="722"/>
 <img src="/images/android-window-system-pip/2.png" width="604" height="735"/> 
 
-另外PIP所在的 Task 所在的图层是可见状态，是被绘制的，而普通 Activity 所在的 Task 容器在 sf 是不会被绘制的。原因是什么呢？后面再解释。      
+另外PIP所在的 Task 所在的图层是可见状态，是被绘制的，而普通 Activity 所在的 Task 容器在 sf 是不会被绘制的。原因是PIP模式时，为Task设置了阴影。       
 
 本文基于 Android 15。    
 
@@ -170,6 +170,10 @@ Transitions.onTransitionReady
                                     // ------> WMCore
               PipAnimationController.setupPipTransitionAnimator // 配置动画属性
               PipTransitionAnimator.setPipAnimationCallback(mPipAnimationCallback)
+                PipTransitionAnimator.applySurfaceControlTransaction()
+                  PipSurfaceTransactionHelper.scaleAndCrop()
+                  PipSurfaceTransactionHelper.shadow()
+                    Transaction.setShadowRadius() // 设置阴影，因此 Task 也是需要实际绘制的
               PipTransitionAnimator.start() // 开始动画
 ```
 

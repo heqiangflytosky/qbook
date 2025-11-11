@@ -319,9 +319,15 @@ InputMonitor$UpdateInputForAllWindowsConsumer.updateInputWindows:615
         WindowContainer$ForAllWindowsConsumerWrapper.apply
           InputMonitor$UpdateInputForAllWindowsConsumer.accept
             InputConsumerImpl.layout
-              t.setPosition(mInputSurface, r.left, r.top)
-              t.setWindowCrop(mInputSurface, mTmpClipRect)
+              Transaction.setPosition(mInputSurface, r.left, r.top)
+              Transaction.setWindowCrop(mInputSurface, mTmpClipRect)
             PipInputConsumer.reparent(mInputTransaction, targetDA)
+              Transaction.reparent
+            PipInputConsumer.show()
+              Transaction.show
+              Transaction.setInputWindowInfo // 设置窗口的触摸区域
+              Transaction.setLayer
+              
 ```
 
 可以看到 PIP 的触摸事件其实是自己使用独立的图层来进行的事件接受，和 pip 这个activity的窗口inputchannel没有啥关系。       

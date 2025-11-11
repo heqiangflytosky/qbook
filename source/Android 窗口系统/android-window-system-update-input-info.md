@@ -125,6 +125,8 @@ InputMonitor.updateInputWindowsLw
             mWallpaperInputConsumer.show
             // 设置 input 信息，把WindowState转换成inputWindowHandle
             InputMonitor.populateInputWindowHandle
+              WindowState.getSurfaceTouchableRegion
+              InputWindowHandleWrapper.setTouchableRegion
             // 向 SF 设置 InputWindowInfo
             InputMonitor.setInputWindowInfoIfNeeded
               InputWindowHandleWrapper.applyChangesToSurface
@@ -155,11 +157,7 @@ InputMonitor.populateInputWindowHandle 用来把WindowState转换成inputWindowH
 
         inputWindowHandle.setName(w.getName());
 
-        // Update layout params flags to force the window to be not touch modal. We do this to
-        // restrict the window's touchable region to the task even if it requests touches outside
-        // its window bounds. An example is a dialog in primary split should get touches outside its
-        // window within the primary task but should not get any touches going to the secondary
-        // task.
+        ....
         int flags = w.mAttrs.flags;
         if (w.mAttrs.isModal()) {
             flags = flags | FLAG_NOT_TOUCH_MODAL;
@@ -179,13 +177,10 @@ InputMonitor.populateInputWindowHandle 用来把WindowState转换成inputWindowH
                 && w.mAttrs.areWallpaperTouchEventsEnabled();
         inputWindowHandle.setHasWallpaper(hasWallpaper);
 
-        // Surface insets are hardcoded to be the same in all directions
-        // and we could probably deprecate the "left/right/top/bottom" concept.
-        // we avoid reintroducing this concept by just choosing one of them here.
+        ....
         inputWindowHandle.setSurfaceInset(w.mAttrs.surfaceInsets.left);
 
-        // If we are scaling the window, input coordinates need to be inversely scaled to map from
-        // what is on screen to what is actually being touched in the UI.
+        ....
         inputWindowHandle.setScaleFactor(w.mGlobalScale != 1f ? (1f / w.mGlobalScale) : 1f);
 
         boolean useSurfaceBoundsAsTouchRegion = false;
@@ -193,16 +188,8 @@ InputMonitor.populateInputWindowHandle 用来把WindowState转换成inputWindowH
         final Task task = w.getTask();
         if (task != null) {
             if (task.isOrganized() && task.getWindowingMode() != WINDOWING_MODE_FULLSCREEN
-                    //Flyme|Core-Framework|wangchende@meizu.com|windowmode {@
-                    && !task.isMzMiniWindow() && !task.isMzMagicWindow()
-                    //@}
             ) {
-                // If the window is in a TaskManaged by a TaskOrganizer then most cropping will
-                // be applied using the SurfaceControl hierarchy from the Organizer. This means
-                // we need to make sure that these changes in crop are reflected in the input
-                // windows, and so ensure this flag is set so that the input crop always reflects
-                // the surface hierarchy. However, we only want to set this when the client did
-                // not already provide a touchable region, so that we don't ignore the one provided.
+                ....
                 if (w.mTouchableInsets != TOUCHABLE_INSETS_REGION) {
                     useSurfaceBoundsAsTouchRegion = true;
                 }
@@ -219,7 +206,9 @@ InputMonitor.populateInputWindowHandle 用来把WindowState转换成inputWindowH
         inputWindowHandle.setTouchableRegionCrop(touchableRegionCrop);
 
         if (!useSurfaceBoundsAsTouchRegion) {
+            // Touchable Region 的计算
             w.getSurfaceTouchableRegion(mTmpRegion, w.mAttrs);
+            // 把可触摸区域传给 inputWindowHandle
             inputWindowHandle.setTouchableRegion(mTmpRegion);
         }
     }

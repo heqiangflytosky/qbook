@@ -255,7 +255,7 @@ Window.java
 
 ### 创建子窗口
 
-DecorView 的 mWindowToken 和 WMS 的 WindowState 的 mClient.asBinder() 对应：    
+DecorView(也就是View)的 getWindowToken()， 也就是 AttachInfo 的 mWindowToken 和 WMS 的 WindowState 的 mClient.asBinder() 对应：    
 
 ```
 View.java
@@ -282,8 +282,10 @@ ResumeActivityItem.execute
                     mWindow = new W(this);
                     new View$AttachInfo(ViewRootImpl.W)
                         mWindowToken = window.asBinder()
-                // 把 mWindow 传给服务端
-                IWindowSession.addToDisplayAsUser(mWindow)
+                mRoots.add(root)
+                ViewRootImpl.setView()
+                    // 把 mWindow 传给服务端
+                    IWindowSession.addToDisplayAsUser(mWindow)
 ```
 
 ```
@@ -297,6 +299,8 @@ Session.addToDisplayAsUser(IWindow window)
     WindowManagerService.addWindow(IWindow window)
         new WindowState(IWindow c)
             WindowState.mClient = c
+        // 保存 App 端的 IWindow 和 WMS的 WindowState的对应关系
+        mWindowMap.put(client.asBinder(), win);
 ```
 
 寻找父窗口，在 `HashMap<IBinder, WindowState> mWindowMap` 中寻找到对应的 WindowState。    
@@ -334,6 +338,9 @@ LaunchActivityItem.execute
         this.token = token;
     ActivityThread.handleLaunchActivity(ActivityClientRecord)
         ActivityThread.performLaunchActivity(ActivityClientRecord)
+            // 将 ActivityClientRecord 和 token 的对应关系保存到 ArrayMap中
+            // 可以通过 mActivities 来寻由WMS 传递来的 ActivityRecord 的token对应的Activity。
+            mActivities.put(r.token, r)
             Activity.attach(ActivityClientRecord.token)
                 Activity.mToken = token
                 Window.setWindowManager(mToken)
@@ -376,6 +383,18 @@ mWm.mWindowMap.put(win.mClient.asBinder(), win);
 
 type TYPE_APPLICATION token 默认，如图：     
 <img src="/images/android-window-system-add-window-type-token/app-window.png" width="428" height="475"/>
+
+或者也可以通过下面的方法，来获取 WMS 传递的 ActivityRecord.token 对应的 App 侧的 Activity。            
+
+```
+ActivityThread.java
+
+    public final Activity getActivity(IBinder token) {
+        final ActivityClientRecord activityRecord = mActivities.get(token);
+        return activityRecord != null ? activityRecord.activity : null;
+    }
+
+```
 
 ### 系统窗口
 

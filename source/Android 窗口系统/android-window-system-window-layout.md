@@ -7,7 +7,28 @@ description: 介绍 Android 窗口布局
 date: 2022-11-23 10:00:00
 ---
 
-在窗口布局这里主要做的事情有：创建 SurfaceControl、配置窗口属性、窗口尺寸的计算以及Surface的状态变更等。    
+在窗口布局这里主要做的事情有：创建 SurfaceControl、配置窗口属性、窗口尺寸的计算以及 Surface 的状态变更等。    
+
+
+## 相关类介绍
+
+ClientWindowFrames
+
+```
+    // 窗口的实际显示区域
+    public final @NonNull Rect frame = new Rect();
+
+    // 屏幕的实际可显示区域
+    public final @NonNull Rect displayFrame = new Rect();
+
+    // 使用 MATCH_PARENT 的区域
+    public final @NonNull Rect parentFrame = new Rect();
+
+    // 窗口被attach的区域，如果不为空，就是父窗口的区域
+    public @Nullable Rect attachedFrame;
+```
+
+DisplayPolicy
 
 ## App 端
 
@@ -584,7 +605,36 @@ DisplayContent.applySurfaceChangesTransaction() 方法主要执行：
         mWmService.scheduleAnimationLocked();
 ```
 
-#### 计算窗口大小
+#### 计算窗口大小和位置
+
+这一部分主要是设置 WindowState 的显示区域，然后设置给 SurfaceControl。      
+
+```
+    public void layoutWindowLw(WindowState win, WindowState attached, DisplayFrames displayFrames) {
+        if (win.skipLayout()) {
+            return;
+        }
+
+        // This window might be in the simulated environment.
+        // We invoke this to get the proper DisplayFrames.
+        displayFrames = win.getDisplayFrames(displayFrames);
+
+        final WindowManager.LayoutParams attrs = win.mAttrs.forRotation(displayFrames.mRotation);
+        sTmpClientFrames.attachedFrame = attached != null ? attached.getFrame() : null;
+
+        // If this window has different LayoutParams for rotations, we cannot trust its requested
+        // size. Because it might have not sent its requested size for the new rotation.
+        final boolean trustedSize = attrs == win.mAttrs;
+        final int requestedWidth = trustedSize ? win.mRequestedWidth : UNSPECIFIED_LENGTH;
+        final int requestedHeight = trustedSize ? win.mRequestedHeight : UNSPECIFIED_LENGTH;
+        // 计算 ClientWindowFrames 位置和大小
+        mWindowLayout.computeFrames(attrs, win.getInsetsState(), displayFrames.mDisplayCutoutSafe,
+                win.getBounds(), win.getWindowingMode(), requestedWidth, requestedHeight,
+                win.getRequestedVisibleTypes(), win.mGlobalScale, sTmpClientFrames);
+        // 将前面计算的 ClientWindowFrames 设置给 WindowState
+        win.setFrames(sTmpClientFrames, win.mRequestedWidth, win.mRequestedHeight);
+    }
+```
 
 ```
 // WindowLayout.java
@@ -828,3 +878,100 @@ DisplayContent.applySurfaceChangesTransaction() 方法主要执行：
     }
 
 ```
+
+#### 更新窗口的显示区域
+
+通过 WindowState.transformFrameToSurfacePosition() 将 mWindowFrames.mFrame.left 和 mWindowFrames.mFrame.top 设置给 mSurfacePosition，mSurfacePosition 决定了窗口的绘制的位置。     
+在 WindowState.updateSurfacePosition() 方法中，设置了窗口的显示位置。      
+
+```
+RootWindowContainer.performSurfacePlacementNoTrace
+  RootWindowContainer.handleResizingWindows
+    WindowState.updateSurfacePositionIfNeeded
+      WindowState.updateSurfacePosition
+        WindowState.transformFrameToSurfacePosition
+```
+
+## 如何改变窗口的显示区域
+
+
+其实就是 WindowState 的显示区域。        
+
+修改 WindowFrames。      
+
+Activity 窗口的显示区域是由 mResolvedOverrideConfiguration.windowConfiguration.getBounds() 来决定的：       
+可以修改显示范围：       
+```
+// ConfigurationContainer.java
+    void resolveOverrideConfiguration(Configuration newParentConfig) {
+        mResolvedOverrideConfiguration.setTo(mRequestedOverrideConfiguration);
+        if (mResolvedOverrideConfiguration.windowConfiguration.getBounds().right > 50)
+            mResolvedOverrideConfiguration.windowConfiguration.getBounds().right -= 50;
+    }
+```
+
+修改 WindowLayout.computeFrames      
+
+```
+        if (windowBounds.right > 100) {
+            Slog.d("TestDisplay","win = "+this);
+            windowBounds.right -= 100;
+        }
+```
+
+或者：      
+```
+        outDisplayFrame.set(windowBounds.left + left, windowBounds.top + Math.max(top, minTop),
+                windowBounds.right - right - 100, windowBounds.bottom - Math.max(bottom, minBottom));
+```
+
+DisplayPolicy.layoutWindowLw -> WindowLayout.computeFrames      
+
+或者：    
+
+```
+DisplayPolicy.layoutWindowLw
+    public void layoutWindowLw(WindowState win, WindowState attached, DisplayFrames displayFrames) {
+        if (rect.right > 150) {
+            Slog.d("TestDisplay","win = "+this, new Throwable());
+            rect.right -= 150;
+        }
+        // 计算显示区域
+        mWindowLayout.computeFrames(attrs, win.getInsetsState(), displayFrames.mDisplayCutoutSafe,
+                rect, win.getWindowingMode(), requestedWidth, requestedHeight,
+                win.getRequestedVisibleTypes(), win.mGlobalScale, sTmpClientFrames);
+        // 设置显示区域
+        win.setFrames(sTmpClientFrames, win.mRequestedWidth, win.mRequestedHeight);
+```
+
+
+最终还是在 WindowState.setFrames 中对 mWindowFrames.mFrame 的设置，它决定了窗口的显示区域         
+
+```
+    void setFrames(ClientWindowFrames clientWindowFrames, int requestedWidth, int requestedHeight) {
+        ....
+        if (getName().contains("com.meizu.flyme.myapplication1")) {
+            windowFrames.mFrame.right -= 200;
+            windowFrames.mFrame.left += 200;
+            windowFrames.mFrame.top  += 400;
+            windowFrames.mFrame.bottom -= 400;
+        }
+```
+
+
+
+如果 ActivityRecord 的 ResolvedOverrideConfiguration 的 mBounds 设置为Rect(0, 0 - 0, 0)，那么 Activity 就会全屏显示。      
+
+设置了 ActivityRecord 的 mSizeCompatBounds，它就会在这个区域里面显示。       
+
+
+其实只要修改了，就会改变容器的显示大小         
+
+```
+
+final Configuration c = new Configuration(container.getRequestedOverrideConfiguration());
+c.setTo(change.getConfiguration(), configMask, windowMask);
+
+container.onRequestedOverrideConfigurationChanged(c);
+```
+

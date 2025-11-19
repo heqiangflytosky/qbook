@@ -253,12 +253,17 @@ Session调用 WMS.relayoutWindow 将客户端传入的参数传递给WMS。
 ### createSurfaceControl
 
 在客户端ViewRootImpl中，有一个 Surface 对象，它是这个ViewRootImpl中View显示内容的最终呈现者。     
-在应用进程 ViewRootImpl 在创建 Surface 和 SurfaceControl 对象时，仅仅是一个空壳，什么都没做，然后在relayout()时传递 SurfaceControl 到WMS进程，WMS中会创建一个 SurfaceControl 对象，并将它复制给传入的 SurfaceControl，最终 ViewRootImpl 从 SurfaceControl 中获取内容。    
+在应用进程 ViewRootImpl 在创建 Surface 和 SurfaceControl 对象时，仅仅是一个空壳，什么都没做，然后在relayout()时将 SurfaceControl 放到 WindowRelayoutResult 传递到WMS进程，WMS中会创建一个 SurfaceControl 对象，并将它复制给传入的 SurfaceControl，最终 ViewRootImpl 从 SurfaceControl 中获取内容。    
 
 ```
 // ViewRootImpl.java
     public final Surface mSurface = new Surface();
     private final SurfaceControl mSurfaceControl = new SurfaceControl();
+```
+
+```
+    private final WindowRelayoutResult mRelayoutResult = new WindowRelayoutResult(
+            mTmpFrames, mPendingMergedConfiguration, mSurfaceControl, mTempInsets, mTempControls);
 ```
 
 关于SurfaceControl的创建在WMS中主要做两件事：    
@@ -950,7 +955,7 @@ DisplayPolicy.layoutWindowLw
 ```
     void setFrames(ClientWindowFrames clientWindowFrames, int requestedWidth, int requestedHeight) {
         ....
-        if (getName().contains("com.meizu.flyme.myapplication1")) {
+        if (getName().contains("com.android.myapplication1")) {
             windowFrames.mFrame.right -= 200;
             windowFrames.mFrame.left += 200;
             windowFrames.mFrame.top  += 400;

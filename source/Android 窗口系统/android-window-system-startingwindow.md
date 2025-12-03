@@ -32,7 +32,7 @@ public final class ActivityRecord extends WindowToken implements WindowManagerSe
 Android 为 SplashScreen 提供了默认的启动动画，也提供了 API 进行自定义。    
 
 国内厂商一般会把 Android 原生的 SplashScreen 效果去掉了，但是自定义的 SplashScreen 效果一般不会去掉。     
-本文基于 Android 14 分析    
+本文基于 Android 14，15 分析。    
 
 ### 开启相关日志
 
@@ -69,6 +69,7 @@ StartingWindowController:startingwindow的添加和移除最终的调用都在�
 StartingSurfaceDrawer:startingwindow的添加和移除的实现     
 SplashscreenWindowCreator:     
 SplashScreenView：用来显示SplashScreen的View，使用 `R.layout.splash_screen_view` 布局。       
+SplashScreenExitAnimation，SplashScreenExitAnimationUtils：执行 SplashScreen 退出动画。      
 
 ## StartingWindow Demo
 
@@ -522,7 +523,10 @@ SplashscreenContentDrawer.createLayoutParameters
 
 ## 删除 StartingWindow
 
-当 Activity 的 WindowState 第一帧绘制完成后，它的widow type 为 TYPE_BASE_APPLICATION，因此在 WindowState.performShowLocked() 方法中会执行ActivityRecord.onFirstWindowDrawn() 执行删除逻辑。      
+当 Activity 的 WindowState 第一帧绘制完成后，它的widow type 为 TYPE_BASE_APPLICATION，因此在 WindowState.performShowLocked() 方法中会执行 ActivityRecord.onFirstWindowDrawn() 执行删除逻辑。      
+server 创建 starting_reveal Leash 用于 WMShell 执行 WindowState 的动画。      
+
+<img src="/images/android-window-system-startingwindow/0.png" width="595" height="476"/>
 
 ```
 WindowSurfacePlacer$Traverser.run
@@ -547,9 +551,18 @@ WindowSurfacePlacer$Traverser.run
                                                                         ITaskOrganizer.copySplashScreenView()  ----> systemui
                                                             ActivityRecord.removeStartingWindowAnimation
                                                                 StartingSurfaceController$StartingSurface.remove
+                                                                    // 构造 StartingWindowRemovalInfo，和 WMShell 通信
                                                                     TaskOrganizerController.removeStartingWindow
+                                                                        new StartingWindowRemovalInfo()
+                                                                        // 获取 starting_reveal Leash
+                                                                        TaskOrganizerController.applyStartingWindowAnimation()
+                                                                            new StartingWindowAnimationAdaptor()
+                                                                            WindowState.startAnimation()
+                                                                                WindowContainer.startAnimation()
+                                                                                    SurfaceAnimator.startAnimation()
+                                                                                        SurfaceAnimator.createAnimationLeash()
                                                                         // 删除 StartingWindow
-                                                                        ITaskOrganizer.removeStartingWindow()  ----> systemui
+                                                                        ITaskOrganizer.removeStartingWindow(StartingWindowRemovalInfo)  ----> systemui
 ```
 
 SystemUI:
@@ -560,8 +573,9 @@ ITaskOrganizer.Stub().removeStartingWindow
         ShellTaskOrganizer.removeStartingWindow()
             StartingWindowController.removeStartingWindow()
                 StartingSurfaceDrawer.removeStartingWindow()
-                    StartingSurfaceDrawer.StartingWindowRecordManager.removeWindow()
+                    StartingSurfaceDrawer.StartingWindowRecord.removeWindow()
                         SplashscreenWindowCreator.SplashWindowRecord.removeIfPossible()
+                            // 如果不需要删除动画，就直接删除
                             SplashscreenWindowCreator.removeWindowInner()
                                 WindowManagerGlobal.removeView()
                                     WindowManagerGlobal.removeViewLocked()
@@ -570,6 +584,24 @@ ITaskOrganizer.Stub().removeStartingWindow
                                             ViewRootImpl.doDie()
                                                 // system_server 执行删除window流程
                                                 WindowSession.remove()  ----> system_server
+                            // 执行删除动画
+                            SplashscreenContentDrawer.applyExitAnimation()
+                                SplashScreenExitAnimation.startAnimations()
+                                    SplashScreenExitAnimationUtils.startAnimations()
+                                        SplashScreenExitAnimationUtils.createFadeOutAnimation()
+                                        SplashScreenExitAnimationUtils.createRadialVanishSlideUpAnimator()
+                                            // splashScreenView 的 Alpha  动画
+                                            new RadialVanishAnimation()
+                                            // WindowState 的向上位移动画
+                                            new ShiftUpAnimation()
+                                        ValueAnimator.start()
+                                            onAnimationEnd()
+                                                SplashScreenExitAnimation.reset()
+                                                    mFinishCallback.run()
+                                                        SplashscreenWindowCreator.removeWindowInner()
+                                                            ....// 参考上面
+                                                            // system_server 执行删除window流程
+                                                            WindowSession.remove()  ----> system_server
 ```
 
 copySplashScreenView

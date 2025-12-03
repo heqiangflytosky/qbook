@@ -1580,7 +1580,7 @@ promote 之前的 targets 参数里面有三个 ChangeInfo，分别代表启动�
                         "        remove from targets %s", target);
                 targets.remove(i);
             }
-            // 将它的父节点加入 targets
+            // 将可以 PROMOTE 的父节点加入 targets，下次循环会接着检测该父节点是否可以继续 PROMOTE
             final ChangeInfo parentChange = changes.get(parent);
             if (targets.mArray.indexOfValue(parentChange) < 0) {
                 ProtoLog.v(ProtoLogGroup.WM_DEBUG_WINDOW_TRANSITIONS,
@@ -2295,6 +2295,19 @@ V WindowManager: SyncGroup 13: Started for listener: TransitionRecord{83fc172 id
 
 ```
 V WindowManager: Start collecting in Transition: TransitionRecord{5e1dbb9 id=73 type=OPEN flags=0x0}
+```
+
+### Transition.collect
+
+搜集某个容器到 mParticipants，调用了 SyncGroup.addToSync。      
+
+```
+        ProtoLog.v(WmProtoLogGroups.WM_DEBUG_WINDOW_TRANSITIONS, "Collecting in transition %d: %s",
+                mSyncId, wc);
+```
+
+```
+V WindowManager: Collecting in transition 112: ActivityRecord{241027178 u0 com.android.browser/.BrowserActivity t17}
 ```
 
 ### BLASTSyncEngine.SyncGroup.addToSync

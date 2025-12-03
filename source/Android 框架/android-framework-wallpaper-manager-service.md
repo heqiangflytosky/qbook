@@ -10,7 +10,11 @@ date: 2022-11-23 10:00:00
 
 ## 概述
 
+### 调试技巧
+
 WallpaperManagerService: adb shell dumpsys wallpaper        
+
+执行的是 WallpaperManagerService.dump 方法。打印当前系统中的壁纸服务状态信息     
 
 ```
 mDefaultWallpaperComponent=ComponentInfo{com.android.systemui/com.android.systemui.wallpapers.ImageWallpaper}
@@ -74,6 +78,8 @@ Fallback wallpaper state:
 
 WallpaperController: adb shell dumpsys window displays       
 
+执行的是 DisplayContent.dump 方法，改方法中会执行 `mWallpaperController.dump` 方法，打印出 WallpaperWindowToken 的信息。      
+
 ```
   displayId=0
   mWallpaperTarget=Window{dfb5893 u0 com.meizu.flyme.launcher/com.android.launcher3.uioverrides.QuickstepLauncher}
@@ -96,7 +102,7 @@ WallpaperController: adb shell dumpsys window displays
     mWallpaperDisplayOffsetY=NA
 ```
 
-查看静态壁纸服务信息：
+查看静态壁纸服务信息：    
 
 ```
 adb shell dumpsys activity service ImageWallpaper
@@ -106,7 +112,15 @@ adb shell dumpsys activity service ImageWallpaper
 
 ```
 
+event 日志：    
+
+```
+I wm_wallpaper_surface: [0,1,Window{57b61a2 u0 NotificationShade}]
+I wm_wallpaper_surface: [0,0,Window{ddd3785 u0 com.meizu.flyme.launcher/com.android.launcher3.uioverrides.QuickstepLauncher}]
+```
+
 静态壁纸存放路径：      
+
 /data/system/users/0/wallpaper_info.xml      
 
 ## 动态壁纸实现方法

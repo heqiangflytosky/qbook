@@ -109,6 +109,8 @@ ActivityC：
     }
 ```
 
+注意：ActivityA (startActivityForResult) -> ActivityB(StartActivity) -> ActivityC。注意ActivityB不能使用forResult的方式启动ActivityC，否则会发生冲突 START_FORWARD_AND_REQUEST_CONFLICT，会报 `FORWARD_RESULT_FLAG used while also requesting a result` 异常。      
+
 ## 框架流程
 
 ```

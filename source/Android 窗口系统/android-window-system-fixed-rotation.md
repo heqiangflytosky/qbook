@@ -12,7 +12,8 @@ date: 2022-11-23 10:00:00
 ### 为什么要Fixed Rotation
 
 FixedRotation 解决在 Activity 启动时发生方向变化时需要屏幕旋转动画的问题。     
-当将要启动的 Activity 和当前的 Activity 处于不同方向时，FixedRotation 能够在一定时间段内保存当前屏幕的方向，直到启动动画完成。避免以错误的方向显示当前的 Activity，从而实现 Activity 的无缝切换。
+当将要启动的 Activity 和当前的 Activity 处于不同方向时，FixedRotation 能够在一定时间段内保存当前屏幕的方向，直到启动动画完成。避免以错误的方向显示当前的 Activity，从而实现 Activity 的无缝切换。      
+比较常见的场景：竖屏的桌面启动横屏的应用，或者横屏的应用返回到桌面。        
 
 ### 原理
 
@@ -22,13 +23,13 @@ FixedRotation 解决在 Activity 启动时发生方向变化时需要屏幕旋�
 ## 基本流程
 
 流程的起点就是应用启动时是否需要 Fixed Rotation，这个判断主要是在 `DisplayContent.handleTopActivityLaunchingInDifferentOrientation` 方法中进行。      
-当判断需要 Fixed Roation 后就会去设置 FixedRotationLaunchingApp，
+当判断需要 Fixed Roation 后就会去设置 FixedRotationLaunchingApp，     
 
 ### Fixed Roation 发起流程
 
 Fixed Roation 的判断时机：
 
-一个是在创建 StartingWindow 的时候。    
+一个是在创建 StartingWindow 的时候。     
 
 ```
 ActivityStarter.startActivityInner
@@ -42,7 +43,7 @@ ActivityStarter.startActivityInner
                 DisplayContent.handleTopActivityLaunchingInDifferentOrientation
 ```
 
-第二个是在 Activity resume 的时候。这个时候会调用  DisplayContent.updateOrientation 来更新屏幕方向，这个时候会去判断是否需要 Fixed Roation。    
+第二个是在 Activity resume 的时候。这个时候会调用  DisplayContent.updateOrientation 来更新屏幕方向，这个时候会去判断是否需要 Fixed Roation。     
 
 ```
 ActivityClientController.activityPaused
@@ -61,12 +62,12 @@ ActivityClientController.activityPaused
 
 ### Fixed Roation 判断逻辑
 
-handleTopActivityLaunchingInDifferentOrientation 方法用来决定启动的 Activity 是否需要 Fixed Roation
+handleTopActivityLaunchingInDifferentOrientation 方法用来决定启动的 Activity 是否需要 Fixed Roation      
 
-@param r 启动Activity，可能会改变显示方向
-@param orientationSrc 如果发射活动采用“后方”方向，可能与{@param r}不同。
-@param checkOpening 是否要检查Activity在进行动画。如果调用者不确定 Activity 是否正在启动，则设置为 {@code true}。
-@return {@code true} 返回true表示需要 Fixed Roation。
+ - @param r 启动Activity，可能会改变显示方向      
+ - @param orientationSrc 如果发射活动采用“后方”方向，可能与{@param r}不同。      
+ - @param checkOpening 是否要检查Activity在进行动画。如果调用者不确定 Activity 是否正在启动，则设置为 {@code true}。      
+ - @return {@code true} 返回true表示需要 Fixed Roation。      
 
 ```
     private boolean handleTopActivityLaunchingInDifferentOrientation(@NonNull ActivityRecord r,
@@ -194,7 +195,7 @@ Requested  Transform:
 0   0   1
 ```
 
-对 ActivityRecord 或者 WallpaperWindowToken做rotation的变换
+对 ActivityRecord 或者 WallpaperWindowToken做rotation的变换     
 
 ```
 // WindowContainer.java
@@ -230,7 +231,7 @@ TransitionController.finishTransition
           DisplayContent.handleTopActivityLaunchingInDifferentOrientation()
           DisplayRotation.updateRotationUnchecked
             DisplayContent.applyFixedRotationForNonTopVisibleActivityIfNeeded
-            // 开始请求Transition 动画 
+            // 开始请求 Transition 动画 
             DisplayContent.requestChangeTransition()
         // 如果屏幕方向没有进行改变的必要，清除 FixedRotationLaunchingApp
         DisplayContent.clearFixedRotationLaunchingApp()
@@ -238,7 +239,8 @@ TransitionController.finishTransition
 
 ### 结束 Fixed Roation
 
-转屏动画开始时结束 Fixed Roation
+转屏动画开始时结束 Fixed Roation。      
+这个时候会把应用在前面设置的方向和位置的偏移设置回正常的状态。       
 
 ```
 WindowOrganizerController.applyTransaction
@@ -253,8 +255,23 @@ WindowOrganizerController.applyTransaction
                   DisplayContent.performDisplayOverrideConfigUpdate
                     DisplayContent.onRequestedOverrideConfigurationChanged
                       DisplayContent.applyRotationAndFinishFixedRotation
+                        // 结束 FixedRotation
                         WindowToken.finishFixedRotationTransform
+                      DisplayArea.onRequestedOverrideConfigurationChanged
+                        WindowContainer.onRequestedOverrideConfigurationChanged
+                          ConfigurationContainer.onRequestedOverrideConfigurationChanged
+                            ......
+                              WindowContainer.onConfigurationChanged
+                                WindowContainer.updateSurfacePositionNonOrganized
+                                  WindowToken.updateSurfacePosition
+                                    WindowContainer.updateSurfacePosition
+                                      //设置 position 和 Matrix
+                                      SurfaceControl$Transaction.setPosition
+                                      SurfaceControl$Transaction.setMatrix
 ```
 
+## 参考文章
+
+[Android无缝旋转:Fixed Rotation](https://juejin.cn/post/7137111405404094495)       
 
 

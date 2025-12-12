@@ -2499,6 +2499,43 @@ WindowManagerShell: Transition (#777) android.os.BinderProxy@a24802f@0 ready whi
 V WindowManagerShell:    Merge into remote: RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@451ae4f, appThread = android.app.IApplicationThread$Stub$Proxy@9fd79dc, debugName = QuickstepLaunch }
 ```
 
+### 获取执行动画的 Handler
+
+1.Transitions.dispatchTransition
+
+```
+                ProtoLog.v(WM_SHELL_TRANSITIONS, " animated by %s",
+                        mHandlers.get(i));
+```
+
+```
+V WindowManagerShell:  animated by com.android.wm.shell.transition.DefaultTransitionHandler@3029586
+```
+
+2.Transitions.requestStartTransition
+
+```
+                ProtoLog.v(WM_SHELL_TRANSITIONS, "Transition (#%d): request handled by %s",
+                        request.getDebugId(), active.mHandler.getClass().getSimpleName());
+```
+
+```
+V WindowManagerShell: Transition (#137): request handled by DefaultMixedHandler
+```
+
+3.Transitions.startTransition
+
+```
+        ProtoLog.v(WM_SHELL_TRANSITIONS, "Directly starting a new transition "
+                + "type=%s wct=%s handler=%s", transitTypeToString(type), wct, handler);
+```
+
+```
+V WindowManagerShell: Directly starting a new transition type=CHANGE wct=WindowContainerTransaction { changes= {android.os.BinderProxy@2cc0581={dragResizing:false,}} hops= [] errorCallbackToken=null taskFragmentOrganizer=null } handler=com.android.wm.shell.windowdecor.FluidResizeTaskPositioner@a60a3af
+```
+
+grep -E "animated by|request handled by|Directly starting a new transition"
+
 ### Transitions.onFinish
 
 ```

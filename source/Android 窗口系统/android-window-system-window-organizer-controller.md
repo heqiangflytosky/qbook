@@ -14,7 +14,8 @@ date: 2022-11-23 10:00:00
 
 ## applyTransaction
 
-相对于 applySyncTransaction 我们可以称 applyTransaction 为异步发送 WindowContainerTransacton。    
+直接执行针对窗口的属性操作，不需要开启动画。      
+相对于 applySyncTransaction 我们可以称 applyTransaction 为异步发送 WindowContainerTransacton。      
 applyTransaction 方法主要是实施在应用侧对窗口的修改，主要分为 Change 相关、HierarchyOp 相关、setBoundsChangeTransaction 相关以及更新 Activity 可见性和 Configuration 等部分，核心是对应用侧传来的 WindowContainerTransaction 对象进行解析和应用到系统侧窗口数据。    
 
 ```
@@ -534,7 +535,7 @@ sanitizeAndApplyHierarchyOp 分别对 reorder 和 reparent 进行操作。
 
 ## startNewTransition
 
-开启一个新的 Transition 动画，支持传入 WindowContainerTransaction 参数，它包含的属性变更将会在动画前被应用。      
+开启一个新的 Transition 动画来操作窗口的属性变化，支持传入 WindowContainerTransaction 参数，它包含的属性变更将会在动画前被应用。      
 
 ```
     public IBinder startNewTransition(int type, @Nullable WindowContainerTransaction t) {

@@ -231,10 +231,16 @@ WindowContainerTransaction 提供了很多针对 HierarchyOp 操作的方法：
 ### WindowOrganizer.startTransition 和 WindowOrganizer.finishTransition
 
 ShellTransitions 动画的开始和结束时可以传递 WindowContainerTransaction 参数，如果参数不为空，WMCore 就会 apply 这些变更。     
+通过 startTransition 或者 startNewTransition 发起 ShellTransition 动画，参考 Transitions.startTransition()。      
 
 ```
 public class WindowOrganizer {
-    // 
+    // 多任务场景，PIP 退出动画场景
+    public IBinder startNewTransition(int type, @Nullable WindowContainerTransaction t) {
+        ....
+    }
+    
+    // 分屏 场景
     public void startTransition(@NonNull IBinder transitionToken,
             @Nullable WindowContainerTransaction t) {
         ....
@@ -242,13 +248,13 @@ public class WindowOrganizer {
     public void finishTransition(@NonNull IBinder transitionToken, @Nullable WindowContainerTransaction t) {
         ....
     }
+    
 }
 ```
 
 ### WindowOrganizer.applyTransaction发送
 
 通过 applyTransaction 发送异步 WindowContainerTransaction。     
-通过 startTransition 或者 startNewTransition 发起 ShellTransition 动画，参考 Transitions.startTransition()。      
 
 ```
 public class WindowOrganizer {
@@ -265,22 +271,13 @@ public class WindowOrganizer {
         ...
     }
     
-    // 多任务场景，PIP 退出动画场景
-    public IBinder startNewTransition(int type, @Nullable WindowContainerTransaction t) {
-        ....
-    }
-    
-    // 分屏 场景
-    public void startTransition(@NonNull IBinder transitionToken,
-            @Nullable WindowContainerTransaction t) {
-        ....
-    }
 }
 ```
 
 ### SyncTransactionQueue 发送
 
 发送同步 WindowContainerTransaction，最终也是通过 WindowOrganizer.applySyncTransaction 执行。    
+具体参考后面文章的介绍。      
 // 分屏场景
 
 ```

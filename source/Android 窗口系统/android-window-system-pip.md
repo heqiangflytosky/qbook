@@ -18,7 +18,9 @@ date: 2022-11-23 10:00:00
 
 另外PIP所在的 Task 所在的图层是可见状态，是被绘制的，而普通 Activity 所在的 Task 容器在 sf 是不会被绘制的。原因是PIP模式时，为Task设置了阴影。       
 
-本文基于 Android 15。    
+本文基于 Android 15。     
+
+执行 `adb shell settings put global enable_freeform_support 1` 可以使支持 PIP 的应用在多任务的菜单里面显示自由窗口的选项，如果没有这个选项，可以执行 `adb shell settings put global force_resizable_activities 1` 让所有的 Activity 强制支持自由窗口模式。      
 
 ## 相关类
 
@@ -334,8 +336,11 @@ InputMonitor$UpdateInputForAllWindowsConsumer.updateInputWindows:615
 
 
 <img src="/images/android-window-system-pip/pip-surface.png" width="411" height="342"/>
+
+
 ### 拖动流程
 
+在拖动过程中实时直接修改图层的位置，此时窗口的位置并不变化，ACTION_UP 事件时才最终修改窗口的位置。       
 
 SystemUI
 
@@ -371,6 +376,45 @@ PipTouchHandler.handleTouchEvent()
 system_server
 ```
 WindowOrganizerController.applyTransaction()
+```
+
+## 缩放
+
+
+缩放是通过实时修改窗口的大小来实现的。       
+
+SystemUI：
+
+```
+DragResizeInputListener$TaskResizeInputEventReceiver.handleMotionEvent
+  case MotionEvent.ACTION_MOVE:
+    FluidResizeTaskPositioner.onDragPositioningMove
+      // 修改窗口 Bounds 大小
+      WindowOrganizer.applyTransaction
+  case MotionEvent.ACTION_UP:
+    FluidResizeTaskPositioner.onDragPositioningEnd
+      // 直接发起动画
+      Transitions.startTransition
+        WindowOrganizer.startNewTransition(TRANSIT_CHANGE)
+        new ActiveTransition
+        active.mHandler = FluidResizeTaskPositioner
+```
+
+动画的 Handler 是 FluidResizeTaskPositioner。     
+
+system_server    
+
+```
+WindowOrganizerController.applyTransaction
+  WindowOrganizerController.applyWindowContainerChange
+    WindowOrganizerController.applyTaskChanges
+      WindowOrganizerController.applyChanges
+        WindowContainer.onRequestedOverrideConfigurationChanged
+          ConfigurationContainer.onRequestedOverrideConfigurationChanged
+            Task.onConfigurationChanged
+              Task.onConfigurationChangedInner
+                TaskFragment.onConfigurationChanged
+                  WindowContainer.onConfigurationChanged
 ```
 
 

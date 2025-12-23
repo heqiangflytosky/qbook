@@ -787,6 +787,35 @@ ActivityRecord.transferStartingWindow() 方法会 fromActivity 的 StartingWindo
 可以在 `SplashscreenWindowCreator.addSplashScreenStartingWindow()` 和 `SplashscreenContentDrawer.makeSplashScreenContentView()` 方法的流程中实现。        
 在 SplashscreenWindowCreator.addSplashScreenStartingWindow() 方法中根据是否设置了自定义的 Splash Icon 来决定是不是 STARTING_WINDOW_TYPE_LEGACY_SPLASH_SCREEN 类型，而在 SplashscreenContentDrawer.makeSplashScreenContentView() 根据是否是 STARTING_WINDOW_TYPE_LEGACY_SPLASH_SCREEN 决定是否使用 Legacy Drawable。      
 
+## 关于桌面的 StartingWindow
+
+这里专门针对桌面的 StartingWindow 做了设置，在解锁显示桌面时，如果SystemUI没有配置 `KEYGUARD_GOING_AWAY_FLAG_NO_WINDOW_ANIMATIONS` 标记，那么是不给桌面设置 StartingWindow 的。     
+
+```
+public final class ActivityRecord extends WindowToken {
+    ......
+    boolean addStartingWindow(String pkg, int resolvedTheme, ActivityRecord from, boolean newTask,
+            boolean taskSwitch, boolean processRunning, boolean allowTaskSnapshot,
+            boolean activityCreated, boolean isSimple,
+            boolean activityAllDrawn) {
+            ......
+        if (type == STARTING_WINDOW_TYPE_SNAPSHOT) {
+            if (isActivityTypeHome()) {
+                // The snapshot of home is only used once because it won't be updated while screen
+                // is on (see {@link TaskSnapshotController#screenTurningOff}).
+                final Transition transition = mTransitionController.getCollectingTransition();
+                if (transition != null && (transition.getFlags()
+                        & WindowManager.TRANSIT_FLAG_KEYGUARD_GOING_AWAY_NO_ANIMATION) == 0) {
+                    mWmService.mTaskSnapshotController.removeSnapshotCache(task.mTaskId);
+                    // Only use snapshot of home as starting window when unlocking directly.
+                    return false;
+                }
+                // Add a reference before removing snapshot from cache.
+                snapshot.addReference(TaskSnapshot.REFERENCE_WRITE_TO_PARCEL);
+                mWmService.mTaskSnapshotController.removeSnapshotCache(task.mTaskId);
+            }
+```
+
 ## 关于热启动
 
 热启动的 StartingWindow 和冷启动流程类似，不同的有以下几点：   

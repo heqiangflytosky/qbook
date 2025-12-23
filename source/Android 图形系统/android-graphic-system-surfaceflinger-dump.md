@@ -46,6 +46,10 @@ status_t SurfaceFlinger::doDump(int fd, const DumpArgs& args, bool asProto) {
         };
 ```
 
+ - "--displays"：只打印 Display 相关信息
+ - "--hwclayers"：只打印 HWC Layer相关信息
+ - "--vsync"：只打印 VSYNC 相关信息
+
 ## 基础知识
 
 ### Layer 信息

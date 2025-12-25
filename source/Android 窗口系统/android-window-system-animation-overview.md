@@ -17,7 +17,7 @@ date: 2022-11-23 10:00:00
 
 我们把 Framework 层的窗口动画从动画执行的进程角度来分为两类来介绍：
 
- - 本地动画：动画的播放在 system_server 进程播放。比如，应用内添加一个窗口的动画、一个Activity普通调起另外一个Activity的跳转动画就是在 system_server 进程内播放的。     
+ - 本地动画：动画的播放在 system_server 进程播放。比如，应用内添加一个窗口的动画、一个Activity普通调起另外一个Activity的跳转动画就是在 system_server 进程内播放的。当然，使用ShellTransition之后，动画的播放也有可能是在 SystemUI 进程的。        
  - 远程动画：动画的播放在非 system_server 进程播放，比如，从桌面点击图标后有个图标开始放大铺满屏幕的动效，就是在 launcher 进程播放的，所以也是远程动画。     
 
 下面我们首先以本地动画来简单认识一下窗口动画。     

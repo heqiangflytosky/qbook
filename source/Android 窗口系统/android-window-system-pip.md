@@ -221,7 +221,52 @@ WindowOrganizerController.finishTransition()
 ```
 
 
+## 工具栏
 
+工具栏是在 Task 图层下面的一个图层。基于 SurfaceControlViewHost 将工具栏图层直接挂载在 Task 图层上。      
+
+<img src="/images/android-window-system-pip/pip-menu.png" width="505" height="283"/>
+
+### 创建工具栏
+
+```
+Transitions.onTransitionReady
+  Transitions.dispatchReady
+    FreeformTaskTransitionObserver.onTransitionReady
+      FreeformTaskTransitionObserver.onToFrontTransitionReady
+        CaptionWindowDecorViewModel.onTaskChanging
+          CaptionWindowDecorViewModel.createWindowDecoration
+            CaptionWindowDecoration.relayout
+              WindowDecoration.relayout
+                WindowDecoration.updateDecorationContainerSurface
+                  // 创建 Decor container of Task=，并挂载到 Task 的SurfaceControl上面
+                  SurfaceControl.Builder.setParent(mTaskSurface).build()
+```
+
+### 最大化
+
+
+```
+View.performClick
+  CaptionWindowDecorViewModel$CaptionTouchEventListener.onClick
+    TaskOperations.maximizeTask
+      FreeformTaskTransitionHandler.startWindowingModeTransition
+        Transitions.startTransition
+          WindowOrganizer.startNewTransition
+```
+
+### 移除工具栏
+
+```
+ShellTaskOrganizer.onTaskInfoChanged
+  ShellTaskOrganizer.updateTaskListenerIfNeeded
+    FreeformTaskListener.onTaskVanished
+      CaptionWindowDecorViewModel.destroyWindowDecoration
+        CaptionWindowDecoration.close
+          CaptionWindowDecoration.closeDragResizeListener
+            DragResizeInputListener.close
+              SurfaceControl$Transaction.remove
+```
 
 ## 移动
 

@@ -243,6 +243,9 @@ public class RootWindowContainer extends WindowContainer<DisplayContent>
     
     // 获取 RootTaskInfo
     private RootTaskInfo getRootTaskInfo(Task task){}
+    
+    // 启动桌面
+    startHomeOnTaskDisplayArea()
 ```
 
 由于DisplayContent代表了一个屏幕，且RootWindowContainer能够作为DisplayContent的父容器，这也说明了Android是支持多屏幕的，展开来说就是包括一个内部屏幕（内置于手机或平板电脑中的屏幕）、一个外部屏幕（如通过 HDMI 连接的电视）以及一个或多个虚拟屏幕。    

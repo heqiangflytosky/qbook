@@ -179,15 +179,15 @@ public class StageCoordinator implements SplitLayout.SplitLayoutHandler,
  - mIconLeash：图层名称为 SplitDecorManager，用来显示应用图标。和 mBackgroundLeash 一起显示和隐藏。     
  - mBackgroundLeash：图层名称为 ResizingBackground，用于分屏拉伸后从隐藏到显示的过渡动画。     
  - mGapBackgroundLeash。图层名称为 GapBackground，用于在分屏图层隐藏到 mBackgroundLeash 显示这段事件的间隙显示个背景颜色，避免闪屏。    
-SplitDecorManager 继承自 WindowlessWindowManager，表示这个界面不需要 WMS 的窗口管理，直接操作 Layer 图层进行界面显示。      
+SplitDecorManager 继承自 WindowlessWindowManager，表示这个界面不需要 WMS 的窗口管理，使用 SurfaceControlViewHost + WindowlessWindowManager 的能力将 Layer 图层挂载到了 Task，将所显示内容直接渲染。      
 
 ```
 public class SplitDecorManager extends WindowlessWindowManager {
 ```
 
 对应图层:      
-对于每个分屏分别构造了下面图层：
- - SplitDecorManager(mIconLeash)，mBackgroundLeash 和 mGapBackgroundLeash，它们和分屏的两个 Task( Task 1456 和 Task 1407)分别挂载到了同一个父层级。     
+对于每个分屏分别构造了下面图层：      
+SplitDecorManager(mIconLeash)，mBackgroundLeash 和 mGapBackgroundLeash，它们和分屏的两个 Task( Task 1456 和 Task 1407)分别挂载到了同一个父层级。     
 
 <img src="/images/android-window-system-split-screen/1.png" width="436" height="593"/>
 
@@ -195,6 +195,7 @@ public class SplitDecorManager extends WindowlessWindowManager {
 
 持有分屏操作窗口的根布局以及帮助分屏分隔条进行分屏。       
 主要作用是协调两个应用窗口的布局和交互。        
+SplitWindowManager 同样也是继承自 WindowlessWindowManager，使用 SurfaceControlViewHost + WindowlessWindowManager 的能力将 DividerView 所在图层直接挂载到了分屏的根 Task 上面进行直接渲染。     
 
 ```
 public final class SplitWindowManager extends WindowlessWindowManager {
@@ -203,7 +204,10 @@ public final class SplitWindowManager extends WindowlessWindowManager {
     private DividerView mDividerView;
 ```
 
-对应图层见上图:      
+对应图层如下图:      
+
+<img src="/images/android-window-system-split-screen/divider.png" width="945" height="531"/>
+
 和两个分屏的父 Task(Task 10 和 Task 11) 挂载到了同一个父层级。     
 
 分屏的时候我们看到了上下屏都绘制了圆角，但是我们看 sf 图层却没有圆角效果，这时为什么呢？其实是分隔条所在的图层绘制的效果，盖再来分屏的图层上面，具体在 DividerRoundedCorner 里面绘制。      

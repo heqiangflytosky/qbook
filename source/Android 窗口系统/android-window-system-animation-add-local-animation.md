@@ -7,6 +7,8 @@ description: 介绍 Android 本地窗口动画添加窗口动画流程
 date: 2022-11-23 10:00:00
 ---
 
+本文基于 Android U。      
+
 ## 代码流程
 
 ```

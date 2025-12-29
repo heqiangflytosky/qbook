@@ -431,7 +431,8 @@ mLayers 前面说过是一个长度为39的数组，上面列举的方法就是�
   - 构建 Leaf 相关
  - 根据 PendingArea 树构建最终的 DisplayAreas 树，也就是层级树      
 
-这部分代码主要在 `DisplayAreaPolicyBuilder$HierarchyBuilder.build` 中。    
+这部分代码主要在 `DisplayAreaPolicyBuilder$HierarchyBuilder.build` 中。      
+窗口层级树的构建由 DisplayContent 构造函数中发起，`mWmService.getDisplayAreaPolicyProvider().instantiate()`，也就是说没创建一个显示设备（包含虚拟屏幕），都会发起一次窗口层级树的构建。      
 
 ### 构建 PendingArea 树 
 

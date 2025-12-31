@@ -90,6 +90,11 @@ ActivityTaskManagerService.startActivity()
                                 mAddingToTask = false;
                                 mMovedToFront = false;
                                 ......
+                            LaunchParamsController.calculate
+                                LaunchParamsPersister.getLaunchParams
+                                    LaunchParams.mWindowingMode = persistableParams.mWindowingMode
+                                    // 设置 mTmpParams.mBounds
+                                    LaunchParams.mBounds.set()
                         //根据launchMode、来源Activity的属性等进行初步计算，确认LaunchFlags
                         ActivityStarter.computeLaunchingTaskFlags()
                         // 判断是否有可以重复使用的 Task，比如挂在已经存在的 Task

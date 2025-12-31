@@ -119,6 +119,7 @@
     * [Android 分屏](source/Android 窗口系统/android-window-system-split-screen.md)
     * [Android 单手模式](source/Android 窗口系统/android-window-system-one-hand.md)
     * [Android PIP模式](source/Android 窗口系统/android-window-system-pip.md)
+    * [Android 桌面模式](source/Android 窗口系统/android-window-system-desktop-mode.md)
     * [Android 可预测返回手势动画](source/Android 窗口系统/android-window-system-predictive-back-gesture.md)
     * [Android 窗口更新 Input 信息](source/Android 窗口系统/android-window-system-update-input-info.md)
     * [Android 屏幕旋转之 Fixed Rotation 流程](source/Android 窗口系统/android-window-system-fixed-rotation.md)

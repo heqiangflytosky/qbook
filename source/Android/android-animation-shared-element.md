@@ -182,5 +182,5 @@ ViewRootImpl.performTraversals
 
 ## 相关文章
 
-[Android Developer Shared Element Animation](https://developer.android.com/develop/ui/compose/animation/shared-elements?hl=zh-cn)
-[从源码了解共享元素的具体实现逻辑 ](https://juejin.cn/post/6950520259098968100)
+[Android Developer Shared Element Animation](https://developer.android.com/develop/ui/compose/animation/shared-elements?hl=zh-cn)        
+[从源码了解共享元素的具体实现逻辑 ](https://juejin.cn/post/6950520259098968100)        

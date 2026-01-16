@@ -45,6 +45,7 @@
     * [Android -- 字体设置](source/Android/android-text-font.md)
     * [Android 动画实践](source/Android/android-animation-implement.md)
     * [Android 共享元素动画实现以及原理](source/Android/android-animation-shared-element.md)
+    * [Android View -- GhostView](source/Android/android-view-ghostview.md)
 * [Android App]()
     * [GankTouTiao —— 一个技术干货分享的APP](source/Android App/android-app-ganktoutiao.md)
     * [快应用开发 GankTouTiao](source/Android App/quick-app-demo-ganktoutiao.md)

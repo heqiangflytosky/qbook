@@ -2,7 +2,7 @@
 title: Android View -- RecyclerView 的基本特点和使用方法
 categories: Android
 comments: true
-tags: [RecycleView]
+tags: [View]
 description: 介绍 RecyclerView 的基本特点和使用方法
 date: 2017-8-26 10:00:00
 ---

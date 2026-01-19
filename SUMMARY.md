@@ -101,6 +101,7 @@
     * [Android 窗口系统-窗口刷新](source/Android 窗口系统/android-window-system-window-refresh.md)
     * [Android 窗口系统-窗口的显示和隐藏](source/Android 窗口系统/android-window-system-window-show-hide.md)
     * [Android 窗口层级树-Layer树](source/Android 窗口系统/android-window-system-window-tree-layer-tree.md)
+    * [Android ConfigurationContainer](source/Android 窗口系统/android-window-system-configuration-container.md)
     * [Android 窗口系统-移栈](source/Android 窗口系统/android-window-system-move-task.md)
     * [Android 添加窗口的 token 和 type 与窗口层级](source/Android 窗口系统/android-window-system-add-window-type-token.md)
     * [Android 窗口动画概述](source/Android 窗口系统/android-window-system-animation-overview.md)

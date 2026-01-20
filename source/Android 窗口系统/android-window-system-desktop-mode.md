@@ -17,6 +17,8 @@ enable_freeform_support 是支持自由窗口的配置项，桌面模式也是�
 Android 的桌面模式是需要自由窗口模式来支持的。       
 本文基于 Android 16。     
 
+<img src="/images/android-window-system-desktop-mode/1.png" width="589" height="945"/>
+
 ## 窗口层级树的差异
 
 在桌面模式下，DefaultTaskDisplayArea 被设置成了 FREEFORM 类型。     
@@ -132,6 +134,8 @@ RootWindowContainer.onDisplayAdded
 ```
 
 ## 创建工具栏
+
+<img src="/images/android-window-system-desktop-mode/2.png" width="522" height="250"/>
 
 桌面模式的工具栏和自由窗口模式的工具栏是一样的。      
 在 Open 动画过程中创建顶部工具栏。      

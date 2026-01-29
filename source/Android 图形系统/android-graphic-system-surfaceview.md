@@ -11,9 +11,12 @@ date: 2016-9-8 10:00:00
 
 ### 什么是 SurfaceView
 
-`SurfaceView` 是 Android 中一种比较特殊的 `View`，它跟平时时候的 `TextView`、`Button` 等 最大的区别是它跟它的视图容器并不是在同一个视图层上。
-`SurfaceView` 的工作方式是创建一个置于应用窗口之后的新窗口。在屏幕显示的视图层中嵌入了一块用做图像绘制的独立的 `Surface` 视图，它不与宿主窗口共享同一个绘图表面。相当于在屏幕上挖了个洞来显示它所绘制的图像。
-`SurfaceView` 窗口刷新的时候不需要重绘应用程序的窗口。另外，`SurfaceView` 的绘制也可以在一个独立的线程中完成，所以对 `SurfaceView` 的绘制并不会影响到主线程的运行。因此可以实现复杂而高效的UI。
+`SurfaceView` 是 Android 中一种比较特殊的 `View`，它跟平时时候的 `TextView`、`Button` 等 最大的区别是它跟它的视图容器并不是在同一个视图层上。      
+通过 Winscope 发现，surfaceview 是对应一个单独的 Layer 的。      
+<img src="/images/android-graphic-system-surfaceview/layer.png" width="374" height="449"/>
+
+`SurfaceView` 的工作方式是创建一个置于应用窗口之后的新窗口。在屏幕显示的视图层中嵌入了一块用做图像绘制的独立的 `Surface` 视图，它不与宿主窗口共享同一个绘图表面。相当于在屏幕上挖了个洞来显示它所绘制的图像。     
+`SurfaceView` 窗口刷新的时候不需要重绘应用程序的窗口。另外，`SurfaceView` 的绘制也可以在一个独立的线程中完成，所以对 `SurfaceView` 的绘制并不会影响到主线程的运行。因此可以实现复杂而高效的UI。      
 
 ### 为什么要使用 SurfaceView
 
@@ -319,6 +322,46 @@ SurfaceView 的绘制并不会影响到主线程的运行，因此可以实现�
 通过调试发现 `canvas` 对象为 `DisplayListCanvas` 对象，它是使用GPU渲染的，后面会进行详细介绍。
 
 
+## SurfaceView + SurfaceControlViewHost
+
+结合 SurfaceView  独立渲染的特性，我们可以通过 SurfaceControlViewHost 把一个 View 结构嵌入到 SurfaceView 中，适合于一个经常需要刷新 View，但又不想影响父布局刷新的场景。      
+比如在某个View 中需要显示一个时钟的场景。       
+
+```
+    private void initView() {
+        mSurfaceView = findViewById(R.id.sv);
+        mAttachView = View.inflate(this, R.layout.layout_clock, null);
+        ClockTextView clockTextView = mAttachView.findViewById(R.id.clockView);
+        clockTextView.start();
+
+        mSurfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(@NonNull SurfaceHolder surfaceHolder) {
+                mViewHost = new SurfaceControlViewHost(
+                        SurfaceViewActivity.this,
+                        getDisplay(),
+                        getWindow().getDecorView().getWindowToken());
+                mViewHost.setView(mAttachView, 400,200);
+
+                // 将SurfaceView的子Surface设置为SurfaceControlViewHost的Surface
+                // 这样就把 mAttachView 的视图结构绘制到 SurfaceView 上
+                mSurfaceView.setChildSurfacePackage(mViewHost.getSurfacePackage());
+            }
+
+            @Override
+            public void surfaceChanged(@NonNull SurfaceHolder surfaceHolder, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void surfaceDestroyed(@NonNull SurfaceHolder surfaceHolder) {
+                mViewHost.release();
+                mViewHost = null;
+            }
+        });
+    }
+```
+
 ## 和普通View的差异
 
 ### 无法做旋转等动画
@@ -350,7 +393,31 @@ TextureView 的特点是支持旋转等动画，但是它必须在硬件加速�
 从性能和安全性角度出发，使用播放器优先选SurfaceView。
 由于 SurfaceView 有自己独立的 Window，因此 SurfaceView 也不能放到 ListView 或者 ScrollView中，因此，在列表中播放视频就无法实现了，只能选择 TextureView。
 
+## 原理介绍
+
+```
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        setTag();
+        getViewRootImpl().addSurfaceChangedCallback(this);
+        mWindowStopped = false;
+        mViewVisibility = getVisibility() == VISIBLE;
+        updateRequestedVisibility();
+
+        mAttachedToWindow = true;
+        // 通过 requestTransparentRegion 请求父布局绘制一块透明区域，达到挖洞显示SurfaceView 效果
+        mParent.requestTransparentRegion(SurfaceView.this);
+        if (!mGlobalListenersAdded) {
+            ViewTreeObserver observer = getViewTreeObserver();
+            observer.addOnScrollChangedListener(mScrollChangedListener);
+            observer.addOnPreDrawListener(mDrawListener);
+            mGlobalListenersAdded = true;
+        }
+    }
+```
 ## 推荐文章
 
-小窗播放视频的原理和实现（上）：https://cloud.tencent.com/developer/article/1034235
-小窗播放视频的原理和实现（下）：https://cloud.tencent.com/developer/article/1047885
+[Android视图SurfaceView的实现原理分析](https://blog.csdn.net/luoshengyang/article/details/8661317)
+小窗播放视频的原理和实现（上）：https://cloud.tencent.com/developer/article/1034235      
+小窗播放视频的原理和实现（下）：https://cloud.tencent.com/developer/article/1047885      

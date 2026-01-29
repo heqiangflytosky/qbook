@@ -173,6 +173,51 @@ Transitions.onTransitionReady
  - 轻量级别使用的 ViewRootImpl，不需要维护 wms 窗口，只需要考虑绘制和触摸。
  - 理论上所有Windowless显示内容都可以使用正常WidnowState显示，但是因为wmshell中有很多额外窗口需求，这样可能会需要额外增加比较多的窗口类型type，这样针对一些少见业务场景，然后去改动整个wms层级结构树的业务成本太大，即实现了一些业务窗口与整个系统窗口结构管理的解耦。解决了为每个场景新增 WindowState 子类这种类膨胀问题。
 
+
+## SurfaceView + SurfaceControlViewHost
+
+结合 SurfaceView  独立渲染的特性，我们可以通过 SurfaceControlViewHost 把一个 View 结构嵌入到 SurfaceView 中，适合于一个经常需要刷新 View，但又不想影响父布局刷新的场景。      
+比如在某个View 中需要显示一个时钟的场景。       
+
+```
+    private void initView() {
+        mSurfaceView = findViewById(R.id.sv);
+        mAttachView = View.inflate(this, R.layout.layout_clock, null);
+        ClockTextView clockTextView = mAttachView.findViewById(R.id.clockView);
+        clockTextView.start();
+
+        mSurfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(@NonNull SurfaceHolder surfaceHolder) {
+                mViewHost = new SurfaceControlViewHost(
+                        SurfaceViewActivity.this,
+                        getDisplay(),
+                        getWindow().getDecorView().getWindowToken());
+                mViewHost.setView(mAttachView, 400,200);
+
+                // 将SurfaceView的子Surface设置为SurfaceControlViewHost的Surface
+                // 这样就把 mAttachView 的视图结构绘制到 SurfaceView 上
+                mSurfaceView.setChildSurfacePackage(mViewHost.getSurfacePackage());
+            }
+
+            @Override
+            public void surfaceChanged(@NonNull SurfaceHolder surfaceHolder, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void surfaceDestroyed(@NonNull SurfaceHolder surfaceHolder) {
+                mViewHost.release();
+                mViewHost = null;
+            }
+        });
+    }
+```
+
+<img src="/images/android-window-system-surface-control-view-host/layer.png" width="401" height="456"/>
+
+可以看到，被嵌入到 SurfaceView 的视图也是在一个单独的 Layer 上面绘制的。         
+
 ## 相关文章
 
 [安卓为什么要引入无窗口显示方式Windowless/SurfaceControlViewHost](https://www.bilibili.com/opus/1025828023586258944)       

@@ -113,6 +113,7 @@ Session.relayout
                                                     //计算窗口位置大小
                                                     DisplayPolicy.layoutWindowLw()
                                                         //计算窗口布局大小
+                                                        // 该方法的详细解析参考后面
                                                         WindowLayout.computeFrames()
                                                         //将计算的布局参数赋值给windowFrames
                                                         WindowState.setFrames
@@ -709,7 +710,8 @@ DisplayContent.applySurfaceChangesTransaction() 方法主要执行：
         displayCutoutSafeExceptMaybeBars.set(displayCutoutSafe);
         //设置为false，表示父边界目前没有被显示切边裁剪
         frames.isParentFrameClippedByDisplayCutout = false;
-        // 窗口没有声明使用刘海区域，并且显示切边不为空
+        // 如果窗口没有声明使用刘海区域，也就是说窗口不能延伸到刘海区域，并且显示切边不为空
+        // 这个时候就要根据 Insets 的大小来计算
         if (cutoutMode != LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS && !cutout.isEmpty()) {
             //获取屏幕的显示边界（displayFrame）
             final Rect displayFrame = state.getDisplayFrame();

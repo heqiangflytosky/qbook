@@ -416,6 +416,65 @@ TextureView 的特点是支持旋转等动画，但是它必须在硬件加速�
         }
     }
 ```
+
+```
+    private void createBlastSurfaceControls(ViewRootImpl viewRoot, String name,
+            Transaction surfaceUpdateTransaction) {
+        if (mSurfaceControl == null) {
+            mSurfaceControl = new SurfaceControl.Builder()
+                    .setName(name)
+                    .setLocalOwnerView(this)
+                    .setParent(viewRoot.updateAndGetBoundsLayer(surfaceUpdateTransaction))
+                    .setCallsite("SurfaceView.updateSurface")
+                    .setContainerLayer()
+                    .build();
+        }
+
+        if (mBlastSurfaceControl == null) {
+            mBlastSurfaceControl = new SurfaceControl.Builder()
+                    .setName(name + "(BLAST)")
+                    .setLocalOwnerView(this)
+                    .setParent(mSurfaceControl)
+                    .setFlags(mSurfaceFlags)
+                    .setHidden(false)
+                    .setBLASTLayer()
+                    .setCallsite("SurfaceView.updateSurface")
+                    .build();
+        } else {
+            // update blast layer
+            surfaceUpdateTransaction
+                    .setOpaque(mBlastSurfaceControl, (mSurfaceFlags & SurfaceControl.OPAQUE) != 0)
+                    .setSecure(mBlastSurfaceControl, (mSurfaceFlags & SurfaceControl.SECURE) != 0)
+                    .show(mBlastSurfaceControl);
+        }
+
+        if (mBackgroundControl == null) {
+            mBackgroundControl = new SurfaceControl.Builder()
+                    .setName("Background for " + name)
+                    .setLocalOwnerView(this)
+                    .setOpaque(true)
+                    .setColorLayer()
+                    .setParent(mSurfaceControl)
+                    .setCallsite("SurfaceView.updateSurface")
+                    .build();
+        }
+
+        // Always recreate the IGBP for compatibility. This can be optimized in the future but
+        // the behavior change will need to be gated by SDK version.
+        if (mBlastBufferQueue != null) {
+            mBlastBufferQueue.destroy();
+        }
+        mTransformHint = viewRoot.getBufferTransformHint();
+        mBlastSurfaceControl.setTransformHint(mTransformHint);
+
+        mBlastBufferQueue = new BLASTBufferQueue(name, false /* updateDestinationFrame */);
+        mBlastBufferQueue.update(mBlastSurfaceControl, mSurfaceWidth, mSurfaceHeight, mFormat);
+        mBlastBufferQueue.setTransactionHangCallback(ViewRootImpl.sTransactionHangCallback);
+    }
+
+```
+
+
 ## 推荐文章
 
 [Android视图SurfaceView的实现原理分析](https://blog.csdn.net/luoshengyang/article/details/8661317)

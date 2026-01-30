@@ -143,6 +143,7 @@
     * [Android 图形系统 -- Window，DecorView 和 ViewRootImpl](source/Android 图形系统/android-graphic-system-decorview-viewrootimpl.md)
     * [Android 图形系统 -- View 绘制流程](source/Android 图形系统/android-graphic-system-view-drawing.md)
     * [Android 图形系统 -- 硬件加速渲染](source/Android 图形系统/android-graphic-system-hardwareaccelerated.md)
+    * [Android Hardware Layer 详解](source/Android 图形系统/android-graphic-system-view-layer-type.md)
     * [Android 图形系统基础知识和相关类](source/Android 图形系统/android-graphic-system-basic-class.md)
     * [Android SurfaceFlinger dump 信息分析](source/Android 图形系统/android-graphic-system-surfaceflinger-dump.md)
     * [Android VSYNC 机制](source/Android 图形系统/android-graphic-system-vsync.md)

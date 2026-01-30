@@ -1,0 +1,6055 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>OpenGL ES -- 平滑着色 · 寒江蓑笠的博客</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="介绍 OpenGL ES 如何实现平滑着色">
+        <meta name="generator" content="GitBook 3.2.3">
+        <meta name="author" content="寒江蓑笠">
+        
+        
+    
+    <link rel="stylesheet" href="../../gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="../../gitbook/gitbook-plugin-expandable-chapters/expandable-chapters.css">
+                
+            
+                
+                <link rel="stylesheet" href="../../gitbook/gitbook-plugin-chapter-fold/chapter-fold.css">
+                
+            
+                
+                <link rel="stylesheet" href="../../gitbook/gitbook-plugin-intopic-toc/style.css">
+                
+            
+                
+                <link rel="stylesheet" href="../../gitbook/gitbook-plugin-insert-logo/plugin.css">
+                
+            
+                
+                <link rel="stylesheet" href="../../gitbook/gitbook-plugin-tbfed-pagefooter/footer.css">
+                
+            
+                
+                <link rel="stylesheet" href="../../gitbook/gitbook-plugin-splitter/splitter.css">
+                
+            
+                
+                <link rel="stylesheet" href="../../gitbook/gitbook-plugin-back-to-top-button/plugin.css">
+                
+            
+                
+                <link rel="stylesheet" href="../../gitbook/gitbook-plugin-code/plugin.css">
+                
+            
+                
+                <link rel="stylesheet" href="../../gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../../gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="../../gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+        
+    
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../../gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="../../gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="opengl-es-view-port-resize.html" />
+    
+    
+    <link rel="prev" href="opengl-es-texture.html" />
+    
+
+    
+        <link rel="shortcut icon" href='../../images/favicon.ico' type="image/x-icon">
+    
+    
+        <link rel="bookmark" href='../../https:/github.com/heqiangflytosky/qbook/blob/gitbook/images/favicon.ico?raw=true' type="image/x-icon">
+    
+    
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+    
+        
+        <li>
+            <a href="https://blog.csdn.net/heqiangflytosky" target="_blank" class="custom-link">我的CSDN</a>
+        </li>
+    
+    
+
+    
+    <li class="divider"></li>
+    
+
+    
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="../../">
+            
+                <a href="../../">
+            
+                    
+                    博客简介
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2" >
+            
+                <span>
+            
+                    
+                    AI
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.1" data-path="../AI/ai_development_tool.html">
+            
+                <a href="../AI/ai_development_tool.html">
+            
+                    
+                    AI 开发工具
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.2" data-path="../AI/ai_rag_simple_implementation.html">
+            
+                <a href="../AI/ai_rag_simple_implementation.html">
+            
+                    
+                    Colab + Langchain 简单实现 RAG
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.3" data-path="../AI/ai_llm_chatglm3_deployment.html">
+            
+                <a href="../AI/ai_llm_chatglm3_deployment.html">
+            
+                    
+                    ChatGLM 3 本地安装部署以及快速入门
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.4" data-path="../AI/ai_langchain_overview.html">
+            
+                <a href="../AI/ai_langchain_overview.html">
+            
+                    
+                    LangChain 介绍
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.5" data-path="../AI/ai_llama_cpp_basic.html">
+            
+                <a href="../AI/ai_llama_cpp_basic.html">
+            
+                    
+                    大模型推理框架 llama.cpp
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3" >
+            
+                <span>
+            
+                    
+                    Android
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.3.1" data-path="../Android/android-knowledge-debug-skill-one.html">
+            
+                <a href="../Android/android-knowledge-debug-skill-one.html">
+            
+                    
+                    Android 常用调试知识
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.2" data-path="../Android/android-ipc-aidl.html">
+            
+                <a href="../Android/android-ipc-aidl.html">
+            
+                    
+                    Android IPC 之 AIDL
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3" data-path="../Android/android-ipc-messenger.html">
+            
+                <a href="../Android/android-ipc-messenger.html">
+            
+                    
+                    Android IPC 之 Messenger
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.4" data-path="../Android/android-ipc-aidl-aync-callback.html">
+            
+                <a href="../Android/android-ipc-aidl-aync-callback.html">
+            
+                    
+                    Android IPC 之 AIDL 异步调用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.5" data-path="../Android/android-ipc-remote-exception.html">
+            
+                <a href="../Android/android-ipc-remote-exception.html">
+            
+                    
+                    Android IPC 之异常的跨进程传递
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.6" data-path="../Android/android-get-dir-path.html">
+            
+                <a href="../Android/android-get-dir-path.html">
+            
+                    
+                    Android 文件存储以及获取目录路径方法汇总
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.7" data-path="../Android/android-knowledge-using-resources.html">
+            
+                <a href="../Android/android-knowledge-using-resources.html">
+            
+                    
+                    Android 应该了解的知识系列 - 资源引用的那些事儿
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.8" data-path="../Android/android-knowledge-style-extends.html">
+            
+                <a href="../Android/android-knowledge-style-extends.html">
+            
+                    
+                    Android 应该了解的知识系列 - 关于 Style 命名和继承方式的那些事儿
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.9" data-path="../Android/android-knowledge-attr-style-theme.html">
+            
+                <a href="../Android/android-knowledge-attr-style-theme.html">
+            
+                    
+                    Android -- Attr、Style和Theme
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.10" data-path="../Android/android-knowledge-point-launchmode-intent-flag.html">
+            
+                <a href="../Android/android-knowledge-point-launchmode-intent-flag.html">
+            
+                    
+                    Android LaunchMode taskAffinity 与 Intent Flag 详解
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.11" data-path="../Android/android-jni-android-studio-base.html">
+            
+                <a href="../Android/android-jni-android-studio-base.html">
+            
+                    
+                    Android JNI -- Android Studio JNI 开发基础
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.12" data-path="../Android/android-jni-object-papas.html">
+            
+                <a href="../Android/android-jni-object-papas.html">
+            
+                    
+                    Android JNI -- 传递对象
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.13" data-path="../Android/android-knowledge-point-shareduserid-app-process.html">
+            
+                <a href="../Android/android-knowledge-point-shareduserid-app-process.html">
+            
+                    
+                    Android App Process 以及 sharedUserId的关系
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.14" data-path="../Android/android-knowledge-point-buildconfig.html">
+            
+                <a href="../Android/android-knowledge-point-buildconfig.html">
+            
+                    
+                    Android BuildConfig的使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.15" data-path="../Android/android-knowledge-point-app-lib-build-type.html">
+            
+                <a href="../Android/android-knowledge-point-app-lib-build-type.html">
+            
+                    
+                    Android 解决Lib Module 和 App Module 的 buildType 不一样的问题
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.16" data-path="../Android/android-problem-multidex-verifyerror.html">
+            
+                <a href="../Android/android-problem-multidex-verifyerror.html">
+            
+                    
+                    Android：一个Multidex引发的VerifyError和Class Not Found问题
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.17" data-path="../Android/android-knowledge-point-layoutInflater.html">
+            
+                <a href="../Android/android-knowledge-point-layoutInflater.html">
+            
+                    
+                    Android -- 使用 LayoutInflater
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.18" data-path="../Android/android-usefull-class-function.html">
+            
+                <a href="../Android/android-usefull-class-function.html">
+            
+                    
+                    Android -- 那些让你相见恨晚的方法、类或接口
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.19" data-path="../Android/android-attr-style-custom.html">
+            
+                <a href="../Android/android-attr-style-custom.html">
+            
+                    
+                    Android -- 自定义Attribute和Style
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.20" data-path="../Android/android-unit-test.html">
+            
+                <a href="../Android/android-unit-test.html">
+            
+                    
+                    Android -- 单元测试
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.21" data-path="../Android/android-knowledge-custom-view-paras.html">
+            
+                <a href="../Android/android-knowledge-custom-view-paras.html">
+            
+                    
+                    Android -- View 构造参数解析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.22" data-path="../Android/android-source-code-analysis-sharedpreferences.html">
+            
+                <a href="../Android/android-source-code-analysis-sharedpreferences.html">
+            
+                    
+                    Android SharedPreferences 源码分析以及跨进程读写问题
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.23" data-path="../Android/android-cache-lrucache.html">
+            
+                <a href="../Android/android-cache-lrucache.html">
+            
+                    
+                    Android -- LruCache 使用和原理
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.24" data-path="../Android/android-knowledge-about-bitmap-memory-management.html">
+            
+                <a href="../Android/android-knowledge-about-bitmap-memory-management.html">
+            
+                    
+                    Android -- Bitmap 内存管理
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.25" data-path="../Android/android-support-multi-cpu-arch.html">
+            
+                <a href="../Android/android-support-multi-cpu-arch.html">
+            
+                    
+                    Android -- 多CPU架构支持所需要了解的知识
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.26" data-path="../Android/android-knowledge-point-drawable-cache.html">
+            
+                <a href="../Android/android-knowledge-point-drawable-cache.html">
+            
+                    
+                    Android：关于Drawable的缓存机制应该了解的知识
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.27" data-path="../Android/android-view-recycleview-basic-method-of-use.html">
+            
+                <a href="../Android/android-view-recycleview-basic-method-of-use.html">
+            
+                    
+                    Android View -- RecyclerView 的基本特点和使用方法
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.28" data-path="../Android/android-view-recycleview-staggeredgridlayoutmanager.html">
+            
+                <a href="../Android/android-view-recycleview-staggeredgridlayoutmanager.html">
+            
+                    
+                    Android RecyclerView -- StaggeredGridLayoutManager 多样式布局
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.29" data-path="../Android/android-knowledge-point-taskdescription.html">
+            
+                <a href="../Android/android-knowledge-point-taskdescription.html">
+            
+                    
+                    Android -- 使用 TaskDescription 定制任务管理器 Title
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.30" data-path="../Android/android-basic-oncreate-application-contentprovider.html">
+            
+                <a href="../Android/android-basic-oncreate-application-contentprovider.html">
+            
+                    
+                    Android -- Application 和 ContentProvider 的 onCreate() 方法的执行顺序
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.31" data-path="../Android/android-knowledge-about-activity-save-state.html">
+            
+                <a href="../Android/android-knowledge-about-activity-save-state.html">
+            
+                    
+                    Android -- Activity 之 onSaveInstanceState 深入理解
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.32" data-path="../Android/android-knowledge-about-view-save-state.html">
+            
+                <a href="../Android/android-knowledge-about-view-save-state.html">
+            
+                    
+                    Android -- View 之 onSaveInstanceState 深入理解
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.33" data-path="../Android/android-fileprovider.html">
+            
+                <a href="../Android/android-fileprovider.html">
+            
+                    
+                    FileProvider 的使用和源码分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.34" data-path="../Android/android-view-constraintlayout.html">
+            
+                <a href="../Android/android-view-constraintlayout.html">
+            
+                    
+                    Android View -- ConstraintLayout
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.35" data-path="../Android/android-text-font.html">
+            
+                <a href="../Android/android-text-font.html">
+            
+                    
+                    Android -- 字体设置
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.36" data-path="../Android/android-animation-implement.html">
+            
+                <a href="../Android/android-animation-implement.html">
+            
+                    
+                    Android 动画实践
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.37" data-path="../Android/android-animation-shared-element.html">
+            
+                <a href="../Android/android-animation-shared-element.html">
+            
+                    
+                    Android 共享元素动画实现以及原理
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.38" data-path="../Android/android-view-ghostview.html">
+            
+                <a href="../Android/android-view-ghostview.html">
+            
+                    
+                    Android View -- GhostView
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4" >
+            
+                <span>
+            
+                    
+                    Android App
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.4.1" data-path="../Android App/android-app-ganktoutiao.html">
+            
+                <a href="../Android App/android-app-ganktoutiao.html">
+            
+                    
+                    GankTouTiao —— 一个技术干货分享的APP
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.2" data-path="../Android App/quick-app-demo-ganktoutiao.html">
+            
+                <a href="../Android App/quick-app-demo-ganktoutiao.html">
+            
+                    
+                    快应用开发 GankTouTiao
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5" >
+            
+                <span>
+            
+                    
+                    Android Demo
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.5.1" data-path="../Android Demo/android-demo-live-wallpaper-snow.html">
+            
+                <a href="../Android Demo/android-demo-live-wallpaper-snow.html">
+            
+                    
+                    Android 动态壁纸
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6" >
+            
+                <span>
+            
+                    
+                    Android Launcher
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.6.1" data-path="../Android Launcher/android-launcher-introducation.html">
+            
+                <a href="../Android Launcher/android-launcher-introducation.html">
+            
+                    
+                    Android -- Launcher3 简介
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.2" data-path="../Android Launcher/android-launcher-compile-as.html">
+            
+                <a href="../Android Launcher/android-launcher-compile-as.html">
+            
+                    
+                    Android -- Launcher 独立编译
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.3" data-path="../Android Launcher/android-launcher-custom-1.html">
+            
+                <a href="../Android Launcher/android-launcher-custom-1.html">
+            
+                    
+                    Android -- Launcher 定制
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.4" data-path="../Android Launcher/android-launcher-ui-construction.html">
+            
+                <a href="../Android Launcher/android-launcher-ui-construction.html">
+            
+                    
+                    Android -- 页面结构
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.5" data-path="../Android Launcher/android-launcher-load-data.html">
+            
+                <a href="../Android Launcher/android-launcher-load-data.html">
+            
+                    
+                    Android -- 数据加载
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.6" data-path="../Android Launcher/android-launcher-launcherappsservice.html">
+            
+                <a href="../Android Launcher/android-launcher-launcherappsservice.html">
+            
+                    
+                    Android -- LauncherAppsService
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.7" data-path="../Android Launcher/android-launcher-icon-cache.html">
+            
+                <a href="../Android Launcher/android-launcher-icon-cache.html">
+            
+                    
+                    Android -- IconCache
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.8" data-path="../Android Launcher/android-launcher-recentsview_navigationbar.html">
+            
+                <a href="../Android Launcher/android-launcher-recentsview_navigationbar.html">
+            
+                    
+                    Android -- 导航栏启动多任务
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.9" data-path="../Android Launcher/android-launcher-recentsview-gesture.html">
+            
+                <a href="../Android Launcher/android-launcher-recentsview-gesture.html">
+            
+                    
+                    Android -- 手势导航启动多任务
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7" >
+            
+                <span>
+            
+                    
+                    Android SystemUI
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.7.1" data-path="../Android SystemUI/android-statusbar-and-navigationbar.html">
+            
+                <a href="../Android SystemUI/android-statusbar-and-navigationbar.html">
+            
+                    
+                    Android -- 状态栏导航栏相关设置
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.2" data-path="../Android SystemUI/android-statusbar-icon-color.html">
+            
+                <a href="../Android SystemUI/android-statusbar-icon-color.html">
+            
+                    
+                    SystemUI -- 状态栏字体和图标变色原理
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.3" data-path="../Android SystemUI/android-systemui-statusbar-states.html">
+            
+                <a href="../Android SystemUI/android-systemui-statusbar-states.html">
+            
+                    
+                    SystemUI -- SystemUI 的几种状态
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.4" data-path="../Android SystemUI/android-systemui-qsanimator.html">
+            
+                <a href="../Android SystemUI/android-systemui-qsanimator.html">
+            
+                    
+                    SystemUI -- QSTile 动画实现之 QSAnimator
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.5" data-path="../Android SystemUI/android-systemui-view-structure.html">
+            
+                <a href="../Android SystemUI/android-systemui-view-structure.html">
+            
+                    
+                    SystemUI -- 下拉通知面板页面结构和重要的类
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.6" data-path="../Android SystemUI/android-systemui-events-transfer-process.html">
+            
+                <a href="../Android SystemUI/android-systemui-events-transfer-process.html">
+            
+                    
+                    SystemUI -- 下拉面板事件分发流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.7" data-path="../Android SystemUI/android-systemui-notificationshadesindowview.html">
+            
+                <a href="../Android SystemUI/android-systemui-notificationshadesindowview.html">
+            
+                    
+                    SystemUI -- NotificationShadeWindowView
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.8" data-path="../Android SystemUI/android-systemui-notificationpanelview.html">
+            
+                <a href="../Android SystemUI/android-systemui-notificationpanelview.html">
+            
+                    
+                    SystemUI -- NotificationPanelView
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.9" data-path="../Android SystemUI/android-systemui-notificationstackscrolllayout.html">
+            
+                <a href="../Android SystemUI/android-systemui-notificationstackscrolllayout.html">
+            
+                    
+                    SystemUI -- NotificationStackScrollLayout
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.10" data-path="../Android SystemUI/android-systemui-notificationshadedepthcontroller.html">
+            
+                <a href="../Android SystemUI/android-systemui-notificationshadedepthcontroller.html">
+            
+                    
+                    SystemUI -- NotificationShadeDepthController
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.11" data-path="../Android SystemUI/android-systemui-panel-media-controller.html">
+            
+                <a href="../Android SystemUI/android-systemui-panel-media-controller.html">
+            
+                    
+                    SystemUI -- 多媒体通知
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.12" data-path="../Android SystemUI/android-systemui-quick-settings-tile.html">
+            
+                <a href="../Android SystemUI/android-systemui-quick-settings-tile.html">
+            
+                    
+                    SystemUI -- QS Tile
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.13" data-path="../Android SystemUI/android-systemui-with-dagger.html">
+            
+                <a href="../Android SystemUI/android-systemui-with-dagger.html">
+            
+                    
+                    SystemUI -- Dagger2 的应用
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.8" >
+            
+                <span>
+            
+                    
+                    Android 框架
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.8.1" data-path="../Android 框架/android-framework-article-summary.html">
+            
+                <a href="../Android 框架/android-framework-article-summary.html">
+            
+                    
+                    Android Framework 文章汇总
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.8.2" data-path="../Android 框架/android-framework-clienttransaction.html">
+            
+                <a href="../Android 框架/android-framework-clienttransaction.html">
+            
+                    
+                    Android AMS 之 ClientTransaction 生命周期管理机制
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.8.3" data-path="../Android 框架/android-framework-activity-starting-process.html">
+            
+                <a href="../Android 框架/android-framework-activity-starting-process.html">
+            
+                    
+                    Android AMS 之 Activity 启动流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.8.4" data-path="../Android 框架/android-framework-onactivityresult.html">
+            
+                <a href="../Android 框架/android-framework-onactivityresult.html">
+            
+                    
+                    Activity 之 onActivityResult 原理
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.8.5" data-path="../Android 框架/android-framework-app-wms-ams-communication.html">
+            
+                <a href="../Android 框架/android-framework-app-wms-ams-communication.html">
+            
+                    
+                    Android APP 和 WMS AMS 通信
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.8.6" data-path="../Android 框架/android-framework-wmshell.html">
+            
+                <a href="../Android 框架/android-framework-wmshell.html">
+            
+                    
+                    WM Shell 架构
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.8.7" data-path="../Android 框架/android-framework-wallpaper-manager-service.html">
+            
+                <a href="../Android 框架/android-framework-wallpaper-manager-service.html">
+            
+                    
+                    Android 壁纸管理服务
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.9" >
+            
+                <span>
+            
+                    
+                    Android 事件分发体系
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.9.1" data-path="../Android 事件分发体系/android-knowledge-event-transfer-process.html">
+            
+                <a href="../Android 事件分发体系/android-knowledge-event-transfer-process.html">
+            
+                    
+                    Android View 事件处理基础知识
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.9.2" data-path="../Android 事件分发体系/android-knowledge-event-transfer-process-source-code.html">
+            
+                <a href="../Android 事件分发体系/android-knowledge-event-transfer-process-source-code.html">
+            
+                    
+                    Android 事件处理流程源码解析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.9.3" data-path="../Android 事件分发体系/android-knowledge-event-transfer-process-touchtarget.html">
+            
+                <a href="../Android 事件分发体系/android-knowledge-event-transfer-process-touchtarget.html">
+            
+                    
+                    Android View 事件处理流程 -- TouchTarget
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.9.4" data-path="../Android 事件分发体系/android-knowledge-event-transfer-process-multi-point.html">
+            
+                <a href="../Android 事件分发体系/android-knowledge-event-transfer-process-multi-point.html">
+            
+                    
+                    Android View 事件处理流程 -- 多点触控
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.9.5" data-path="../Android 事件分发体系/android-knowledge-event-transfer-process-debug-skill.html">
+            
+                <a href="../Android 事件分发体系/android-knowledge-event-transfer-process-debug-skill.html">
+            
+                    
+                    Android Input事件相关Debug技巧
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.9.6" data-path="../Android 事件分发体系/android-knowledge-window-event-settings.html">
+            
+                <a href="../Android 事件分发体系/android-knowledge-window-event-settings.html">
+            
+                    
+                    Android 窗口事件相关设置
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.9.7" data-path="../Android 事件分发体系/android-knowledge-input-system.html">
+            
+                <a href="../Android 事件分发体系/android-knowledge-input-system.html">
+            
+                    
+                    Android Input 系统简介
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10" >
+            
+                <span>
+            
+                    
+                    Android 窗口系统
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.10.1" data-path="../Android 窗口系统/android-window-system-class.html">
+            
+                <a href="../Android 窗口系统/android-window-system-class.html">
+            
+                    
+                    Android 窗口系统相关类
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.2" data-path="../Android 窗口系统/android-window-system-window-tree-basic.html">
+            
+                <a href="../Android 窗口系统/android-window-system-window-tree-basic.html">
+            
+                    
+                    Android 窗口层级树
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.3" data-path="../Android 窗口系统/android-window-system-build-window-tree.html">
+            
+                <a href="../Android 窗口系统/android-window-system-build-window-tree.html">
+            
+                    
+                    Android 窗口层级构建
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.4" data-path="../Android 窗口系统/android-window-system-add-window.html">
+            
+                <a href="../Android 窗口系统/android-window-system-add-window.html">
+            
+                    
+                    Android 窗口层级树-添加窗口
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.5" data-path="../Android 窗口系统/android-window-system-window-layout.html">
+            
+                <a href="../Android 窗口系统/android-window-system-window-layout.html">
+            
+                    
+                    Android 窗口系统-窗口布局
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.6" data-path="../Android 窗口系统/android-window-system-window-draw.html">
+            
+                <a href="../Android 窗口系统/android-window-system-window-draw.html">
+            
+                    
+                    Android 窗口系统-窗口绘制
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.7" data-path="../Android 窗口系统/android-window-system-window-refresh.html">
+            
+                <a href="../Android 窗口系统/android-window-system-window-refresh.html">
+            
+                    
+                    Android 窗口系统-窗口刷新
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.8" data-path="../Android 窗口系统/android-window-system-window-show-hide.html">
+            
+                <a href="../Android 窗口系统/android-window-system-window-show-hide.html">
+            
+                    
+                    Android 窗口系统-窗口的显示和隐藏
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.9" data-path="../Android 窗口系统/android-window-system-window-tree-layer-tree.html">
+            
+                <a href="../Android 窗口系统/android-window-system-window-tree-layer-tree.html">
+            
+                    
+                    Android 窗口层级树-Layer树
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.10" data-path="../Android 窗口系统/android-window-system-configuration-container.html">
+            
+                <a href="../Android 窗口系统/android-window-system-configuration-container.html">
+            
+                    
+                    Android ConfigurationContainer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.11" data-path="../Android 窗口系统/android-window-system-move-task.html">
+            
+                <a href="../Android 窗口系统/android-window-system-move-task.html">
+            
+                    
+                    Android 窗口系统-移栈
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.12" data-path="../Android 窗口系统/android-window-system-add-window-type-token.html">
+            
+                <a href="../Android 窗口系统/android-window-system-add-window-type-token.html">
+            
+                    
+                    Android 添加窗口的 token 和 type 与窗口层级
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.13" data-path="../Android 窗口系统/android-window-system-animation-overview.html">
+            
+                <a href="../Android 窗口系统/android-window-system-animation-overview.html">
+            
+                    
+                    Android 窗口动画概述
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.14" data-path="../Android 窗口系统/android-window-system-animation-add-local-animation.html">
+            
+                <a href="../Android 窗口系统/android-window-system-animation-add-local-animation.html">
+            
+                    
+                    Android 本地窗口动画流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.15" data-path="../Android 窗口系统/android-window-system-animation-windowcontainer-animation.html">
+            
+                <a href="../Android 窗口系统/android-window-system-animation-windowcontainer-animation.html">
+            
+                    
+                    Android WindowContainer 动画
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.16" data-path="../Android 窗口系统/android-window-system-startingwindow.html">
+            
+                <a href="../Android 窗口系统/android-window-system-startingwindow.html">
+            
+                    
+                    Android StartingWindow
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.17" data-path="../Android 窗口系统/android-window-system-animation-remote-animation.html">
+            
+                <a href="../Android 窗口系统/android-window-system-animation-remote-animation.html">
+            
+                    
+                    Android 桌面远程窗口动画流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.18" data-path="../Android 窗口系统/android-window-system-animation-systemui-keyguard-going-away.html">
+            
+                <a href="../Android 窗口系统/android-window-system-animation-systemui-keyguard-going-away.html">
+            
+                    
+                    Android SystemUI 解锁动画
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.19" data-path="../Android 窗口系统/android-window-system-window-focus.html">
+            
+                <a href="../Android 窗口系统/android-window-system-window-focus.html">
+            
+                    
+                    Android 窗口焦点
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.20" data-path="../Android 窗口系统/android-window-system-screen-rotation.html">
+            
+                <a href="../Android 窗口系统/android-window-system-screen-rotation.html">
+            
+                    
+                    Android 屏幕旋转流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.21" data-path="../Android 窗口系统/android-window-system-shell-transitions-base.html">
+            
+                <a href="../Android 窗口系统/android-window-system-shell-transitions-base.html">
+            
+                    
+                    Android ShellTransitions
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.22" data-path="../Android 窗口系统/android-window-system-shell-transitions-multi-animation.html">
+            
+                <a href="../Android 窗口系统/android-window-system-shell-transitions-multi-animation.html">
+            
+                    
+                    Android ShellTransition 多动画执行场景
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.23" data-path="../Android 窗口系统/android-window-system-blast-sync-engine.html">
+            
+                <a href="../Android 窗口系统/android-window-system-blast-sync-engine.html">
+            
+                    
+                    Android BLASTSyncEngine
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.24" data-path="../Android 窗口系统/android-window-system-surface-sync-group.html">
+            
+                <a href="../Android 窗口系统/android-window-system-surface-sync-group.html">
+            
+                    
+                    Android Surface 同步机制 SurfaceSyncGroup
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.25" data-path="../Android 窗口系统/android-window-system-window-container-transaction.html">
+            
+                <a href="../Android 窗口系统/android-window-system-window-container-transaction.html">
+            
+                    
+                    Android WindowContainerTransaction
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.26" data-path="../Android 窗口系统/android-window-system-window-organizer-controller.html">
+            
+                <a href="../Android 窗口系统/android-window-system-window-organizer-controller.html">
+            
+                    
+                    Android WindowOrganizerController
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.27" data-path="../Android 窗口系统/android-window-system-sync-transaction-queue.html">
+            
+                <a href="../Android 窗口系统/android-window-system-sync-transaction-queue.html">
+            
+                    
+                    Android SyncTransactionQueue
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.28" data-path="../Android 窗口系统/android-window-system-task-switch-animation.html">
+            
+                <a href="../Android 窗口系统/android-window-system-task-switch-animation.html">
+            
+                    
+                    Android Task 切换动画
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.29" data-path="../Android 窗口系统/android-window-system-window-container-visibility-settings.html">
+            
+                <a href="../Android 窗口系统/android-window-system-window-container-visibility-settings.html">
+            
+                    
+                    窗口动画和Activity生命周期与窗口可见性设置
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.30" data-path="../Android 窗口系统/android-window-system-split-screen.html">
+            
+                <a href="../Android 窗口系统/android-window-system-split-screen.html">
+            
+                    
+                    Android 分屏
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.31" data-path="../Android 窗口系统/android-window-system-one-hand.html">
+            
+                <a href="../Android 窗口系统/android-window-system-one-hand.html">
+            
+                    
+                    Android 单手模式
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.32" data-path="../Android 窗口系统/android-window-system-pip.html">
+            
+                <a href="../Android 窗口系统/android-window-system-pip.html">
+            
+                    
+                    Android PIP模式
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.33" data-path="../Android 窗口系统/android-window-system-desktop-mode.html">
+            
+                <a href="../Android 窗口系统/android-window-system-desktop-mode.html">
+            
+                    
+                    Android 桌面模式
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.34" data-path="../Android 窗口系统/android-window-system-predictive-back-gesture.html">
+            
+                <a href="../Android 窗口系统/android-window-system-predictive-back-gesture.html">
+            
+                    
+                    Android 可预测返回手势动画
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.35" data-path="../Android 窗口系统/android-window-system-update-input-info.html">
+            
+                <a href="../Android 窗口系统/android-window-system-update-input-info.html">
+            
+                    
+                    Android 窗口更新 Input 信息
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.36" data-path="../Android 窗口系统/android-window-system-fixed-rotation.html">
+            
+                <a href="../Android 窗口系统/android-window-system-fixed-rotation.html">
+            
+                    
+                    Android 屏幕旋转之 Fixed Rotation 流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.37" data-path="../Android 窗口系统/android-window-system-async-rotation.html">
+            
+                <a href="../Android 窗口系统/android-window-system-async-rotation.html">
+            
+                    
+                    Android 屏幕旋转之 AsyncRotation
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.38" data-path="../Android 窗口系统/android-window-system-unknownappvisibilitycontroller.html">
+            
+                <a href="../Android 窗口系统/android-window-system-unknownappvisibilitycontroller.html">
+            
+                    
+                    Android WMS UnknownAppVisibilityController
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.39" data-path="../Android 窗口系统/android-window-system-virtual-display.html">
+            
+                <a href="../Android 窗口系统/android-window-system-virtual-display.html">
+            
+                    
+                    Android 虚拟屏
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.40" data-path="../Android 窗口系统/android-window-system-letter-box.html">
+            
+                <a href="../Android 窗口系统/android-window-system-letter-box.html">
+            
+                    
+                    Android LetterBox
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.41" data-path="../Android 窗口系统/android-window-system-surface-control-view-host.html">
+            
+                <a href="../Android 窗口系统/android-window-system-surface-control-view-host.html">
+            
+                    
+                    Android SurfaceControlViewHost 实现 WindowlessWindow
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.42" data-path="../Android 窗口系统/android-window-system-launch-cookies.html">
+            
+                <a href="../Android 窗口系统/android-window-system-launch-cookies.html">
+            
+                    
+                    Android LaunchCookie
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11" >
+            
+                <span>
+            
+                    
+                    Android 图形系统
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.11.1" data-path="../Android 图形系统/android-graphic-system-surfaceview.html">
+            
+                <a href="../Android 图形系统/android-graphic-system-surfaceview.html">
+            
+                    
+                    Android 图形系统 -- SurfaceView 使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.2" data-path="../Android 图形系统/android-graphic-system-textureview.html">
+            
+                <a href="../Android 图形系统/android-graphic-system-textureview.html">
+            
+                    
+                    Android 图形系统 -- TextureView 使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.3" data-path="../Android 图形系统/android-graphic-system-glsurfaceview.html">
+            
+                <a href="../Android 图形系统/android-graphic-system-glsurfaceview.html">
+            
+                    
+                    Android 图形系统 -- GLSurfaceView 使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.4" data-path="../Android 图形系统/android-graphic-system-canvas-sample.html">
+            
+                <a href="../Android 图形系统/android-graphic-system-canvas-sample.html">
+            
+                    
+                    Android 图形系统 -- Canvas使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.5" data-path="../Android 图形系统/android-graphic-system-blur-effect.html">
+            
+                <a href="../Android 图形系统/android-graphic-system-blur-effect.html">
+            
+                    
+                    Android 图形系统 -- 实现毛玻璃的几种方法
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.6" data-path="../Android 图形系统/android-graphic-system-decorview-viewrootimpl.html">
+            
+                <a href="../Android 图形系统/android-graphic-system-decorview-viewrootimpl.html">
+            
+                    
+                    Android 图形系统 -- Window，DecorView 和 ViewRootImpl
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.7" data-path="../Android 图形系统/android-graphic-system-view-drawing.html">
+            
+                <a href="../Android 图形系统/android-graphic-system-view-drawing.html">
+            
+                    
+                    Android 图形系统 -- View 绘制流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.8" data-path="../Android 图形系统/android-graphic-system-hardwareaccelerated.html">
+            
+                <a href="../Android 图形系统/android-graphic-system-hardwareaccelerated.html">
+            
+                    
+                    Android 图形系统 -- 硬件加速渲染
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.9" data-path="../Android 图形系统/android-graphic-system-view-layer-type.html">
+            
+                <a href="../Android 图形系统/android-graphic-system-view-layer-type.html">
+            
+                    
+                    Android Hardware Layer 详解
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.10" data-path="../Android 图形系统/android-graphic-system-basic-class.html">
+            
+                <a href="../Android 图形系统/android-graphic-system-basic-class.html">
+            
+                    
+                    Android 图形系统基础知识和相关类
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.11" data-path="../Android 图形系统/android-graphic-system-surfaceflinger-dump.html">
+            
+                <a href="../Android 图形系统/android-graphic-system-surfaceflinger-dump.html">
+            
+                    
+                    Android SurfaceFlinger dump 信息分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.12" data-path="../Android 图形系统/android-graphic-system-vsync.html">
+            
+                <a href="../Android 图形系统/android-graphic-system-vsync.html">
+            
+                    
+                    Android VSYNC 机制
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.12" >
+            
+                <span>
+            
+                    
+                    Android 插件化
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.12.1" data-path="../Android 插件化/open-source-android-plugins-small-sample.html">
+            
+                <a href="../Android 插件化/open-source-android-plugins-small-sample.html">
+            
+                    
+                    Android 插件化框架Small解析--开始了解Small
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.12.2" data-path="../Android 插件化/open-source-android-plugins-small-init.html">
+            
+                <a href="../Android 插件化/open-source-android-plugins-small-init.html">
+            
+                    
+                    Android 插件化框架Small解析--初始化
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.12.3" data-path="../Android 插件化/open-source-android-plugins-small-principle.html">
+            
+                <a href="../Android 插件化/open-source-android-plugins-small-principle.html">
+            
+                    
+                    Android 插件化框架Small解析--动态注册组件原理及启动插件Activity流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.12.4" data-path="../Android 插件化/android-plugins-dynamic-load-demo.html">
+            
+                <a href="../Android 插件化/android-plugins-dynamic-load-demo.html">
+            
+                    
+                    Android 插件化 -- 类的动态加载实践
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.12.5" data-path="../Android 插件化/android-plugins-dynamic-load-source-code-analysis.html">
+            
+                <a href="../Android 插件化/android-plugins-dynamic-load-source-code-analysis.html">
+            
+                    
+                    Android 插件化 -- ClassLoader 源码分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.12.6" data-path="../Android 插件化/open-source-android-plugins-small-dynamic-load-class.html">
+            
+                <a href="../Android 插件化/open-source-android-plugins-small-dynamic-load-class.html">
+            
+                    
+                    Android 插件化框架Small解析 -- 类的动态加载源码分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.12.7" data-path="../Android 插件化/android-plugins-dynamic-load-res-demo.html">
+            
+                <a href="../Android 插件化/android-plugins-dynamic-load-res-demo.html">
+            
+                    
+                    Android 插件化 -- 资源的动态加载实践
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.13" >
+            
+                <span>
+            
+                    
+                    Android 架构
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.13.1" data-path="../Android 架构/android-architecture-mvc-mvp-mvvm.html">
+            
+                <a href="../Android 架构/android-architecture-mvc-mvp-mvvm.html">
+            
+                    
+                    Android 架构 -- MVC、MVP 和 MVVP 架构浅析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.13.2" data-path="../Android 架构/android-architecture-google-samples.html">
+            
+                <a href="../Android 架构/android-architecture-google-samples.html">
+            
+                    
+                    Android 架构 android-architecture 简介
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.13.3" data-path="../Android 架构/android-architecture-google-mvp-basic.html">
+            
+                <a href="../Android 架构/android-architecture-google-mvp-basic.html">
+            
+                    
+                    Android 架构 android-architecture 之 mvp 介绍
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.13.4" data-path="../Android 架构/android-architecture-components-jetpack.html">
+            
+                <a href="../Android 架构/android-architecture-components-jetpack.html">
+            
+                    
+                    Android JetPack
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.13.5" data-path="../Android 架构/android-architecture-components-room.html">
+            
+                <a href="../Android 架构/android-architecture-components-room.html">
+            
+                    
+                    Android Architecture Components -- Room
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.13.6" data-path="../Android 架构/android-architecture-components-lifecycle.html">
+            
+                <a href="../Android 架构/android-architecture-components-lifecycle.html">
+            
+                    
+                    Android Architecture Components -- LifeCycle
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.13.7" data-path="../Android 架构/android-architecture-components-livedata.html">
+            
+                <a href="../Android 架构/android-architecture-components-livedata.html">
+            
+                    
+                    Android Architecture Components -- LiveData
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.13.8" data-path="../Android 架构/android-architecture-components-viewmodel.html">
+            
+                <a href="../Android 架构/android-architecture-components-viewmodel.html">
+            
+                    
+                    Android Architecture Components -- ViewModel
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.14" >
+            
+                <span>
+            
+                    
+                    Android 消息机制
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.14.1" data-path="../Android 消息机制/android-knowledge-message-system-source-code.html">
+            
+                <a href="../Android 消息机制/android-knowledge-message-system-source-code.html">
+            
+                    
+                    Android 消息机制 -- 源码分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.14.2" data-path="../Android 消息机制/android-knowledge-message-system-idlehandler-sample.html">
+            
+                <a href="../Android 消息机制/android-knowledge-message-system-idlehandler-sample.html">
+            
+                    
+                    Android 消息机制 -- IdleHandler 的用法
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.15" >
+            
+                <span>
+            
+                    
+                    Android 线程
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.15.1" data-path="../Android 线程/android-thread-handlerthread-source-code.html">
+            
+                <a href="../Android 线程/android-thread-handlerthread-source-code.html">
+            
+                    
+                    Android 线程 -- HandlerThread 使用及源码分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.15.2" data-path="../Android 线程/android-knowledge-intent-service-source-code.html">
+            
+                <a href="../Android 线程/android-knowledge-intent-service-source-code.html">
+            
+                    
+                    Android 线程 -- IntentService 使用及源码分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.15.3" data-path="../Android 线程/android-thread-conditionvariable.html">
+            
+                <a href="../Android 线程/android-thread-conditionvariable.html">
+            
+                    
+                    Android 线程 -- ConditionVariable 用法
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.16" >
+            
+                <span>
+            
+                    
+                    Android 组件
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.16.1" data-path="../Android 组件/android-compnent-activitygroup.html">
+            
+                <a href="../Android 组件/android-compnent-activitygroup.html">
+            
+                    
+                    Android 组件 -- ActivityGroup 简介
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.16.2" data-path="../Android 组件/android-knowledge-about-broadcast.html">
+            
+                <a href="../Android 组件/android-knowledge-about-broadcast.html">
+            
+                    
+                    Android 组件 -- 广播
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.16.3" data-path="../Android 组件/android-knowledge-about-contentprovider.html">
+            
+                <a href="../Android 组件/android-knowledge-about-contentprovider.html">
+            
+                    
+                    Android 组件 -- ContentProvider 使用以及源码分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.16.4" data-path="../Android 组件/android-knowledge-about-service.html">
+            
+                <a href="../Android 组件/android-knowledge-about-service.html">
+            
+                    
+                    Android 组件 -- 关于 Service
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.16.5" data-path="../Android 组件/android-knowledge-about-foreground-service.html">
+            
+                <a href="../Android 组件/android-knowledge-about-foreground-service.html">
+            
+                    
+                    Android 组件 -- 前台 Service
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.17" >
+            
+                <span>
+            
+                    
+                    Android实用技巧
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.17.1" data-path="../Android实用技巧/android-development-skills-adb-logcat.html">
+            
+                <a href="../Android实用技巧/android-development-skills-adb-logcat.html">
+            
+                    
+                    Android实用技巧之adb命令：logcat命令的使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.17.2" data-path="../Android实用技巧/android-development-skills-dumpsys.html">
+            
+                <a href="../Android实用技巧/android-development-skills-dumpsys.html">
+            
+                    
+                    Android实用技巧之adb命令：dumpsys命令的使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.17.3" data-path="../Android实用技巧/android-development-skills-props.html">
+            
+                <a href="../Android实用技巧/android-development-skills-props.html">
+            
+                    
+                    Android实用技巧之adb命令：getprop，setprop，watchprops命令的使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.17.4" data-path="../Android实用技巧/android-development-skills-adb-am.html">
+            
+                <a href="../Android实用技巧/android-development-skills-adb-am.html">
+            
+                    
+                    Android实用技巧之adb命令：am 命令的使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.17.5" data-path="../Android实用技巧/android-development-skills-adb-wm.html">
+            
+                <a href="../Android实用技巧/android-development-skills-adb-wm.html">
+            
+                    
+                    Android实用技巧之adb命令：wm 命令的使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.17.6" data-path="../Android实用技巧/android-development-skills-kill.html">
+            
+                <a href="../Android实用技巧/android-development-skills-kill.html">
+            
+                    
+                    Android实用技巧之adb命令：kill 命令的使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.17.7" data-path="../Android实用技巧/android-development-skills-device-info.html">
+            
+                <a href="../Android实用技巧/android-development-skills-device-info.html">
+            
+                    
+                    Android 查看硬件信息命令
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.17.8" data-path="../Android实用技巧/android-development-skills-am-trace-ipc.html">
+            
+                <a href="../Android实用技巧/android-development-skills-am-trace-ipc.html">
+            
+                    
+                    Android 查看 Binder 调用信息
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.17.9" data-path="../Android实用技巧/android-development-skills-surfacecontrolregistry.html">
+            
+                <a href="../Android实用技巧/android-development-skills-surfacecontrolregistry.html">
+            
+                    
+                    Android 使用 SurfaceControlRegistry 查看 SurfaceControl 调用记录
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18" >
+            
+                <span>
+            
+                    
+                    Android开源项目
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.18.1" data-path="../Android开源项目/open-source-andfix-introduction.html">
+            
+                <a href="../Android开源项目/open-source-andfix-introduction.html">
+            
+                    
+                    Android热修复之AndFix使用简介
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.2" data-path="../Android开源项目/open-source-andfix-source-code-analysis.html">
+            
+                <a href="../Android开源项目/open-source-andfix-source-code-analysis.html">
+            
+                    
+                    Android热修复之AndFix源码分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.3" data-path="../Android开源项目/open-source-lottie-android-introduction.html">
+            
+                <a href="../Android开源项目/open-source-lottie-android-introduction.html">
+            
+                    
+                    开源项目- Lottie 简介
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.4" data-path="../Android开源项目/open-source-lottie-android-source-code-analysis.html">
+            
+                <a href="../Android开源项目/open-source-lottie-android-source-code-analysis.html">
+            
+                    
+                    开源项目- Lottie 源码分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.5" data-path="../Android开源项目/open-source-rxjava-guide-base.html">
+            
+                <a href="../Android开源项目/open-source-rxjava-guide-base.html">
+            
+                    
+                    RxJava 使用指南 -- 基本概念、数据流创建和线程调度
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.6" data-path="../Android开源项目/open-source-rxjava-guide-operator.html">
+            
+                <a href="../Android开源项目/open-source-rxjava-guide-operator.html">
+            
+                    
+                    RxJava 使用指南 -- 操作符介绍
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.7" data-path="../Android开源项目/open-source-rxjava-guide-flowable.html">
+            
+                <a href="../Android开源项目/open-source-rxjava-guide-flowable.html">
+            
+                    
+                    RxJava 使用指南 -- Flowable 和 Subscriber
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.8" data-path="../Android开源项目/open-source-rxjava-single-completable-maybe.html">
+            
+                <a href="../Android开源项目/open-source-rxjava-single-completable-maybe.html">
+            
+                    
+                    RxJava 使用指南 -- Single、Completable 和 Maybe 的用法
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.9" data-path="../Android开源项目/open-source-rxjava-event-bus.html">
+            
+                <a href="../Android开源项目/open-source-rxjava-event-bus.html">
+            
+                    
+                    RxJava 使用指南 -- PublishSubject 实现事件总线
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.10" data-path="../Android开源项目/open-source-retrofit-guide.html">
+            
+                <a href="../Android开源项目/open-source-retrofit-guide.html">
+            
+                    
+                    Retrofit 2 使用指南
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.11" data-path="../Android开源项目/open-source-retrofit-source-code-analysis-start.html">
+            
+                <a href="../Android开源项目/open-source-retrofit-source-code-analysis-start.html">
+            
+                    
+                    Retrofit 2 源码分析 -- 启动篇
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.12" data-path="../Android开源项目/open-source-retrofit-source-code-analysis-request.html">
+            
+                <a href="../Android开源项目/open-source-retrofit-source-code-analysis-request.html">
+            
+                    
+                    Retrofit 2 源码分析一 -- 数据请求流程解析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.13" data-path="../Android开源项目/open-source-retrofit-source-code-analysis-rxjava.html">
+            
+                <a href="../Android开源项目/open-source-retrofit-source-code-analysis-rxjava.html">
+            
+                    
+                    Retrofit 2 源码分析二 -- RxJava2
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.14" data-path="../Android开源项目/open-source-eventbus-guide-base.html">
+            
+                <a href="../Android开源项目/open-source-eventbus-guide-base.html">
+            
+                    
+                    EventBus -- 基本用法
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.15" data-path="../Android开源项目/open-source-eventbus-source-code.html">
+            
+                <a href="../Android开源项目/open-source-eventbus-source-code.html">
+            
+                    
+                    EventBus -- 源码分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.16" data-path="../Android开源项目/open-source-sqlbrite.html">
+            
+                <a href="../Android开源项目/open-source-sqlbrite.html">
+            
+                    
+                    SqlBrite 使用指南和源码分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.17" data-path="../Android开源项目/open-source-okhttp-usage.html">
+            
+                <a href="../Android开源项目/open-source-okhttp-usage.html">
+            
+                    
+                    OkHttp 使用指南 -- 基本使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.18" data-path="../Android开源项目/open-source-okhttp-workflow.html">
+            
+                <a href="../Android开源项目/open-source-okhttp-workflow.html">
+            
+                    
+                    OkHttp 源码分析 -- 基本流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.19" data-path="../Android开源项目/open-source-okhttp-interceptor.html">
+            
+                <a href="../Android开源项目/open-source-okhttp-interceptor.html">
+            
+                    
+                    OkHttp 源码分析 -- 拦截器
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.20" data-path="../Android开源项目/open-source-okhttp-dispatcher-task-queue.html">
+            
+                <a href="../Android开源项目/open-source-okhttp-dispatcher-task-queue.html">
+            
+                    
+                    OkHttp 源码分析 -- 任务队列
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.21" data-path="../Android开源项目/open-source-okhttp-cache.html">
+            
+                <a href="../Android开源项目/open-source-okhttp-cache.html">
+            
+                    
+                    OkHttp 源码分析 -- 缓存
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.22" data-path="../Android开源项目/open-source-okhttp-websocket.html">
+            
+                <a href="../Android开源项目/open-source-okhttp-websocket.html">
+            
+                    
+                    OkHttp 源码分析 -- WebSocket 实现原理
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.23" data-path="../Android开源项目/open-source-okhttp-connect-pool.html">
+            
+                <a href="../Android开源项目/open-source-okhttp-connect-pool.html">
+            
+                    
+                    OkHttp 源码分析 -- 连接池
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.24" data-path="../Android开源项目/open-source-dagger2-baisc.html">
+            
+                <a href="../Android开源项目/open-source-dagger2-baisc.html">
+            
+                    
+                    Dagger2 的基本使用和原理
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.18.25" data-path="../Android开源项目/open-source-dagger2-advance.html">
+            
+                <a href="../Android开源项目/open-source-dagger2-advance.html">
+            
+                    
+                    Dagger2 进阶
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19" >
+            
+                <span>
+            
+                    
+                    Android性能优化
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.19.1" data-path="../Android性能优化/android-performance-optimization-article-summary.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-article-summary.html">
+            
+                    
+                    Android 性能优化文章汇总
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.2" data-path="../Android性能优化/android-performance-optimization-toast-badtoken.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-toast-badtoken.html">
+            
+                    
+                    Android 性能优化实战篇 -- 解决 Toast BadTokenException 异常
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.3" data-path="../Android性能优化/android-performance-optimization-privateflags-crash.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-privateflags-crash.html">
+            
+                    
+                    Android 性能优化实战篇 -- 解决 'int android.view.View.mPrivateFlags' NullPointerException
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.4" data-path="../Android性能优化/android-performance-optimization-crash-handler.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-crash-handler.html">
+            
+                    
+                    Android 性能优化实战篇 -- 使用 CrashHandler 处理崩溃问题
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.5" data-path="../Android性能优化/android-performance-optimization-sp.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-sp.html">
+            
+                    
+                    Android 性能优化理论篇 -- SharedPreference 使用优化
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.6" data-path="../Android性能优化/android-performance-optimization-rotate-screen.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-rotate-screen.html">
+            
+                    
+                    Android 性能优化实战篇 -- 旋转屏幕优化
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.7" data-path="../Android性能优化/android-code-optimization-tools-link.html">
+            
+                <a href="../Android性能优化/android-code-optimization-tools-link.html">
+            
+                    
+                    Android 代码优化工具篇 -- 静态代码检测工具
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.8" data-path="../Android性能优化/android-performance-optimization-apk-analyzer.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-apk-analyzer.html">
+            
+                    
+                    Android 性能优化工具篇 -- APK Analyzer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.9" data-path="../Android性能优化/android-performance-optimization-reduce-apk-size.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-reduce-apk-size.html">
+            
+                    
+                    Android 性能优化实战篇 -- APK 瘦身
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.10" data-path="../Android性能优化/android-performance-optimization-anr.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-anr.html">
+            
+                    
+                    Android 性能优化理论篇 -- ANR
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.11" data-path="../Android性能优化/android-performance-optimization-anr-1.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-anr-1.html">
+            
+                    
+                    Android 性能优化实战篇 -- ANR 问题分析1
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.12" data-path="../Android性能优化/android-performance-optimization-anr-2.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-anr-2.html">
+            
+                    
+                    Android 性能优化实战篇 -- ANR 问题分析2
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.13" data-path="../Android性能优化/android-performance-optimization-include-merge-viewstubs.md">
+            
+                <span>
+            
+                    
+                    Android 性能优化理论篇 -- 布局优化三剑客include、merge、ViewStub
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.14" data-path="../Android性能优化/android-performance-optimization-tools-leak-canary.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-tools-leak-canary.html">
+            
+                    
+                    Android 性能优化工具篇 -- LeakCanary 检测内存泄漏
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.15" data-path="../Android性能优化/android-performance-optimization-use-mat-to-analyse-leak.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-use-mat-to-analyse-leak.html">
+            
+                    
+                    Android 性能优化工具篇 -- MAT分析内存泄漏
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.16" data-path="../Android性能优化/android-performance-optimization-traceview.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-traceview.html">
+            
+                    
+                    Android 性能优化工具篇 -- TraceView的使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.17" data-path="../Android性能优化/android-performance-optimization-reasons-fo-memory-leak.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-reasons-fo-memory-leak.html">
+            
+                    
+                    Android 性能优化理论篇 -- 内存泄漏的几种情形
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.18" data-path="../Android性能优化/android-performance-optimization-reduce-ram.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-reduce-ram.html">
+            
+                    
+                    Android 性能优化理论篇 -- 内存优化
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.19" data-path="../Android性能优化/android-performance-optimization-memory.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-memory.html">
+            
+                    
+                    Android 性能优化实战篇 -- 内存优化
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.20" data-path="../Android性能优化/android-performance-optimization-tools-ram-analysis.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-tools-ram-analysis.html">
+            
+                    
+                    Android 性能优化工具篇 -- 内存查看和分析工具
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.21" data-path="../Android性能优化/android-performance-optimization-profiler-leak.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-profiler-leak.html">
+            
+                    
+                    Android 性能优化工具篇 -- Android Profiler 分析内存使用和内存泄漏
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.22" data-path="../Android性能优化/android-performance-optimization-tools-simpleperf.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-tools-simpleperf.html">
+            
+                    
+                    Android 卡顿优化工具篇 -- SimplePerf
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.19.23" data-path="../Android性能优化/android-performance-optimization-tools-perfetto.html">
+            
+                <a href="../Android性能优化/android-performance-optimization-tools-perfetto.html">
+            
+                    
+                    Android 卡顿优化工具篇 -- Perfetto 的使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.20" >
+            
+                <span>
+            
+                    
+                    Android源码分析
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.20.1" data-path="../Android源码分析/android-source-code-analysis-package-manager-init.html">
+            
+                <a href="../Android源码分析/android-source-code-analysis-package-manager-init.html">
+            
+                    
+                    Android PackageManager相关源码分析之PMS初始化
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.20.2" data-path="../Android源码分析/android-source-code-analysis-package-manager-installation.html">
+            
+                <a href="../Android源码分析/android-source-code-analysis-package-manager-installation.html">
+            
+                    
+                    Android PackageManager相关源码分析之安装应用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.20.3" data-path="../Android源码分析/android-source-code-analysis-package-manager-uninstallation.html">
+            
+                <a href="../Android源码分析/android-source-code-analysis-package-manager-uninstallation.html">
+            
+                    
+                    Android PackageManager相关源码分析之卸载应用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.20.4" data-path="../Android源码分析/android-source-code-analysis-package-manager-installd.html">
+            
+                <a href="../Android源码分析/android-source-code-analysis-package-manager-installd.html">
+            
+                    
+                    Android PackageManager相关源码分析之installd进程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.20.5" data-path="../Android源码分析/android-source-code-analysis-ams-app-ipc.html">
+            
+                <a href="../Android源码分析/android-source-code-analysis-ams-app-ipc.html">
+            
+                    
+                    Android AMS 与 APP 进程通信
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.20.6" data-path="../Android源码分析/android-source-code-analysis-activity-start-process.html">
+            
+                <a href="../Android源码分析/android-source-code-analysis-activity-start-process.html">
+            
+                    
+                    Android startActivity 流程分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.20.7" data-path="../Android源码分析/android-source-code-analysis-usermanager.html">
+            
+                <a href="../Android源码分析/android-source-code-analysis-usermanager.html">
+            
+                    
+                    Android UserManager相关源码分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.20.8" data-path="../Android源码分析/android-source-code-analysis-dumpsys.html">
+            
+                <a href="../Android源码分析/android-source-code-analysis-dumpsys.html">
+            
+                    
+                    Android 深入理解 dumpsys
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.20.9" data-path="../Android源码分析/android-source-code-analysis-toast.html">
+            
+                <a href="../Android源码分析/android-source-code-analysis-toast.html">
+            
+                    
+                    Android Toast 源码分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.21" >
+            
+                <span>
+            
+                    
+                    Flutter
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.21.1" data-path="../Flutter/flutter-summary-learning-materials.html">
+            
+                <a href="../Flutter/flutter-summary-learning-materials.html">
+            
+                    
+                    Flutter -- 初步了解和学习资料
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.21.2" data-path="../Flutter/flutter-gank-app.html">
+            
+                <a href="../Flutter/flutter-gank-app.html">
+            
+                    
+                    Flutter -- 开发 Gank 客户端
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.22" >
+            
+                <span>
+            
+                    
+                    Gradle
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.22.1" data-path="../Gradle/development-tool-gradle-study-materials.html">
+            
+                <a href="../Gradle/development-tool-gradle-study-materials.html">
+            
+                    
+                    Gradle 使用指南 -- 资料汇总
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.22.2" data-path="../Gradle/development-tool-gradle-command-config.html">
+            
+                <a href="../Gradle/development-tool-gradle-command-config.html">
+            
+                    
+                    Gradle 使用指南 -- 基础配置
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.22.3" data-path="../Gradle/development-tool-gradle-android-dsl-extension.html">
+            
+                <a href="../Gradle/development-tool-gradle-android-dsl-extension.html">
+            
+                    
+                    Gradle 使用指南 -- Android DSL 扩展
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.22.4" data-path="../Gradle/development-tool-gradle-task.html">
+            
+                <a href="../Gradle/development-tool-gradle-task.html">
+            
+                    
+                    Gradle 使用指南 -- Gradle Task
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.22.5" data-path="../Gradle/development-tool-gradle-extra-properties.html">
+            
+                <a href="../Gradle/development-tool-gradle-extra-properties.html">
+            
+                    
+                    Gradle 使用指南 -- Extra Properties
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.22.6" data-path="../Gradle/development-tool-gradle-lifecycle.html">
+            
+                <a href="../Gradle/development-tool-gradle-lifecycle.html">
+            
+                    
+                    Gradle 使用指南 -- Gradle 生命周期
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.22.7" data-path="../Gradle/development-tool-gradle-customized-plugin.html">
+            
+                <a href="../Gradle/development-tool-gradle-customized-plugin.html">
+            
+                    
+                    Gradle 使用指南 -- Plugin 的使用和创建 
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.22.8" data-path="../Gradle/development-tool-gradle-customized-plugin-dsl-extension.html">
+            
+                <a href="../Gradle/development-tool-gradle-customized-plugin-dsl-extension.html">
+            
+                    
+                    Gradle 使用指南 -- Plugin DSL 扩展
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.22.9" data-path="../Gradle/development-tool-gradle-groovy-basic.html">
+            
+                <a href="../Gradle/development-tool-gradle-groovy-basic.html">
+            
+                    
+                    Groovy 教程系列（一）-- Groovy 入门
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.22.10" data-path="../Gradle/development-tool-gradle-command-line.html">
+            
+                <a href="../Gradle/development-tool-gradle-command-line.html">
+            
+                    
+                    Gradle 使用指南 -- 玩转命令行
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.22.11" data-path="../Gradle/development-tool-gradle-skills.html">
+            
+                <a href="../Gradle/development-tool-gradle-skills.html">
+            
+                    
+                    Gradle 使用指南 -- 一些小技巧
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.22.12" data-path="../Gradle/development-tool-gradle-plugin-debug.html">
+            
+                <a href="../Gradle/development-tool-gradle-plugin-debug.html">
+            
+                    
+                    Gradle 使用指南 -- Plugin 断点调试
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.23" >
+            
+                <span>
+            
+                    
+                    博客搭建
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.23.1" data-path="../博客搭建/blog-use-hexo-to-build-blog.html">
+            
+                <a href="../博客搭建/blog-use-hexo-to-build-blog.html">
+            
+                    
+                    Hexo+GitHub搭建个人博客
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.23.2" data-path="../博客搭建/blog-hexo-optimize.html">
+            
+                <a href="../博客搭建/blog-hexo-optimize.html">
+            
+                    
+                    Hexo博客配置优化
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.23.3" data-path="../博客搭建/blog-optimize-next-theme.html">
+            
+                <a href="../博客搭建/blog-optimize-next-theme.html">
+            
+                    
+                    Hexo--Next主题优化
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.23.4" data-path="../博客搭建/blog-use-gitbook-to-build-blog.html">
+            
+                <a href="../博客搭建/blog-use-gitbook-to-build-blog.html">
+            
+                    
+                    Gitbook 博客搭建
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24" >
+            
+                <span>
+            
+                    
+                    Java
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.24.1" data-path="../Java/java-basic-map-collection.html">
+            
+                <a href="../Java/java-basic-map-collection.html">
+            
+                    
+                    Java 基础 -- 集合的使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.2" data-path="../Java/java-basic-arrays-collections.html">
+            
+                <a href="../Java/java-basic-arrays-collections.html">
+            
+                    
+                    Java 基础 -- 算法类 Arrays 和 Collections
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.3" data-path="../Java/java-basic-arraylist.html">
+            
+                <a href="../Java/java-basic-arraylist.html">
+            
+                    
+                    Java 基础 -- ArrayList 的使用和原理
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.4" data-path="../Java/java-basic-enum.html">
+            
+                <a href="../Java/java-basic-enum.html">
+            
+                    
+                    Java 基础 -- enum
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.5" data-path="../Java/java-basic-hashmap.html">
+            
+                <a href="../Java/java-basic-hashmap.html">
+            
+                    
+                    Java 基础 -- HashMap 的使用和原理
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.6" data-path="../Java/java-basic-linkedhashmap.html">
+            
+                <a href="../Java/java-basic-linkedhashmap.html">
+            
+                    
+                    Java 基础 -- LinkedHashMap 的使用和原理
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.7" data-path="../Java/java-basic-knowledge-about-string.html">
+            
+                <a href="../Java/java-basic-knowledge-about-string.html">
+            
+                    
+                    Java 基础 -- 深入理解 String
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.8" data-path="../Java/java-basic-stringbuilder-stringbuffer.html">
+            
+                <a href="../Java/java-basic-stringbuilder-stringbuffer.html">
+            
+                    
+                    Java 基础 -- StringBuilder 和 StringBuffer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.9" data-path="../Java/java-basic-knowledge-parameter-passing.html">
+            
+                <a href="../Java/java-basic-knowledge-parameter-passing.html">
+            
+                    
+                    Java 基础 -- 值传递、引用传递和参数传递
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.10" data-path="../Java/java-basic-knowledge-auto-boxing.html">
+            
+                <a href="../Java/java-basic-knowledge-auto-boxing.html">
+            
+                    
+                    Java 基础 -- 关于自动装箱和拆箱机制
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.11" data-path="../Java/java-basic-knowledge-generic.html">
+            
+                <a href="../Java/java-basic-knowledge-generic.html">
+            
+                    
+                    Java 基础 -- 范型
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.12" data-path="../Java/java-basic-memory-manage-variable.html">
+            
+                <a href="../Java/java-basic-memory-manage-variable.html">
+            
+                    
+                    Java 内存管理 -- 变量的内存管理
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.13" data-path="../Java/java-basic-memory-manage-memory-area.html">
+            
+                <a href="../Java/java-basic-memory-manage-memory-area.html">
+            
+                    
+                    Java 内存管理 -- 内存区域的划分
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.14" data-path="../Java/java-basic-memory-manage-inherit-object.html">
+            
+                <a href="../Java/java-basic-memory-manage-inherit-object.html">
+            
+                    
+                    Java 内存管理 -- 构造方法
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.15" data-path="../Java/java-basic-memory-manage-constructor.html">
+            
+                <a href="../Java/java-basic-memory-manage-constructor.html">
+            
+                    
+                    Java 内存管理 -- 父子实例的内存控制
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.16" data-path="../Java/java-basic-final.html">
+            
+                <a href="../Java/java-basic-final.html">
+            
+                    
+                    Java 基础 -- 深入理解 final 修饰符
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.17" data-path="../Java/java-io-stream-base.html">
+            
+                <a href="../Java/java-io-stream-base.html">
+            
+                    
+                    Java IO -- IO流的概念和分类
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.18" data-path="../Java/java-basic-reflect.html">
+            
+                <a href="../Java/java-basic-reflect.html">
+            
+                    
+                    Java 基础 -- 反射
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.19" data-path="../Java/java-basic-try-catch-finally.html">
+            
+                <a href="../Java/java-basic-try-catch-finally.html">
+            
+                    
+                    Java 基础 -- 深入理解 try catch finally
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.20" data-path="../Java/java-dynamic-proxy-invocationhandler-demo.html">
+            
+                <a href="../Java/java-dynamic-proxy-invocationhandler-demo.html">
+            
+                    
+                    Java InvocationHandler 实现动态代理
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.21" data-path="../Java/java-basic-concurrent-map-collection.html">
+            
+                <a href="../Java/java-basic-concurrent-map-collection.html">
+            
+                    
+                    Java 基础 -- 并发集合的使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.22" data-path="../Java/java-development-skills-get-stacktrace.html">
+            
+                <a href="../Java/java-development-skills-get-stacktrace.html">
+            
+                    
+                    Java 开发技巧 -- 获取 Java 的调用栈
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.23" data-path="../Java/java-basic-threadlocal.html">
+            
+                <a href="../Java/java-basic-threadlocal.html">
+            
+                    
+                    Java 基础 -- ThreadLocal
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.24" data-path="../Java/java-basic-annotation.html">
+            
+                <a href="../Java/java-basic-annotation.html">
+            
+                    
+                    Java 基础 -- 注解
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.24.25" data-path="../Java/java-basic-joor.html">
+            
+                <a href="../Java/java-basic-joor.html">
+            
+                    
+                    Java 基础 -- 使用 JOOR 实现反射
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.25" >
+            
+                <span>
+            
+                    
+                    Java 并发
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.25.1" data-path="../Java 并发/java-thread-how-to-create-thread.html">
+            
+                <a href="../Java 并发/java-thread-how-to-create-thread.html">
+            
+                    
+                    Java 并发编程 -- 创建和使用线程 
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.25.2" data-path="../Java 并发/java-concurrent-volatile.html">
+            
+                <a href="../Java 并发/java-concurrent-volatile.html">
+            
+                    
+                    Java 并发编程 -- volatile 关键字
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.25.3" data-path="../Java 并发/java-thread-kinds-of-lock.html">
+            
+                <a href="../Java 并发/java-thread-kinds-of-lock.html">
+            
+                    
+                    Java 并发编程 -- 锁
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.25.4" data-path="../Java 并发/java-thread-how-to-use-synchronized.html">
+            
+                <a href="../Java 并发/java-thread-how-to-use-synchronized.html">
+            
+                    
+                    Java 并发编程 -- synchronized、wait、notify和notifyAll的使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.25.5" data-path="../Java 并发/java-concurrent-interface-lock.html">
+            
+                <a href="../Java 并发/java-concurrent-interface-lock.html">
+            
+                    
+                    Java 并发编程 -- Lock
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.25.6" data-path="../Java 并发/java-thread-how-to-use-reentrantlock.html">
+            
+                <a href="../Java 并发/java-thread-how-to-use-reentrantlock.html">
+            
+                    
+                    Java 并发编程 -- ReentrantLock 与 Condition 
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.25.7" data-path="../Java 并发/java-thread-how-to-use-countdownlatch.html">
+            
+                <a href="../Java 并发/java-thread-how-to-use-countdownlatch.html">
+            
+                    
+                    Java 并发编程 -- CountDownLatch
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.25.8" data-path="../Java 并发/java-thread-how-to-use-cyclicbarrier.html">
+            
+                <a href="../Java 并发/java-thread-how-to-use-cyclicbarrier.html">
+            
+                    
+                    Java 并发编程 -- CyclicBarrier
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.25.9" data-path="../Java 并发/java-thread-how-to-use-semaphore.html">
+            
+                <a href="../Java 并发/java-thread-how-to-use-semaphore.html">
+            
+                    
+                    Java 并发编程 -- Semaphore
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.25.10" data-path="../Java 并发/java-thread-how-to-use-exchanger.html">
+            
+                <a href="../Java 并发/java-thread-how-to-use-exchanger.html">
+            
+                    
+                    Java 并发编程 -- Exchanger
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.25.11" data-path="../Java 并发/java-thread-thread-pool-basic.html">
+            
+                <a href="../Java 并发/java-thread-thread-pool-basic.html">
+            
+                    
+                    Java 线程池 -- 线程池基础
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.25.12" data-path="../Java 并发/java-thread-sourcecode-of-threadpoolexecutor.html">
+            
+                <a href="../Java 并发/java-thread-sourcecode-of-threadpoolexecutor.html">
+            
+                    
+                    Java 线程池 -- ThreadPoolExecutor 源码解析
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.25.13" data-path="../Java 并发/java-thread-how-to-use-threadpoolexecutor.html">
+            
+                <a href="../Java 并发/java-thread-how-to-use-threadpoolexecutor.html">
+            
+                    
+                    Java 线程池 -- ThreadPoolExecutor 使用以及优化攻略
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.25.14" data-path="../Java 并发/java-concurrent-java-memory-model.html">
+            
+                <a href="../Java 并发/java-concurrent-java-memory-model.html">
+            
+                    
+                    Java 并发编程 -- 内存模型
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.25.15" data-path="../Java 并发/java-concurrent-fork-join-base.html">
+            
+                <a href="../Java 并发/java-concurrent-fork-join-base.html">
+            
+                    
+                    Java 并发编程 -- Fork/Join 框架 
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.26" >
+            
+                <span>
+            
+                    
+                    JavaScript
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.26.1" data-path="../JavaScript/javascript-basic-start-part.html">
+            
+                <a href="../JavaScript/javascript-basic-start-part.html">
+            
+                    
+                    JavaScript -- 启动篇
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.26.2" data-path="../JavaScript/javascript-basic-object.html">
+            
+                <a href="../JavaScript/javascript-basic-object.html">
+            
+                    
+                    JavaScritp 基础 -- 类和对象
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.26.3" data-path="../JavaScript/javascript-basic-function.html">
+            
+                <a href="../JavaScript/javascript-basic-function.html">
+            
+                    
+                    JavaScript 基础 -- 函数
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.26.4" data-path="../JavaScript/javascript-basic-export-import.html">
+            
+                <a href="../JavaScript/javascript-basic-export-import.html">
+            
+                    
+                    JavaScript 基础 -- export 和 import
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.26.5" data-path="../JavaScript/javascript-basic-promise.html">
+            
+                <a href="../JavaScript/javascript-basic-promise.html">
+            
+                    
+                    JavaScript 基础 -- Promise
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.26.6" data-path="../JavaScript/javascript-basic-async.html">
+            
+                <a href="../JavaScript/javascript-basic-async.html">
+            
+                    
+                    JavaScript 基础 -- async/await 关键字
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.26.7" data-path="../JavaScript/javascript-vue-gank-web-app.html">
+            
+                <a href="../JavaScript/javascript-vue-gank-web-app.html">
+            
+                    
+                    Vue -- 开发 Gank Web App
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.26.8" data-path="../JavaScript/vue-start.html">
+            
+                <a href="../JavaScript/vue-start.html">
+            
+                    
+                    Vue -- 启动篇
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.26.9" data-path="../JavaScript/vue-components-communication.html">
+            
+                <a href="../JavaScript/vue-components-communication.html">
+            
+                    
+                    Vue -- 封装组件及通信
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.26.10" data-path="../JavaScript/vue-network-api.html">
+            
+                <a href="../JavaScript/vue-network-api.html">
+            
+                    
+                    Vue -- 网络请求
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.27" >
+            
+                <span>
+            
+                    
+                    Kotlin
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.27.1" data-path="../Kotlin/kotlin-brief-introduction.html">
+            
+                <a href="../Kotlin/kotlin-brief-introduction.html">
+            
+                    
+                    Kotlin -- 简介
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.27.2" data-path="../Kotlin/kotlin-keyword.html">
+            
+                <a href="../Kotlin/kotlin-keyword.html">
+            
+                    
+                    Kotlin -- 关键字
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.27.3" data-path="../Kotlin/kotlin-class-object.html">
+            
+                <a href="../Kotlin/kotlin-class-object.html">
+            
+                    
+                    Kotlin -- 类和对象
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.27.4" data-path="../Kotlin/kotlin-interface.html">
+            
+                <a href="../Kotlin/kotlin-interface.html">
+            
+                    
+                    Kotlin -- 接口
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.27.5" data-path="../Kotlin/kotlin-lambda.html">
+            
+                <a href="../Kotlin/kotlin-lambda.html">
+            
+                    
+                    Kotlin -- Lambda 表达式
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.27.6" data-path="../Kotlin/kotlin-advance-function.html">
+            
+                <a href="../Kotlin/kotlin-advance-function.html">
+            
+                    
+                    Kotlin -- 高阶函数
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.27.7" data-path="../Kotlin/kotlin-coroutines.html">
+            
+                <a href="../Kotlin/kotlin-coroutines.html">
+            
+                    
+                    Kotlin -- 协程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.27.8" data-path="../Kotlin/kotlin-coroutines-async.html">
+            
+                <a href="../Kotlin/kotlin-coroutines-async.html">
+            
+                    
+                    Kotlin -- 异步操作
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.27.9" data-path="../Kotlin/kotlin-set-list-api.html">
+            
+                <a href="../Kotlin/kotlin-set-list-api.html">
+            
+                    
+                    Kotlin -- 集合
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.27.10" data-path="../Kotlin/kotlin-generics.html">
+            
+                <a href="../Kotlin/kotlin-generics.html">
+            
+                    
+                    Kotlin -- 泛型
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.27.11" data-path="../Kotlin/kotlin-flow.html">
+            
+                <a href="../Kotlin/kotlin-flow.html">
+            
+                    
+                    Kotlin -- Flow
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.28" >
+            
+                <span>
+            
+                    
+                    OpenGL
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.28.1" data-path="opengl-es-basic-knowledge.html">
+            
+                <a href="opengl-es-basic-knowledge.html">
+            
+                    
+                    OpenGL ES -- 基础知识
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.28.2" data-path="opengl-es-basic-render.html">
+            
+                <a href="opengl-es-basic-render.html">
+            
+                    
+                    OpenGL ES -- 基础绘制
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.28.3" data-path="opengl-es-texture.html">
+            
+                <a href="opengl-es-texture.html">
+            
+                    
+                    OpenGL ES -- 纹理
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter active" data-level="1.28.4" data-path="opengl-es-smoonth-shade.html">
+            
+                <a href="opengl-es-smoonth-shade.html">
+            
+                    
+                    OpenGL ES -- 平滑着色
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.28.5" data-path="opengl-es-view-port-resize.html">
+            
+                <a href="opengl-es-view-port-resize.html">
+            
+                    
+                    OpenGL ES -- 调整屏幕宽高比
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.28.6" data-path="opengl-es-color-blend.html">
+            
+                <a href="opengl-es-color-blend.html">
+            
+                    
+                    OpenGL ES -- 混合
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.28.7" data-path="opengl-es-image-effect.html">
+            
+                <a href="opengl-es-image-effect.html">
+            
+                    
+                    OpenGL ES -- 图像处理
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.29" >
+            
+                <span>
+            
+                    
+                    Python
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.29.1" data-path="../Python/python-practice-web-crawler-iqiyi.html">
+            
+                <a href="../Python/python-practice-web-crawler-iqiyi.html">
+            
+                    
+                    Python实战 -- 网络爬虫之解析爱奇艺视频
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.30" >
+            
+                <span>
+            
+                    
+                    React Native
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.30.1" data-path="../React Native/react-native-begin-to-study.html">
+            
+                <a href="../React Native/react-native-begin-to-study.html">
+            
+                    
+                    开始了解React Native
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.30.2" data-path="../React Native/react-native-build-development-environment.html">
+            
+                <a href="../React Native/react-native-build-development-environment.html">
+            
+                    
+                    搭建 React Native 开发环境
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.30.3" data-path="../React Native/react-native-first-step.html">
+            
+                <a href="../React Native/react-native-first-step.html">
+            
+                    
+                    React Native 入门
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.30.4" data-path="../React Native/react-native-component.html">
+            
+                <a href="../React Native/react-native-component.html">
+            
+                    
+                    React Native-组件Component
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.30.5" data-path="../React Native/react-native-image.html">
+            
+                <a href="../React Native/react-native-image.html">
+            
+                    
+                    React Native-Image控件
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.30.6" data-path="../React Native/react-native-flexbox.html">
+            
+                <a href="../React Native/react-native-flexbox.html">
+            
+                    
+                    React Native-flexbox
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.30.7" data-path="../React Native/react-native-integration-with-existing-apps.html">
+            
+                <a href="../React Native/react-native-integration-with-existing-apps.html">
+            
+                    
+                    Android项目中集成React Native
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.30.8" data-path="../React Native/react-native-native-modules.html">
+            
+                <a href="../React Native/react-native-native-modules.html">
+            
+                    
+                    React Native创建原生模块
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.30.9" data-path="../React Native/react-native-native-ui-component.html">
+            
+                <a href="../React Native/react-native-native-ui-component.html">
+            
+                    
+                    React Native封装原生UI组件
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.31" >
+            
+                <span>
+            
+                    
+                    V8
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.31.1" data-path="../V8/open-source-j2v8-getting-started.html">
+            
+                <a href="../V8/open-source-j2v8-getting-started.html">
+            
+                    
+                    J2V8 -- 开始使用J2V8
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.31.2" data-path="../V8/open-source-j2v8-registerting-java-callback.html">
+            
+                <a href="../V8/open-source-j2v8-registerting-java-callback.html">
+            
+                    
+                    J2V8 -- 注册 Java 回调函数
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.32" >
+            
+                <span>
+            
+                    
+                    Web Server
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.32.1" data-path="../Web Server/web-server-maven-spring-mvc-new-project.html">
+            
+                <a href="../Web Server/web-server-maven-spring-mvc-new-project.html">
+            
+                    
+                    服务端开发入门 -- 使用 Intellij IDEA 创建 Maven + SpringMVC 项目
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.33" >
+            
+                <span>
+            
+                    
+                    Weex
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.33.1" data-path="../Weex/open-source-weex-android-introduction.html">
+            
+                <a href="../Weex/open-source-weex-android-introduction.html">
+            
+                    
+                    Weex 源码研究 -- 序言
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.33.2" data-path="../Weex/open-source-weex-android-classes-introduction.html">
+            
+                <a href="../Weex/open-source-weex-android-classes-introduction.html">
+            
+                    
+                    Weex 源码研究 -- 相关类概述
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.33.3" data-path="../Weex/open-source-weex-android-init.html">
+            
+                <a href="../Weex/open-source-weex-android-init.html">
+            
+                    
+                    Weex 源码研究 -- 初始化过程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.33.4" data-path="../Weex/open-source-weex-android-component-module-register.html">
+            
+                <a href="../Weex/open-source-weex-android-component-module-register.html">
+            
+                    
+                    Weex 源码研究 -- Component 和 DomObject 注册过程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.33.5" data-path="../Weex/open-source-weex-android-component-render.html">
+            
+                <a href="../Weex/open-source-weex-android-component-render.html">
+            
+                    
+                    Weex 源码研究 -- 渲染过程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.33.6" data-path="../Weex/open-source-weex-android-module-register-callback.html">
+            
+                <a href="../Weex/open-source-weex-android-module-register-callback.html">
+            
+                    
+                    Weex 源码研究 -- Module 注册、调用和回调函数的执行流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.33.7" data-path="../Weex/open-source-weex-android-event-reponse.html">
+            
+                <a href="../Weex/open-source-weex-android-event-reponse.html">
+            
+                    
+                    Weex 源码研究 -- 事件响应流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.34" >
+            
+                <span>
+            
+                    
+                    cocos
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.34.1" data-path="../cocos/cocos-creator-start.html">
+            
+                <a href="../cocos/cocos-creator-start.html">
+            
+                    
+                    Cocos Creator -- 启动篇
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.34.2" data-path="../cocos/cocos-creator-hello-world-project.html">
+            
+                <a href="../cocos/cocos-creator-hello-world-project.html">
+            
+                    
+                    Cocos Creator -- HelloWorld 工程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.34.3" data-path="../cocos/cocos-creator-jsb-manu-extend.html">
+            
+                <a href="../cocos/cocos-creator-jsb-manu-extend.html">
+            
+                    
+                    Cocos Creator -- JSB 手动绑定扩展
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.34.4" data-path="../cocos/cocos-creator-javascript-java.html">
+            
+                <a href="../cocos/cocos-creator-javascript-java.html">
+            
+                    
+                    Cocos Creator -- JavaScript 和 Java 互相调用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.34.5" data-path="../cocos/cocos-creator-native-engine-init-process.html">
+            
+                <a href="../cocos/cocos-creator-native-engine-init-process.html">
+            
+                    
+                    Cocos Creator -- JSB 引擎初始化流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.34.6" data-path="../cocos/cocos-creator-native-game-file-load.html">
+            
+                <a href="../cocos/cocos-creator-native-game-file-load.html">
+            
+                    
+                    Cocos Creator -- JSB 游戏文件加载流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.34.7" data-path="../cocos/cocos-creator-native-game-start-process.html">
+            
+                <a href="../cocos/cocos-creator-native-game-start-process.html">
+            
+                    
+                    Cocos Creator -- JSB 游戏启动运行流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.34.8" data-path="../cocos/cocos-creator-res-load.html">
+            
+                <a href="../cocos/cocos-creator-res-load.html">
+            
+                    
+                    Cocos Creator -- 资源文件加载流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.34.9" data-path="../cocos/cocos-creator-native-render-process.html">
+            
+                <a href="../cocos/cocos-creator-native-render-process.html">
+            
+                    
+                    Cocos Creator -- JSB 游戏渲染流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.34.10" data-path="../cocos/cocos-creator-web-render-process.html">
+            
+                <a href="../cocos/cocos-creator-web-render-process.html">
+            
+                    
+                    Cocos Creator -- Web游戏渲染流程
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.34.11" data-path="../cocos/cocos-creator-edit-box-source-code.html">
+            
+                <a href="../cocos/cocos-creator-edit-box-source-code.html">
+            
+                    
+                    Cocos Creator -- EditBox 实现
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.34.12" data-path="../cocos/cocos-creator-jsb-event-dispatch.html">
+            
+                <a href="../cocos/cocos-creator-jsb-event-dispatch.html">
+            
+                    
+                    Cocos Creator -- JSB 事件分发机制源码分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.35" >
+            
+                <span>
+            
+                    
+                    设计模式
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.35.1" data-path="../设计模式/java-basic-design-pattern-singleton.html">
+            
+                <a href="../设计模式/java-basic-design-pattern-singleton.html">
+            
+                    
+                    Java 设计模式 -- 单例模式的几种实现
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.35.2" data-path="../设计模式/java-basic-design-pattern-factory-method.html">
+            
+                <a href="../设计模式/java-basic-design-pattern-factory-method.html">
+            
+                    
+                    Java 设计模式 -- 工厂方法模式
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.35.3" data-path="../设计模式/java-basic-design-pattern-abstract-factory.html">
+            
+                <a href="../设计模式/java-basic-design-pattern-abstract-factory.html">
+            
+                    
+                    Java 设计模式 -- 抽象工厂模式
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.35.4" data-path="../设计模式/java-basic-design-pattern-chain-of-responsibility.html">
+            
+                <a href="../设计模式/java-basic-design-pattern-chain-of-responsibility.html">
+            
+                    
+                    Java 设计模式 -- 职责链模式
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.35.5" data-path="../设计模式/java-basic-design-pattern-template-method.html">
+            
+                <a href="../设计模式/java-basic-design-pattern-template-method.html">
+            
+                    
+                    Java 设计模式 -- 模板方法模式
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.36" >
+            
+                <span>
+            
+                    
+                    学习资料
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.36.1" data-path="../学习资料/materials-programmer-materials.html">
+            
+                <a href="../学习资料/materials-programmer-materials.html">
+            
+                    
+                    程序员学习资料汇总
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.37" >
+            
+                <span>
+            
+                    
+                    开发工具
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.37.1" data-path="../开发工具/development-tool-git-command.html">
+            
+                <a href="../开发工具/development-tool-git-command.html">
+            
+                    
+                    Git 常用命令
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.37.2" data-path="../开发工具/development-tool-android-studio-debug-skill.html">
+            
+                <a href="../开发工具/development-tool-android-studio-debug-skill.html">
+            
+                    
+                    Android Studio 使用技巧
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.37.3" data-path="../开发工具/development-tool-import-source-to-android-studio.html">
+            
+                <a href="../开发工具/development-tool-import-source-to-android-studio.html">
+            
+                    
+                    Android Studio 导入 Android 源码
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.37.4" data-path="../开发工具/development-tool-markdown-plant-uml.html">
+            
+                <a href="../开发工具/development-tool-markdown-plant-uml.html">
+            
+                    
+                    Markdown 绘制 UML 图 -- PlantUML + Gravizo
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.37.5" data-path="../开发工具/android-use-jitpack-to-publish-github-project.html">
+            
+                <a href="../开发工具/android-use-jitpack-to-publish-github-project.html">
+            
+                    
+                    Android：使用JitPack发布Github开源库
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.37.6" data-path="../开发工具/development-tool-charles.html">
+            
+                <a href="../开发工具/development-tool-charles.html">
+            
+                    
+                    抓包工具 Charles 的使用
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.38" >
+            
+                <span>
+            
+                    
+                    移动互联网
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.38.1" data-path="../移动互联网/mobile-internet-webapp-vs-nativeapp.html">
+            
+                <a href="../移动互联网/mobile-internet-webapp-vs-nativeapp.html">
+            
+                    
+                    WebApp 和 NativeApp 的世纪之战 
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.39" >
+            
+                <span>
+            
+                    
+                    区块链
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.39.1" data-path="../区块链/block-chain-basic-questions.html">
+            
+                <a href="../区块链/block-chain-basic-questions.html">
+            
+                    
+                    区块链 -- 区块链基础100问
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.40" >
+            
+                <span>
+            
+                    
+                    数据结构与算法
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.40.1" data-path="../数据结构与算法/algorithms-basic-sort.html">
+            
+                <a href="../数据结构与算法/algorithms-basic-sort.html">
+            
+                    
+                    算法系列 -- 排序算法
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.40.2" data-path="../数据结构与算法/data-structure-basic-heap.html">
+            
+                <a href="../数据结构与算法/data-structure-basic-heap.html">
+            
+                    
+                    数据结构 -- 堆
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.40.3" data-path="../数据结构与算法/data-structure-basic-tree.html">
+            
+                <a href="../数据结构与算法/data-structure-basic-tree.html">
+            
+                    
+                    数据结构 -- 树
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.41" >
+            
+                <span>
+            
+                    
+                    读书
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.41.1" data-path="../读书/personal-reading-2018.html">
+            
+                <a href="../读书/personal-reading-2018.html">
+            
+                    
+                    读书 2018
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.41.2" data-path="../读书/personal-reading-2019.html">
+            
+                <a href="../读书/personal-reading-2019.html">
+            
+                    
+                    读书 2019
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href="../.." >OpenGL ES -- 平滑着色</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h2 id="&#x6982;&#x8FF0;">&#x6982;&#x8FF0;</h2>
+<p>&#x5728;&#x524D;&#x9762;&#x4E00;&#x7AE0;&#x6211;&#x4EEC;&#x4ECB;&#x7ECD;&#x4E86;&#x4F7F;&#x7528;&#x4F7F;&#x7528; uniform &#x7528;&#x5355;&#x4E00;&#x7684;&#x989C;&#x8272;&#x7ED8;&#x5236;&#x4E00;&#x79CD;&#x7269;&#x4F53;&#xFF0C;&#x672C;&#x7AE0;&#x6211;&#x4EEC;&#x5C06;&#x4F1A;&#x5F15;&#x4EBA; varying &#x7C7B;&#x578B;&#x7684;&#x53D8;&#x91CF;&#x4ECB;&#x7ECD;&#x5982;&#x4F55;&#x5B9E;&#x73B0;&#x5E73;&#x6ED1;&#x7740;&#x8272;&#x3002;</p>
+<h2 id="&#x4E09;&#x89D2;&#x5F62;&#x6247;">&#x4E09;&#x89D2;&#x5F62;&#x6247;</h2>
+<p>&#x6211;&#x4EEC;&#x5728;&#x4ECB;&#x7ECD;&#x5E73;&#x6ED1;&#x7740;&#x8272;&#x4EE5;&#x524D;&#xFF0C;&#x6211;&#x4EEC;&#x5148;&#x6765;&#x4ECB;&#x7ECD;&#x4E00;&#x4E0B;&#x4E09;&#x89D2;&#x5F62;&#x6247;&#x3002;&#x7136;&#x540E;&#x6211;&#x4EEC;&#x5C06;&#x4F1A;&#x5B9E;&#x73B0;&#x4E00;&#x4E2A;&#x4E2D;&#x95F4;&#x4EAE;&#x8272;&#xFF0C;&#x7136;&#x540E;&#x6CBF;&#x5BF9;&#x89D2;&#x7EBF;&#x9010;&#x6E10;&#x53D8;&#x8272;&#x7684;&#x6548;&#x679C;&#x3002;</p>
+<p><img src="../../images/opengl-es-smoonth-shade/triangle.png" width="270" height="260"></p>
+<p>&#x6211;&#x4EEC;&#x5728;&#x684C;&#x5B50;&#x4E2D;&#x95F4;&#x52A0;&#x5165;&#x4E00;&#x4E2A;&#x65B0;&#x7684;&#x70B9;&#xFF08;0&#xFF0C;0&#xFF09;&#xFF0C;&#x6700;&#x7EC8;&#x770B;&#x62FF;&#x5230;&#x4E86;&#x56DB;&#x4E2A;&#x4E09;&#x89D2;&#x5F62;&#xFF0C;&#x800C;&#x4E0D;&#x662F;&#x539F;&#x6765;&#x7684;&#x4E24;&#x4E2A;&#x3002;&#x6211;&#x4EEC;&#x4FEE;&#x6539;&#x4E00;&#x4E0B;&#x6B63;&#x65B9;&#x5F62;&#x7684;&#x9876;&#x70B9;&#x6570;&#x636E;&#xFF1A;</p>
+<pre><code>    private float[] tableVerticesWithTriangles = {
+            // &#x77E9;&#x5F62;
+            0f,   0f, 
+            -0.5f, -0.5f, 
+            0.5f, -0.5f, 
+            0.5f, 0.5f, 
+            -0.5f, 0.5f, 
+            -0.5f, -0.5f,
+</code></pre><p>&#x7136;&#x540E;&#x5728; <code>onDrawFrame</code> &#x4E2D;&#x5C06;&#x7ED8;&#x5236;&#x7684;&#x6A21;&#x5F0F;&#x6539;&#x4E3A;&#xFF1A;</p>
+<pre><code>GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0 , 6);
+</code></pre><p>&#x8FD9;&#x6837;&#x5C31;&#x53EF;&#x4EE5;&#x7ED8;&#x5236;&#x4E09;&#x89D2;&#x5F62;&#x6247;&#x4E86;&#x3002;</p>
+<h2 id="&#x5E73;&#x6ED1;&#x7740;&#x8272;">&#x5E73;&#x6ED1;&#x7740;&#x8272;</h2>
+<p>&#x4E0B;&#x9762;&#x6211;&#x4EEC;&#x5F00;&#x59CB;&#x4ECB;&#x7ECD;&#x5E73;&#x6ED1;&#x7740;&#x8272;&#x3002;
+&#x5728;&#x524D;&#x9762;&#x7684;&#x57FA;&#x7840;&#x77E5;&#x8BC6;&#x4E00;&#x6587;&#x4E2D;&#x6211;&#x4EEC;&#x4ECB;&#x7ECD;&#x8FC7;&#xFF0C;&#x53EF;&#x4EE5;&#x5728;&#x9876;&#x70B9;&#x4E2D;&#x6DFB;&#x52A0;&#x5176;&#x4ED6;&#x5C5E;&#x6027;&#xFF0C;&#x90A3;&#x4E48;&#x6211;&#x4EEC;&#x5C31;&#x518D;&#x6DFB;&#x52A0;&#x4E00;&#x4E2A;&#x989C;&#x8272;&#x6765;&#x4F5C;&#x4E3A;&#x7B2C;&#x4E8C;&#x4E2A;&#x5C5E;&#x6027;&#x3002;</p>
+<pre><code>    private float[] tableVerticesWithTriangles = {
+            // Order of coordinates: X,Y,R,G,B
+            // &#x77E9;&#x5F62;
+            0f,   0f, 1f, 1f, 1f,
+            -0.5f, -0.5f, 0.7f,0.7f,0.7f,
+            0.5f, -0.5f, 0.7f,0.7f,0.7f,
+            0.5f, 0.5f, 0.7f,0.7f,0.7f,
+            -0.5f, 0.5f, 0.7f,0.7f,0.7f,
+            -0.5f, -0.5f, 0.7f,0.7f,0.7f,
+
+            // &#x76F4;&#x7EBF;
+            -0.5f, 0f, 1f,0f,0f,
+            0.5f, 0f,1f,0f,0f,
+
+            // &#x4E24;&#x4E2A;&#x70B9;
+            0f, -0.25f,0f,0f,1f,
+            0f, 0.25f,1f,0f,0f
+    };
+</code></pre><p>&#x6211;&#x4EEC;&#x4E3A;&#x9876;&#x70B9;&#x589E;&#x52A0;&#x4E86;&#x989C;&#x8272;&#x5206;&#x91CF;&#xFF0C;&#x73B0;&#x5728;&#x6765;&#x9700;&#x8981;&#x4FEE;&#x6539;&#x9876;&#x70B9;&#x7740;&#x8272;&#x5668;&#x7684;&#x4EE3;&#x7801;&#xFF1A;</p>
+<pre><code>uniform mat4 u_Matrix;
+
+attribute vec4 a_Position;
+attribute vec4 a_Color;
+
+varying vec4 v_Color;
+
+void main(){
+    v_Color = a_Color;
+
+    gl_Position =  a_Position;
+    gl_PointSize = 10.0;
+}
+</code></pre><p>&#x6211;&#x4EEC;&#x52A0;&#x5165;&#x4E86;&#x4E00;&#x4E2A;&#x65B0;&#x7684;&#x5C5E;&#x6027; <code>a_Color</code>,&#x4E5F;&#x52A0;&#x5165;&#x4E86;&#x4E00;&#x4E2A;&#x53EB;&#x505A; <code>v_Color</code> &#x7684;&#x65B0; <code>varying</code>&#x3002;&#x524D;&#x9762;&#x5DF2;&#x7ECF;&#x8BB2;&#x8FC7; <code>varying</code> &#x662F;&#x4E00;&#x4E2A;&#x7279;&#x6B8A;&#x7684;&#x53D8;&#x91CF;&#x7C7B;&#x578B;&#xFF0C;&#x5B83;&#x628A;&#x7ED9;&#x5B83;&#x7684;&#x503C;&#x8FDB;&#x884C;&#x6DF7;&#x5408;&#x5E76;&#x628A;&#x8FD9;&#x4E9B;&#x6DF7;&#x5408;&#x7684;&#x503C;&#x53D1;&#x9001;&#x7ED9;&#x7247;&#x6BB5;&#x7740;&#x8272;&#x5668;&#x3002;</p>
+<p>&#x6211;&#x4EEC;&#x628A;varying&#x4E5F;&#x52A0;&#x5165;&#x7247;&#x6BB5;&#x7740;&#x8272;&#x5668;&#xFF1A;</p>
+<pre><code>precision mediump float;
+varying vec4 v_Color;
+
+void main() {
+    gl_FragColor = v_Color;
+}
+</code></pre><p>&#x6211;&#x4EEC;&#x7528;varying&#x53D8;&#x91CF;v_Color&#x66FF;&#x6362;&#x4E86;&#x539F;&#x6765;&#x4EE3;&#x7801;&#x4E2D;&#x7684;uniform&#x3002;&#x5982;&#x679C;&#x8FD9;&#x4E2A;&#x7247;&#x6BB5;&#x5C5E;&#x4E8E;&#x4E00;&#x6761;&#x76F4;&#x7EBF;&#xFF0C;&#x90A3;&#x4E2A;OpenGL&#x5C31;&#x4F1A;&#x7528;&#x6784;&#x6210;&#x90A3;&#x6761;&#x76F4;&#x7EBF;&#x7684;&#x4E24;&#x4E2A;&#x9876;&#x70B9;&#x8BA1;&#x7B97;&#x5176;&#x6DF7;&#x5408;&#x540E;&#x7684;&#x989C;&#x8272;&#x3002;</p>
+<p>&#x4E0B;&#x9762;&#x6765;&#x770B;&#x4E00;&#x4E0B;&#x5168;&#x90E8;&#x7684; Render &#x4EE3;&#x7801;&#xFF1A;</p>
+<pre><code>public class SecondRender implements GLSurfaceView.Renderer {
+    private Context mContext;
+    private static final int POSITOIN_COMPONENT_COUNT = 2;
+    private static final int COLOR_COMPONENT_COUNT = 3;
+    private static final int BYTES_PER_FLOAT = 4;
+    private static final int STRIDE = (POSITOIN_COMPONENT_COUNT + COLOR_COMPONENT_COUNT) * BYTES_PER_FLOAT;
+    private static final String A_COLOR = &quot;a_Color&quot;;
+    private static final String U_COLOR = &quot;u_Color&quot;;
+    private static final String A_POSITION = &quot;a_Position&quot;;
+
+    private float[] tableVerticesWithTriangles = {
+            // Order of coordinates: X,Y,R,G,B
+            // &#x77E9;&#x5F62;
+            0f,   0f, 1f, 1f, 1f,
+            -0.5f, -0.5f, 0.7f,0.7f,0.7f,
+            0.5f, -0.5f, 0.7f,0.7f,0.7f,
+            0.5f, 0.5f, 0.7f,0.7f,0.7f,
+            -0.5f, 0.5f, 0.7f,0.7f,0.7f,
+            -0.5f, -0.5f, 0.7f,0.7f,0.7f,
+
+            // &#x76F4;&#x7EBF;
+            -0.5f, 0f, 1f,0f,0f,
+            0.5f, 0f,1f,0f,0f,
+
+            // &#x4E24;&#x4E2A;&#x70B9;
+            0f, -0.25f,0f,0f,1f,
+            0f, 0.25f,1f,0f,0f
+    };
+
+    private FloatBuffer vertexData;
+    private int mPrograme;
+    private int uColorLocation;
+    private int aPosition;
+    private int aColorLocation;
+
+    public SecondRender(Context context) {
+        mContext = context;
+    }
+
+    @Override
+    public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+        GLES20.glClearColor(0.0f,0,0,0);
+
+        vertexData = ByteBuffer.allocateDirect(tableVerticesWithTriangles.length * BYTES_PER_FLOAT)
+                .order(ByteOrder.nativeOrder())
+                .asFloatBuffer();
+
+        vertexData.put(tableVerticesWithTriangles);
+
+        String vertexShaderCode = Utils.fileLoader(mContext, R.raw.sample_airhoockey_vertex_shader);
+        String fragmentShaderCode = Utils.fileLoader(mContext, R.raw.sample_airhoockey_fragment_shader);
+        int vertexShader = ShaderHelper.compileVertexShader(vertexShaderCode);
+        int fragmentShader = ShaderHelper.compileFragmentShader(fragmentShaderCode);
+        mPrograme = ShaderHelper.linkPrograme(vertexShader, fragmentShader);
+
+        ShaderHelper.validatePrograme(mPrograme);
+        GLES20.glUseProgram(mPrograme);
+
+        aPosition = GLES20.glGetAttribLocation(mPrograme, A_POSITION);
+        aColorLocation = GLES20.glGetAttribLocation(mPrograme, A_COLOR);
+
+        vertexData.position(0);
+        GLES20.glVertexAttribPointer(aPosition, POSITOIN_COMPONENT_COUNT, GLES20.GL_FLOAT,
+                false, STRIDE, vertexData);
+
+        GLES20.glEnableVertexAttribArray(aPosition);
+
+        vertexData.position(POSITOIN_COMPONENT_COUNT);
+        GLES20.glVertexAttribPointer(aColorLocation, COLOR_COMPONENT_COUNT, GLES20.GL_FLOAT,
+                false, STRIDE, vertexData);
+        GLES20.glEnableVertexAttribArray(aColorLocation);
+    }
+
+    @Override
+    public void onSurfaceChanged(GL10 gl, int width, int height) {
+        GLES20.glViewport(0,0,width,height);
+
+    }
+
+    @Override
+    public void onDrawFrame(GL10 gl) {
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
+
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0 , 6);
+
+        GLES20.glDrawArrays(GLES20.GL_LINES, 6 , 2);
+
+        GLES20.glDrawArrays(GLES20.GL_POINTS, 8 , 1);
+
+        GLES20.glDrawArrays(GLES20.GL_POINTS, 9 , 1);
+    }
+}
+</code></pre><pre><code>public class ShaderHelper {
+    public static int compileVertexShader(String shaderCode){
+        // &#x7F16;&#x8BD1;&#x9876;&#x70B9;&#x7740;&#x8272;&#x5668;
+        return compileShader(GLES20.GL_VERTEX_SHADER, shaderCode);
+    }
+
+    public static int compileFragmentShader(String shaderCode) {
+        // &#x7F16;&#x8BD1;&#x7247;&#x5143;&#x7740;&#x8272;&#x5668;
+        return compileShader(GLES20.GL_FRAGMENT_SHADER, shaderCode);
+    }
+
+    public static int compileShader(int type, String shaderCode) {
+        // &#x521B;&#x5EFA;&#x4E00;&#x4E2A;&#x65B0;&#x7684;&#x7740;&#x8272;&#x5668;&#x5BF9;&#x8C61;
+        final int sharderObjectId = GLES20.glCreateShader(type);
+        // &#x68C0;&#x67E5;&#x662F;&#x5426;&#x521B;&#x5EFA;&#x6210;&#x529F;
+        if (sharderObjectId == 0) {
+            Log.e(&quot;Test&quot;,&quot;create shader error&quot;);
+            return 0;
+        }
+        // &#x4E0A;&#x4F20;&#x7740;&#x8272;&#x5668;&#x6E90;&#x7801;
+        GLES20.glShaderSource(sharderObjectId, shaderCode);
+        // &#x7F16;&#x8BD1;&#x7740;&#x8272;&#x5668;&#x6E90;&#x7801;
+        GLES20.glCompileShader(sharderObjectId);
+
+        // &#x83B7;&#x53D6;&#x7F16;&#x8BD1;&#x72B6;&#x6001;
+        final int[] compileStatus = new int[2];
+        GLES20.glGetShaderiv(sharderObjectId, GLES20.GL_COMPILE_STATUS, compileStatus,0);
+        // &#x53D6;&#x51FA;&#x65E5;&#x5FD7;&#x4FE1;&#x606F;
+        Log.e(&quot;Test&quot;,&quot;compile: &quot;+GLES20.glGetShaderInfoLog(sharderObjectId));
+
+        if (compileStatus[0] == 0) {
+            // &#x7F16;&#x8BD1;&#x5931;&#x8D25;&#x65F6;&#x5220;&#x9664;&#x8BE5;&#x7740;&#x8272;&#x5668;&#x5BF9;&#x8C61;
+            GLES20.glDeleteShader(sharderObjectId);
+            return 0;
+        }
+        // &#x8FD4;&#x56DE;&#x7740;&#x8272;&#x5668;id
+        return sharderObjectId;
+    }
+
+
+    public static int linkPrograme(int vertexShaderId,int fragmentShaderId) {
+        // &#x521B;&#x5EFA;&#x4E00;&#x4E2A; OpenGL &#x7A0B;&#x5E8F;&#x5BF9;&#x8C61;
+        final int programeObjectId = GLES20.glCreateProgram();
+        if (programeObjectId == 0) {
+            Log.e(&quot;Test&quot;,&quot;create programe error&quot;);
+            return 0;
+        }
+
+        // &#x628A;&#x9876;&#x70B9;&#x7740;&#x8272;&#x5668;&#x548C;&#x7247;&#x6BB5;&#x7740;&#x8272;&#x5668;&#x9644;&#x52A0;&#x5230;&#x7A0B;&#x5E8F;&#x5BF9;&#x8C61;&#x4E0A;
+        GLES20.glAttachShader(programeObjectId, vertexShaderId);
+        GLES20.glAttachShader(programeObjectId, fragmentShaderId);
+
+        // &#x94FE;&#x63A5;&#x7A0B;&#x5E8F;
+        GLES20.glLinkProgram(programeObjectId);
+
+        // &#x9A8C;&#x8BC1;&#x94FE;&#x63A5;&#x7684;&#x72B6;&#x6001;
+        final int[] linkStatus = new int[2];
+        GLES20.glGetProgramiv(programeObjectId, GLES20.GL_LINK_STATUS, linkStatus,0);
+        // &#x6253;&#x5370;&#x94FE;&#x63A5;&#x4FE1;&#x606F;
+        Log.e(&quot;Test&quot;,&quot;link programe: &quot;+GLES20.glGetProgramInfoLog(programeObjectId));
+
+        if (linkStatus[0] == 0) {
+            GLES20.glDeleteProgram(programeObjectId);
+            Log.e(&quot;Test&quot;,&quot;lint programe error&quot;);
+            return 0;
+        }
+
+        return programeObjectId;
+    }
+
+    public static boolean validatePrograme(int programeObjectId) {
+        GLES20.glValidateProgram(programeObjectId);
+        final int[] validateStatus = new int[2];
+        GLES20.glGetProgramiv(programeObjectId, GLES20.GL_VALIDATE_STATUS, validateStatus,0);
+        Log.e(&quot;Test&quot;,&quot;validate programe: &quot;+GLES20.glGetProgramInfoLog(programeObjectId));
+        return validateStatus[0] != 0;
+    }
+}
+</code></pre><p>&#x65B0;&#x589E;&#x4E86; <code>STRIDE</code> &#x5E38;&#x91CF;&#xFF0C;&#x8FD9;&#x4E2A;&#x88AB;&#x79F0;&#x4E3A;&#x8DE8;&#x8DDD;&#x7684;&#x5E38;&#x91CF;&#x544A;&#x8BC9; OpenGL &#x6BCF;&#x4E2A;&#x4F4D;&#x7F6E;&#x4E4B;&#x95F4;&#x6709;&#x591A;&#x5C11;&#x4E2A;&#x5B57;&#x8282;&#xFF0C;&#x8FD9;&#x6837;&#x5B83;&#x5C31;&#x77E5;&#x9053;&#x9700;&#x8981;&#x8DF3;&#x8FC7;&#x591A;&#x5C11;&#x4E86;&#x3002;
+&#x65B0;&#x589E; <code>aColorLocation</code> &#x53D8;&#x91CF;&#xFF0C;&#x628A;&#x5B83;&#x548C;&#x9876;&#x70B9;&#x7740;&#x8272;&#x5668;&#x4E2D;&#x7684; <code>a_Color</code> &#x5173;&#x8054;&#x8D77;&#x6765;&#x3002;
+&#x5728; <code>onDrawFrame</code> &#x65B9;&#x6CD5;&#x4E2D;&#x628A; <code>GLES20.glUniform4f</code> &#x65B9;&#x6CD5;&#x53BB;&#x6389;&#xFF0C;&#x56E0;&#x4E3A;&#x6211;&#x4EEC;&#x5DF2;&#x7ECF;&#x628A;&#x9876;&#x70B9;&#x6570;&#x636E;&#x548C;<code>a_Color</code> &#x5173;&#x8054;&#x8D77;&#x6765;&#x4E86;&#xFF0C;&#x5C31;&#x4E0D;&#x518D;&#x9700;&#x8981;&#x5B83;&#x4EEC;&#x6765;&#x8BBE;&#x7F6E;&#x989C;&#x8272;&#x4E86;&#x3002;&#x53EA;&#x9700;&#x8981;&#x8C03;&#x7528; <code>GLES20.glDrawArrays</code> &#x5373;&#x53EF;&#xFF0C;OpenGL &#x4F1A;&#x81EA;&#x52A8;&#x4ECE;&#x9876;&#x70B9;&#x6570;&#x636E;&#x91CC;&#x9762;&#x8BFB;&#x5165;&#x989C;&#x8272;&#x5C5E;&#x6027;&#x3002;</p>
+<h2 id="&#x6548;&#x679C;">&#x6548;&#x679C;</h2>
+<p><img src="../../images/opengl-es-smoonth-shade/smoonth.png" width="337" height="599"></p>
+<footer class="page-footer"><span class="copyright">Copyright &#xA9; &#x5BD2;&#x6C5F;&#x84D1;&#x7B20; 2022 all right reserved&#xFF0C;powered by Gitbook</span><span class="footer-modification">&#x8BE5;&#x6587;&#x7AE0;&#x4FEE;&#x8BA2;&#x65F6;&#x95F4;&#xFF1A;
+2026-01-30
+</span></footer>
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="opengl-es-texture.html" class="navigation navigation-prev " aria-label="Previous page: OpenGL ES -- 纹理">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+                <a href="opengl-es-view-port-resize.html" class="navigation navigation-next " aria-label="Next page: OpenGL ES -- 调整屏幕宽高比">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"OpenGL ES -- 平滑着色","categories":"OpenGL","comments":true,"tags":["OpenGL ES"],"description":"介绍 OpenGL ES 如何实现平滑着色","date":"2020-04-20T10:00:00.000Z","level":"1.28.4","depth":2,"next":{"title":"OpenGL ES -- 调整屏幕宽高比","level":"1.28.5","depth":2,"path":"source/OpenGL/opengl-es-view-port-resize.md","ref":"source/OpenGL/opengl-es-view-port-resize.md","articles":[]},"previous":{"title":"OpenGL ES -- 纹理","level":"1.28.3","depth":2,"path":"source/OpenGL/opengl-es-texture.md","ref":"source/OpenGL/opengl-es-texture.md","articles":[]},"dir":"ltr"},"config":{"plugins":["expandable-chapters","chapter-fold","intopic-toc","hide-element","favicon","insert-logo","tbfed-pagefooter","splitter","back-to-top-button","code","github"],"styles":{"pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css","website":"styles/website.css"},"pluginsConfig":{"tbfed-pagefooter":{"copyright":"Copyright &copy 寒江蓑笠 2022","modify_label":"该文章修订时间：","modify_format":"YYYY-MM-DD"},"chapter-fold":{},"github":{"url":"https://github.com/heqiangflytosky"},"intopic-toc":{"isCollapsed":true,"isScrollspyActive":true,"label":"In this article","maxDepth":6,"mode":"nested","selector":".markdown-section h1, .markdown-section h2, .markdown-section h3, .markdown-section h4, .markdown-section h5, .markdown-section h6","visible":true},"splitter":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"code":{"copyButtons":true},"hide-element":{"elements":[".gitbook-link"]},"fontsettings":{"theme":"white","family":"sans","size":2},"highlight":{},"favicon":{"shortcut":"images/favicon.ico","bookmark":"https://github.com/heqiangflytosky/qbook/blob/gitbook/images/favicon.ico?raw=true"},"back-to-top-button":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css","website":"styles/website.css"},"showLevel":false},"insert-logo":{"style":"background: none; max-height:129px","url":"https://github.com/heqiangflytosky/heqiangflytosky.github.io/blob/hexo/source/images/icon.png?raw=true"},"expandable-chapters":{}},"theme":"default","author":"寒江蓑笠","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"寒江蓑笠的博客","links":{"sidebar":{"我的CSDN":"https://blog.csdn.net/heqiangflytosky"}},"gitbook":"*","description":"记录工作，记录生活"},"file":{"path":"source/OpenGL/opengl-es-smoonth-shade.md","mtime":"2026-01-30T10:30:03.849Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2026-01-30T10:30:43.986Z"},"basePath":"../..","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="../../gitbook/gitbook.js"></script>
+    <script src="../../gitbook/theme.js"></script>
+    
+        
+        <script src="../../gitbook/gitbook-plugin-expandable-chapters/expandable-chapters.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-chapter-fold/chapter-fold.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-intopic-toc/anchor.min.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-intopic-toc/gumshoe.polyfills.min.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-intopic-toc/plugin.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-hide-element/plugin.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-insert-logo/plugin.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-splitter/splitter.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-back-to-top-button/plugin.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-code/plugin.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-github/plugin.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="../../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+

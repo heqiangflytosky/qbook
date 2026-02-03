@@ -9,6 +9,7 @@
     * [LangChain 介绍](source/AI/ai_langchain_overview.md)
     * [向量数据库Faiss端侧应用](source/AI/ai_vector_database_fasiss.md)
     * [大模型推理框架 llama.cpp](source/AI/ai_llama_cpp_basic.md)
+    * [RAG 框架介绍](source/AI/ai_rag_framework.md)
     * [RAG 优化策略](source/AI/ai_rag_optimization_strategy.md)
     * [MCP 协议](source/AI/ai_mcp_introduce.md)
 * [Android]()

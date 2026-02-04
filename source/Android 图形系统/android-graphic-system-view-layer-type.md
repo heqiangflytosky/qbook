@@ -242,6 +242,15 @@ drawLayer、 flush layers、 flush commands
 
 除了通过 `View.setLayerType()` 来设置 View 的离屏缓冲外，还可以通过 `Canvas.saveLayer()` 来设置一个离屏缓冲。      
 
+```
+ViewPropertyAnimator.withLayer()
+
+view.animate().alpha(0f).withEndAction {
+    view.setLayerType(View.LAYER_TYPE_NONE, null)
+}
+```
+
+
 ## 相关文章
 
 [Android 中的 Hardware Layer 详解](https://www.androidperformance.com/2019/07/27/Android-Hardware-Layer/)        

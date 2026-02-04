@@ -521,6 +521,182 @@ Display 4630947064936706947 (physical, "")
       hwc: layer=0x0830 composition=CLIENT (1) 
 ```
 
+### Input list
+
+可以看到 Layer 的可见性信息。      
+
+```
+Input list
+LayerStack=0
+  Layer [83] ScreenDecorHwcOverlay#83
+    visible reason= buffer=17085379903897 frame=4 color{< 0, 0, 0, 1 >}
+    bounds={0,0,3192,1368}
+    input{(NOT_FOCUSABLE | NOT_TOUCHABLE | TRUSTED_OVERLAY | SLIPPERY) touchableRegion={684,0,130,764}}
+  Layer [120] [Gesture Monitor] multi-touch#120
+    invisible reason=nothing to draw
+    bounds={-13680,-31920,31920,13680}
+    input{(NOT_FOCUSABLE | TRUSTED_OVERLAY | SPY) replaceTouchableRegionWithCrop touchableRegion={-13679,-31919,31920,13680}}
+  Layer [114] [Gesture Monitor] swipe-up#114
+    invisible reason=nothing to draw
+    bounds={-13680,-31920,31920,13680}
+    input{(NOT_FOCUSABLE | TRUSTED_OVERLAY | SPY) replaceTouchableRegionWithCrop touchableRegion={-13679,-31919,31920,13680}}
+  Layer [88] [Gesture Monitor] navigationBar_force#88
+    invisible reason=nothing to draw
+    bounds={-13680,-31920,31920,13680}
+    input{(NOT_FOCUSABLE | TRUSTED_OVERLAY | SPY) replaceTouchableRegionWithCrop touchableRegion={-13679,-31919,31920,13680}}
+  Layer [64] [Gesture Monitor] onehanded-touch#64
+    invisible reason=nothing to draw
+    bounds={-13680,-31920,31920,13680}
+    input{(NOT_FOCUSABLE | TRUSTED_OVERLAY | SPY) replaceTouchableRegionWithCrop touchableRegion={-13679,-31919,31920,13680}}
+  Layer [133379] SmartTouch#133379
+    visible reason= buffer=17085379953330 frame=158 color{< 0, 0, 0, 1 >}
+    bounds={989,868,1078,1199} toDisplayTransform={ tx=989.0000 ty=868.0000 }
+    input{(NOT_FOCUSABLE | PREVENT_SPLITTING) touchableRegion={989,868,1078,1199}}
+  Layer [102] NavigationBar0#102
+    visible reason= buffer=17085379926774 frame=61621 color{< 0, 0, 0, 1 >}
+    bounds={0,3104,3192,1368} toDisplayTransform={ tx=0.0000 ty=3104.0000 }
+    input{(NOT_FOCUSABLE | TRUSTED_OVERLAY | WATCH_OUTSIDE_TOUCH) touchableRegion={0,3104,3192,1368}}
+  Layer [113] StatusBar#113
+    visible reason= buffer=17085379926628 frame=429256 color{< 0, 0, 0, 1 >}
+    bounds={0,0,130,1368}
+    input{(NOT_FOCUSABLE | TRUSTED_OVERLAY) touchableRegion={0,0,130,1368}}
+  Layer [133603] InputMethod#133603
+    visible reason= buffer=34518652180030 frame=1 color{< 0, 0, 0, 1 >}
+    bounds={7.46936,186.878,3168.7,1355.5} toDisplayTransform={ scale x=0.9854 y=0.9854  tx=7.4694 ty=186.8776 }
+    input{(NOT_FOCUSABLE | TRUSTED_OVERLAY) canOccludePresentation touchableRegion={7,2159,3118,1355}}
+  Layer [133592] Splash Screen com.android.dialer#133592
+    visible reason= buffer=17085379953428 frame=18 color{< 0, 0, 0, 0.886719 >}
+    bounds={7.46936,23.3011,3168.7,1355.5} toDisplayTransform={ scale x=0.9854 y=0.9854  tx=7.4694 ty=23.3011 }
+    input{(NO_INPUT_CHANNEL | NOT_FOCUSABLE | NOT_TOUCHABLE | PREVENT_SPLITTING) touchableRegion={7,23,23,7}}
+  Layer [133598] com.android.dialer/com.android.contacts.activities.ContactEditorActivity#133598
+    visible reason= buffer=136232067661828 frame=21 color{< 0, 0, 0, 1 >}
+    bounds={7.46936,23.3011,3168.7,1355.5} toDisplayTransform={ scale x=0.9854 y=0.9854  tx=7.4694 ty=23.3011 }
+    input{(PREVENT_SPLITTING) canOccludePresentation touchableRegion={7,23,3168,1355}}
+```
+
+### Layer 树信息
+
+Layer 树：
+
+flags=mLayer->flags，a=mLayer->color.a      
+
+flags：    
+
+```
+    enum {
+        eLayerHidden = 0x01,         // SURFACE_HIDDEN in SurfaceControl.java
+        eLayerOpaque = 0x02,         // SURFACE_OPAQUE
+        eLayerSkipScreenshot = 0x40, // SKIP_SCREENSHOT
+        eLayerSecure = 0x80,         // SECURE
+        // Queue up layer buffers instead of dropping the oldest buffer when this flag is
+        // set. This blocks the client until all the buffers have been presented. If the buffers
+        // have presentation timestamps, then we may drop buffers.
+        eEnableBackpressure = 0x100,       // ENABLE_BACKPRESSURE
+        eLayerIsDisplayDecoration = 0x200, // DISPLAY_DECORATION
+        // Ignore any destination frame set on the layer. This is used when the buffer scaling mode
+        // is freeze and the destination frame is applied asynchronously with the buffer submission.
+        // This is needed to maintain compatibility for SurfaceView scaling behavior.
+        // See SurfaceView scaling behavior for more details.
+        eIgnoreDestinationFrame = 0x400,
+        eLayerIsRefreshRateIndicator = 0x800, // REFRESH_RATE_INDICATOR
+        // Sets a property on this layer indicating that its visible region should be considered
+        // when computing TrustedPresentation Thresholds.
+        eCanOccludePresentation = 0x1000,
+        // Indicates that the SurfaceControl should recover from buffer stuffing when
+        // possible. This is the case when the SurfaceControl is the root SurfaceControl
+        // owned by ViewRootImpl.
+        eRecoverableFromBufferStuffing = 0x2000,
+    };
+```
+
+```
+Layer Hierarchy
+ ROOT
+ ├─ Light Sensor Capture#3 pid=14648 uid=1000 flags=0 a=1
+ ├─ Display 0 name="内置屏幕"#58 pid=14648 uid=1000 flags=2 a=1
+ │  ├─ WindowedMagnification:0:31#4 pid=14648 uid=1000 flags=0 a=1
+ │  │  ├─ HideDisplayCutout:0:14#5 pid=14648 uid=1000 flags=0 a=1
+ │  │  │  └─ OneHanded:0:14#6 pid=14648 uid=1000 flags=0 a=1
+ │  │  │     ├─ AppZoomOut:0:0#7 pid=14648 uid=1000 flags=0 a=1
+ │  │  │     │  └─ Leaf:0:0#8 pid=14648 uid=1000 flags=0 a=1
+ │  │  │     ├─ Leaf:1:1#9 pid=14648 uid=1000 flags=0 a=1
+ │  │  │     │  ├─ WallpaperWindowToken{3028f64 showWhenLocked=false}#79 pid=14648 uid=1000 flags=1 a=1
+ │  │  │     │  │  └─ 656cc95 com.android.systemui.wallpapers.ImageWallpaper#81 pid=14648 uid=1000 flags=0 a=1
+ │  │  │     │  │     └─ com.android.systemui.wallpapers.ImageWallpaper#82 pid=14962 uid=10088 flags=1 a=1
+ │  │  │     │  │        └─ Wallpaper BBQ wrapper#83 pid=14962 uid=10088 flags=258 a=1
+ │  │  │     │  └─ WallpaperWindowToken{f637665 showWhenLocked=false}#80 pid=14648 uid=1000 flags=1 a=1
+ │  │  │     │     └─ 8543521 com.android.systemui.wallpapers.ImageWallpaper#84 pid=14648 uid=1000 flags=0 a=1
+ │  │  │     │        └─ com.android.systemui.wallpapers.ImageWallpaper#85 pid=14962 uid=10088 flags=1 a=1
+ │  │  │     │           └─ Wallpaper BBQ wrapper#86 pid=14962 uid=10088 flags=258 a=1
+ │  │  │     └─ AppZoomOut:2:14#10 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        ├─ DefaultTaskDisplayArea#11 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        │  ├─ Task=1#65 pid=14648 uid=1000 flags=1 a=1
+ │  │  │        │  │  ├─ Task=92#121 pid=14648 uid=1000 flags=1 a=1
+......
+ │  │  │        │  │  └─ home_task_overlay_container#67 pid=14962 uid=10088 flags=0 a=1
+ │  │  │        │  ├─ Task=3#71 pid=14648 uid=1000 flags=1 a=1
+ │  │  │        │  │  ├─ Task=4#72 pid=14648 uid=1000 flags=1 a=1
+ │  │  │        │  │  │  └─ Dim layer#76 pid=14962 uid=10088 flags=1 a=1
+ │  │  │        │  │  └─ Task=5#73 pid=14648 uid=1000 flags=1 a=1
+ │  │  │        │  │     └─ Dim layer#78 pid=14962 uid=10088 flags=1 a=1
+ │  │  │        │  ├─ Task=145#3585 pid=14648 uid=1000 flags=1 a=1
+ │  │  │        │  │  └─ ActivityRecord{238685072 u0 com.hq.a[...]demo/.wms.WMSTestActivity t145}#3586 pid=14648 uid=1000 flags=1 a=1
+ │  │  │        │  │     ├─ 5bf748e ActivityRecordInputSink com.[...]ndroiddemo/.wms.WMSTestActivity#3592 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        │  │     └─ 266da49 com.hq.android.androiddemo/c[...]androiddemo.wms.WMSTestActivity#3587 pid=14648 uid=1000 flags=4096 a=1
+ │  │  │        │  ├─ Task=144#3567 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        │  │  └─ ActivityRecord{6866222 u0 com.hq.android.androiddemo/.MainActivity t144}#3568 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        │  │     ├─ 88ea25c ActivityRecordInputSink com.hq.android.androiddemo/.MainActivity#3574 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        │  │     ├─ 96ccc70 com.hq.android.androiddemo/c[...]ndroid.androiddemo.MainActivity#3578 pid=14648 uid=1000 flags=4096 a=1
+ │  │  │        │  │     │  ├─ com.hq.android.androiddemo/com.hq.android.androiddemo.MainActivity#3749 pid=32385 uid=10250 flags=8450 a=1
+ │  │  │        │  │     │  └─ (Relative) ImeContainer#19 parent=3568 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        │  │     │     └─ WindowToken{dfbfd84 type=2011 android.os.Binder@efed797}#150 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        │  │     │        └─ Surface(name=cf7b0ce InputMethod#151[...]ation-leash of insets_animation#3755 pid=14648 uid=1000 flags=0 a=0
+ │  │  │        │  │     │           └─ cf7b0ce InputMethod#151 pid=14648 uid=1000 flags=4096 a=1
+ │  │  │        │  ├─ winAppDimLayer#12 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        │  ├─ winAppAnimationLayer$0#13 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        │  ├─ winAppAnimationLayer$1#14 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        │  ├─ winAppAnimationLayer$2#15 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        │  └─ winAppAnimationLayer$3#16 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        ├─ Leaf:3:12#17 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        │  ├─ WindowToken{b8cd345 type=2038 android.os.BinderProxy@952eb1}#74 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        │  │  └─ b75be1 ShellDropTarget#75 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        │  └─ WindowToken{bd6796 type=2038 android.os.BinderProxy@4ae36b1}#126 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        │     └─ 7fee82b Quick App Window#127 pid=14648 uid=1000 flags=0 a=1
+ │  │  │        └─ ImePlaceholder:13:14#18 pid=14648 uid=1000 flags=0 a=1
+........
+ ├─ Input Consumer pip_window_input_consumer#66 pid=14648 uid=1000 flags=1 a=1
+ └─ WindowToken{ba2e408 type=2024 android.os.BinderProxy@4d6f5ab}#89 pid=14648 uid=1000 flags=0 a=1
+    └─ 38638b4 ScreenDecorHwcOverlay#90 pid=14648 uid=1000 flags=0 a=1
+       └─ ScreenDecorHwcOverlay#91 pid=14962 uid=10088 flags=9024 a=1
+```
+
+### Offscreen Layer
+
+一般是从 Layer 树中被删除的图层，如果某个图层在这里大量存在，可能是有图层泄露。        
+
+```
+Offscreen Hierarchy
+ ROOT
+ ├─ Surface(name=WallpaperWindowToken{30[...]79)/@0x3e32f95_transition-leash#3726 pid=14962 uid=10088 flags=0 a=0
+ ├─ Surface(name=WallpaperWindowToken{f6[...]80)/@0xe9c509e_transition-leash#3725 pid=14962 uid=10088 flags=0 a=1
+ ├─ BlurLayer#129 pid=15826 uid=10165 flags=0 a=1
+ ├─ BlurLayer#130 pid=15826 uid=10165 flags=0 a=1
+ ├─ Overview#134 parent=4294967295 pid=15826 uid=10165 flags=0 a=1
+ │  └─ OverviewLeash#135 pid=15826 uid=10165 flags=1 a=1
+ │     └─ Overview#136 pid=15826 uid=10165 flags=8448 a=1
+ ├─ Surface(name=Task=149#3683)/@0xae1c3bf_transition-leash#3691 pid=14962 uid=10088 flags=0 a=0
+ ├─ Task=143#3423 pid=14648 uid=1000 flags=1 a=1
+ │  └─ (Relative) Input Consumer recents_animation_input_consumer#123 parent=4294967295 pid=14648 uid=1000 flags=1 a=1
+ ├─ Surface(name=Task=149#3683)/@0xe1f33ff_transition-leash#3698 pid=14962 uid=10088 flags=0 a=1
+ ├─ Surface(name=Task=1#65)/@0x9d46e87_transition-leash#3724 pid=14962 uid=10088 flags=0 a=1
+ ├─ Surface(name=Task=147#3648)/@0xf863325_transition-leash#3723 pid=14962 uid=10088 flags=0 a=1
+ ├─ Task=146#3609 pid=14648 uid=1000 flags=1 a=1
+ ├─ Task=148#3656 pid=14648 uid=1000 flags=1 a=1
+ ├─ Surface(name=Task=148#3656)/@0xc929ff0_transition-leash#3722 pid=14962 uid=10088 flags=0 a=1
+ ├─ Task=147#3648 pid=14648 uid=1000 flags=1 a=1
+ └─ Task=149#3683 pid=14648 uid=1000 flags=1 a=1
+```
+
 ### HWC 中 Layer 详情
 
 Display *****(active) HWC layers:

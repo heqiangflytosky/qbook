@@ -429,6 +429,29 @@ data_sources: {
 }
 ```
 
+### Thermal
+
+<img src="/images/android-performance-optimization-tools-perfetto/thermal.png" width="758" height="100"/>
+
+30K 表示30度。分析卡顿问题时可以看看这里，如果温度过高时可能也会导致卡顿。       
+
+可以查看当前设备的温度信息，需要在配置文件中添加：     
+
+```
+data_sources: {
+    config {
+        name: "linux.ftrace"
+        ftrace_config {
+            ftrace_events: "sched/sched_switch"
+            .......
+            atrace_categories: "binder_lock"
+            atrace_categories: "thermal"  # 配置 Thermal 信息
+            atrace_apps: "*"
+        }
+    }
+}
+```
+
 ### Android logs
 
 perfetto可以实时记录log，然后将log和trace信息一一对应。    
@@ -474,12 +497,34 @@ HW_VSYNC_ON_0：  代表 HW_VSYNC 开启。  0 代表display id，
 
 ### system_server
 
+#### Focused app
+
 Focused app：焦点所在的 App
+
+#### AnrConsumer
+
 AnrConsumer：AnrConsumerThread 的工作状态，用来执行 appNotResponding，可以看到发生 ANR 的时间
+
+#### InputReader
+
 InputReader:
+
+#### InputDispatcher
+
 InputDispatcher:
 
 ### Slice Details：
+
+### App
+
+#### GPU completion
+
+GPU completion 表示Buffer已经queue给了 BufferQueue，但 GPU 尚未完成绘制。HWC release与GPU completion之间可能存在等待关系。     
+
+#### dequeueBuffer 和 queueBuffer
+
+dequeueBuffer 表示 App RenderThread 向 SF 的 BufferQueue 申请以获取空闲缓冲区，用于执行渲染操作。     
+queueBuffer 用于将填充好的缓冲区返回队列给 SF 消费，执行合成操作。      
 
 ### 线程状态
 

@@ -11,9 +11,9 @@ date: 2022-11-23 10:00:00
 
 ## Zygote 启动
 
-在Android系统中，普通应用程序进程以及运行系统的服务 system_server 进程都是由Zygote进程来fork的。也叫做孵化器。它通过linux中的fork形式创建应用程序进程和 system_server 。由于zygote进程在启动的时候会创建java虚拟机环境，因此通过fork而创建的应用程序进程或者system_server进程可以在内部获得java虚拟机环境，不需要单独为每一个进程创建java虚拟机环境。    
+在Android系统中，普通应用程序进程以及运行系统的服务 system_server 进程都是由Zygote进程来fork的。也叫做孵化器。它通过linux中的fork形式创建应用程序进程和 system_server 。由于zygote进程在启动的时候会创建java虚拟机环境，因此通过fork而创建的应用程序进程或者system_server进程可以在内部获得java虚拟机环境，不需要单独为每一个进程创建java虚拟机环境。      
 
-Zygote 进程通过在 system/core/rootdir/init.zygote32.rc 启动的。   
+Zygote 进程通过在 system/core/rootdir/init.zygote32.rc 启动的。     
 
 ```
 service zygote /system/bin/app_process -Xzygote /system/bin --zygote --start-system-server
@@ -40,7 +40,7 @@ service zygote /system/bin/app_process -Xzygote /system/bin --zygote --start-sys
 
 ```
 
-通过执行 app_process 来启动 zygote 进程，app_process 的代码在 `frameworks/base/cmds/app_process/`。    
+通过执行 app_process 来启动 zygote 进程，app_process 的代码在 `frameworks/base/cmds/app_process/`。     
 
 ```
 //app_main.cpp
@@ -55,7 +55,7 @@ main()
       env->CallStaticVoidMethod(startClass, startMeth, strArray);
 ```
 
-现在回到 Java 中执行 frameworks/base/core/java/com/android/internal/os/ZygoteInit.java 的main 方法。    
+现在回到 Java 中执行 frameworks/base/core/java/com/android/internal/os/ZygoteInit.java 的main 方法。     
 
 ```
 ZygoteInit.main()
@@ -105,7 +105,9 @@ ZygoteInit.main()
     caller.run()
 ```
 
-执行 SystemServer.main。    
+## SystemServer 启动
+
+Zygote fork 出 system_server 进程后，开始执行 SystemServer.main。     
 
 ```
 ZygoteInit.main()
@@ -174,7 +176,7 @@ ZygoteInit.main()
     }
 ```
 
-启动普通桌面。    
+启动普通桌面。     
 
 ```
 Binder.execTransact
@@ -194,12 +196,9 @@ Binder.execTransact
 ```
 
 
-
-
-
 ## 关于 FallbackHome
 
-FallbackHome 的优先级为 -1000，比普通的桌面要低，因此，开机解锁后，就会优先启动普通桌面。    
+FallbackHome 的优先级为 -1000，比普通的桌面要低，因此，开机解锁后，就会优先启动普通桌面。     
 只有在开机过程中，因为它的 application 配置了 `android:directBootAware="true"`，所以才会启动。     
 
 ```

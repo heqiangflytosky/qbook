@@ -68,6 +68,10 @@ status_t SurfaceFlinger::doDump(int fd, const DumpArgs& args, bool asProto) {
 
 ## 分析
 
+### Build configuration
+
+NUM_FRAMEBUFFER_SURFACE_BUFFERS：BUFFER 的数量，一般为3，表示使用三重缓冲。      
+
 ### Vsync 信息
 
 ```
@@ -77,7 +81,7 @@ Sync configuration: [using: EGL_ANDROID_native_fence_sync EGL_KHR_wait_sync]
 
 #### Scheduler
 
-使用 `adb shell dumpsys SurfaceFlinger --scheduler` 可以单独打印这部分信息。    
+使用 `adb shell dumpsys SurfaceFlinger --scheduler` 可以单独打印这部分信息。     
 
 ```
 Scheduler:
@@ -374,7 +378,9 @@ Display 4630947064936706947
     idleTimer=
         interval=3000.000 ms
         controller=Platform
+```
 
+```
 Display 4630947064936706947 (physical, "")
    Composition Display State:
    isEnabled=true isSecure=true usesDeviceComposition=false 
@@ -520,6 +526,11 @@ Display 4630947064936706947 (physical, "")
  override peekThroughLayer=0x0 override disableBackgroundBlur=false 
       hwc: layer=0x0830 composition=CLIENT (1) 
 ```
+
+Composition Display State:
+
+ - usesDeviceComposition 表示是否使用 HWC 合成      
+ - usesClientComposition 表示是否使用 GPU 合成      
 
 ### Input list
 
@@ -703,29 +714,29 @@ Display *****(active) HWC layers:
 表示真正参与合成的 layer。
 
 ```
-Display 4630947064936706947 (active) HWC layers:
+Display 147 (active) HWC layers:
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
  Layer name
            Z |  Window Type |  Layer Class | Comp Type |  Transform |   Disp Frame (LTRB) |          Source Crop (LTRB) |     Frame Rate (Explicit) (Seamlessness) [Focused]
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- com.hq.android.androiddemo/com.hq.android.androiddemo.MainActivity#156
-  rel      0 |            1 |            0 |     DEVICE |          0 |    0    0 1080 2340 |    0.0    0.0 1080.0 2340.0 |                                              [*]
+ Wallpaper BBQ wrapper#92
+           3 |            0 |            0 |     CLIENT |          0 |    0    0 1200 2670 |    0.0    0.0 1079.0 2400.0 |                                              [ ]
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- StatusBar#104
-  rel      0 |         2000 |            0 |     DEVICE |          0 |    0    0 1080   92 |    0.0    0.0 1080.0   92.0 |                                              [ ]
+ com.*****/com.android[...]r3.uioverrides.QuickstepLauncher#198
+           5 |            1 |            0 |     CLIENT |          0 |    0    0 1200 2670 |    0.0  124.0 1200.0 2794.0 |                                              [*]
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- NavigationBar0#100
-  rel      0 |         2019 |            0 |     DEVICE |          0 |    0 2271 1080 2340 |    0.0    0.0 1080.0   69.0 |                                              [ ]
+ StatusBar#120
+          12 |         2000 |            0 |     DEVICE |          0 |    0    0 1200  124 |    0.0    0.0 1200.0  124.0 |                                              [ ]
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- ScreenDecorOverlay#77
-  rel      0 |         2024 |            0 |     DEVICE |          0 |    0    0 1080  144 |    0.0    0.0 1080.0  144.0 |                                              [ ]
+ NavigationBar0#110
+          13 |         2019 |            0 |     DEVICE |          0 |    0 2589 1200 2670 |    0.0    0.0 1200.0   81.0 |                                              [ ]
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- ScreenDecorOverlayBottom#81
-  rel      0 |         2024 |            0 |     DEVICE |          0 |    0 2196 1080 2340 |    0.0    0.0 1080.0  144.0 |                                              [ ]
+ ScreenDecorHwcOverlay#89
+          19 |         2024 |            0 | DISPLAY_DECORATION |          0 |    0    0 1200 2670 |    0.0    0.0 1200.0 2670.0 |                                              [ ]
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 ```
 
- - Comp Type：表示叠加类型（Device表示 硬件叠加，如果是Client表示GPU叠加）    
+ - Comp Type：表示叠加类型（Device表示 硬件合成，如果是Client表示GPU合成）    
  - Focused：表示当前焦点
  - Disp Frame：显示范围
  - Source Crop：源 Crop 范围，对Layer剪切后获取的区域

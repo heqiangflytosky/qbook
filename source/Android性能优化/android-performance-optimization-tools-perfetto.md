@@ -36,20 +36,21 @@ adb shell am start com.android.traceur/com.android.traceur.MainActivity
 
 抓取完成后会自动打开浏览器查看trace文件。      
 
-可以通过 `./record_android_trace -h` 来查看支持的参数配置。      
-比如，通过 `./record_android_trace --list` 来查看支持属性配置。    
+可以通过 `./record_android_trace -h` 来查看支持的参数配置。       
+比如，通过 `./record_android_trace --list` 来查看支持属性配置。     
 
 #### perfetto
 
-````
+```
 adb shell perfetto -o /data/misc/perfetto-traces/trace -t 10s sched freq idle am wm gfx view binder_driver hal dalvik camera input res memory aidl
-````
+```
 如果遇到目录权限问题，换个目录试试：    
-````
+```
 adb shell perfetto -o /data/local/traces/trace_file.perfetto-trace -t 10s sched freq idle am wm gfx view binder_driver hal dalvik camera input res memory aidl
-````
+```
 
-也可以从 https://ui.perfetto.dev/ 复制已经配置好的配置文件，然后到终端执行。    
+也可以从 https://ui.perfetto.dev/ 复制已经配置好的配置文件，然后到终端执行。     
+抓取方法：点击 `Record new trace`，在右边的 Probes 中打开或者关闭对应开关，然后点击 `Cmdline instructions`，里面就是相对应的配置。       
 比如：    
 
 ```
@@ -289,6 +290,7 @@ data_sources: {
             atrace_categories: "binder_driver"
             atrace_categories: "aidl"
             atrace_categories: "binder_lock"
+            atrace_categories: "thermal"  # 配置 Thermal 信息
             atrace_apps: "*"
         }
     }
@@ -433,7 +435,7 @@ data_sources: {
 
 <img src="/images/android-performance-optimization-tools-perfetto/thermal.png" width="758" height="100"/>
 
-30K 表示30度。分析卡顿问题时可以看看这里，如果温度过高时可能也会导致卡顿。       
+30K 表示30度。分析卡顿问题时可以看看这里，如果温度过高时会导致限频，可能也会导致卡顿。       
 
 可以查看当前设备的温度信息，需要在配置文件中添加：     
 

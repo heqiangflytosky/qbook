@@ -8,11 +8,89 @@ date: 2015-2-1 10:00:00
 ---
 ## 概述
 
-AIDL是Android Interface Definition Language的简称，也就是Android接口定义语言，通过它我们可以定义进程间的通信接口。
+AIDL是Android Interface Definition Language的简称，也就是Android接口定义语言，通过它我们可以定义进程间的通信接口。     
+它也是通过 Binder 实现进程间通信的。     
+App 可以通过两种方式实现 Binder 进程间通信：
+ - 通过创建Service，通过bindService获取 IBinder。
+ - 通过ServiceManager.getService() 方式来获取 IBinder。
+
+### 通过 getSystemService
+
+```
+        BatteryManager batteryManager = (BatteryManager) getSystemService(BATTERY_SERVICE);
+        int batteryLevel = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+```
+
+这种方式的实现其实和 AIDL 方式原理是一样的，都是通过 Binder，通过代码可以看到，也是通过创建 IBatteryStats.Stub.asInterface 对象实现的。      
+
+```
+//SystemServiceRegistry.java
+        registerService(Context.BATTERY_SERVICE, BatteryManager.class,
+                new CachedServiceFetcher<BatteryManager>() {
+            @Override
+            public BatteryManager createService(ContextImpl ctx) throws ServiceNotFoundException {
+                IBatteryStats stats = IBatteryStats.Stub.asInterface(
+                        ServiceManager.getServiceOrThrow(BatteryStats.SERVICE_NAME));
+                IBatteryPropertiesRegistrar registrar = IBatteryPropertiesRegistrar.Stub
+                        .asInterface(ServiceManager.getServiceOrThrow("batteryproperties"));
+                return new BatteryManager(ctx, stats, registrar);
+            }});
+```
+
+```
+// BatteryManager.java
+    public BatteryManager(Context context,
+            IBatteryStats batteryStats,
+            IBatteryPropertiesRegistrar batteryPropertiesRegistrar) {
+        mContext = context;
+        mBatteryStats = batteryStats;
+        mBatteryPropertiesRegistrar = batteryPropertiesRegistrar;
+    }
+ 
+    private long queryProperty(int id) {
+        long ret;
+
+        if (mBatteryPropertiesRegistrar == null) {
+            return Long.MIN_VALUE;
+        }
+
+        try {
+            BatteryProperty prop = new BatteryProperty();
+            if (mBatteryPropertiesRegistrar.getProperty(id, prop) == 0)
+                ret = prop.getLong();
+            else
+                ret = Long.MIN_VALUE;
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+
+        return ret;
+    }
+```
+
+## AIDL 关键字介绍
+
+### in，out，inout
+
+in、out、inout表示跨进程通信中数据的流向（基本数据类型默认是in，非基本数据类型可以使用其它数据流向out、inout）。     
+in 表示数据只能由客户端流向服务端。（表现为服务端修改此参数，不会影响客户端的对象）。     
+out 表示数据只能由服务端流向客户端。（表现为服务端收到的参数是空对象，并且服务端修改对象后客户端会同步变动）。     
+inout 则表示数据可在服务端与客户端之间双向流通。（表现为服务端能接收到客户端传来的完整对象，并且服务端修改对象后客户端会同步变动）。     
+注意如果aidl中发现对象类型参数可以不带in，out，inout任何一个，那么它一定属于默认in类型，而且也不能强制给其加上out或inout。     
+具体这里可以看google官方文档的原话：     
+https://developer.android.google.cn/guide/components/aidl#Create     
+元数据类型，String ，IBinder，还有AIDL生成的接口那默认就是in，不能为其他      
+
+### oneway
+
+oneway 关键字用于修饰远程调用的行为，被oneway修饰了的方法不可以有返回值，也不可以有带out或inout的参数。      
+使用oneway时，远程调用不会阻塞；它只是发送事务数据并立即返回。接口的实现最终接收此调用时，是以正常远程调用形式将其作为来自 Binder 线程池的常规调用进行接收。      
 
 ## 实例
 
-我们现在通过一个实例来介绍 AIDL 的使用方法。实例中服务端维护了一个`Student`列表，客户端可以通过跨进程调用来向列表添加和查询数据。
+我们现在通过一个实例来介绍 AIDL 的使用方法。      
+通过创建Service来获取 IBinder 实现进程间通信。      
+实例中服务端维护了一个`Student`列表，客户端可以通过跨进程调用来向列表添加和查询数据。     
 
 ### 创建AIDL接口
 AIDL文件支持的数据类型：
@@ -21,31 +99,31 @@ AIDL文件支持的数据类型：
  - String和CharSequence；
  - List或Map类型：List或Map中的所有元素必须是AIDL支持的类型之一，或者是一个其他AIDL生成的接口，或者是定义的`parcelable`。
 
-如果我们需要使用非默认支持的数据类型，就要我们自己定义一个`parcelable`对象。
+如果我们需要使用非默认支持的数据类型，就要我们自己定义一个`parcelable`对象。     
 
-AIDL文件的创建方法如图所示：
+AIDL文件的创建方法如图所示：     
 
 ![效果图](/images/android-ipc-aidl/add-aidl.png)
 
-创建完AIDL文件，工程的目录会变成下图所示的样子，多了一个aidl包，和java在同一个层级之下。并且aidl文件的包和java文件的包是一样的。
+创建完AIDL文件，工程的目录会变成下图所示的样子，多了一个aidl包，和java在同一个层级之下。并且aidl文件的包和java文件的包是一样的。     
 
 ![效果图](/images/android-ipc-aidl/add-aidl-structure.png)
 
-在这里有两个AIDL文件：
+在这里有两个AIDL文件：     
 
  - Student.aidl：用来定义进程间需要传输的数据对象的parcelable类，以供其他AIDL文件使用AIDL中非默认支持的数据类型的。
  - StudentManager.aidl：用来定义一些来完成跨进程通信的接口的类。
 
-下面来看这两个接口的实现：
+下面来看这两个接口的实现：     
 
-Student.aidl
+Student.aidl     
 ```java
 package com.android.hq.aidldemo;
 
 parcelable Student;
 
 ```
-StudentManager.aidl
+StudentManager.aidl     
 ```java
 package com.android.hq.aidldemo;
 
@@ -59,10 +137,10 @@ interface StudentManager {
 
 ```
 
-这里，虽然Studet.java和StudentManager.aidl在同一个包下面，但`Studet`不是系统默认支持的数据类型，使用的时候必须添加`import`进来。
+这里，虽然Studet.java和StudentManager.aidl在同一个包下面，但`Studet`不是系统默认支持的数据类型，使用的时候必须添加`import`进来。     
 
-Student.java
-`Student`是用于跨进程传输数据使用的，因此必须进行序列化，选择的序列化方式是实现 `Parcelable` 接口。
+Student.java     
+`Student`是用于跨进程传输数据使用的，因此必须进行序列化，选择的序列化方式是实现 `Parcelable` 接口。     
 
 ```java
 public class Student implements Parcelable {
@@ -145,8 +223,8 @@ public class Student implements Parcelable {
 }
 ```
 
-在这里注意一下，我们知道如果是要在不同的应用中进行进程通信，两个应用必须要相同的 aidl 文件（包名也要一样）。或者是 Client 端 BookManager.aidl 定义的接口在 Service 端必须存在，即 Service 端的接口大于或等于 Client 端的接口。
-这里为了方便移植，我们把进程通信需要的文件都放在 aidl 目录下面，当然也包括了 Student.java 这个java文件，但是Android Studio默认是只在`src/main/java`找源文件的，因此需要进行下面的配置，在 build.gradle 文件的`android{}`里面加上下面代码：
+在这里注意一下，我们知道如果是要在不同的应用中进行进程通信，两个应用必须要相同的 aidl 文件（包名也要一样）。或者是 Client 端 BookManager.aidl 定义的接口在 Service 端必须存在，即 Service 端的接口大于或等于 Client 端的接口。     
+这里为了方便移植，我们把进程通信需要的文件都放在 aidl 目录下面，当然也包括了 Student.java 这个java文件，但是Android Studio默认是只在`src/main/java`找源文件的，因此需要进行下面的配置，在 build.gradle 文件的`android{}`里面加上下面代码：     
 
 ```
     sourceSets {
@@ -156,19 +234,19 @@ public class Student implements Parcelable {
     }
 ```
 
-添加之后编译，工程变成下图现实，aidl也就显示在源文件下面了：
+添加之后编译，工程变成下图现实，aidl也就显示在源文件下面了：     
 
 ![效果图](/images/android-ipc-aidl/add-source-structure.png)
 
 
-编译过之后，会生成下面的文件：
+编译过之后，会生成下面的文件：     
 
 ```
 app/build/generated/source/aidl/debug/com/android/hq/aidldemo/StudentManager.java
 
 ```
 
-StudentManager.aidl 这里`void addStudent(inout Student student);`的参数类型必须指定定向tag，否则编译会报下面的错误，这里我们指定的是`inout`类型。一旦申明为`inout`这个类型，`Student`类就必须实现`readFromParcel()`方法。具体`inout`类型介绍可以参考我的下一篇博客。
+StudentManager.aidl 这里`void addStudent(inout Student student);`的参数类型必须指定定向tag，否则编译会报下面的错误，这里我们指定的是`inout`类型。一旦申明为`inout`这个类型，`Student`类就必须实现`readFromParcel()`方法。具体`inout`类型介绍可以参考我的下一篇博客。     
 
 ```
 17:18:23.963 [ERROR] [org.gradle.api.Task] aidl E  8954  8954 type_namespace.cpp:130] In file /home/heqiang/AndroidStudioProjects/AIDLDemo/app/src/main/aidl/com/android/hq/aidldemo/StudentManager.aidl line 8 parameter student (argument 1):
@@ -199,7 +277,7 @@ aidl E  8954  8954 type_namespace.cpp:130]     'Student' can be an out type, so 
 
 ### 代码
 
-AndroidManifest.xml
+AndroidManifest.xml     
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -229,7 +307,8 @@ AndroidManifest.xml
 </manifest>
 ```
 
-MainActivity.java
+MainActivity.java     
+主要是bindService，通过  onServiceConnected 获取到服务端的 IBinder 对象，然后就可以通过这个对象远程调用方法。      
 
 ```java
 public class MainActivity extends AppCompatActivity {
@@ -293,6 +372,8 @@ public class MainActivity extends AppCompatActivity {
     private ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
+            // 获取代理对象
+            // service 是服务端通过 onBind 传递过来的 IBinder 对象
             mStudentManager = StudentManager.Stub.asInterface(service);
             mConnected = true;
             if(mStudentManager != null){
@@ -321,7 +402,9 @@ public class MainActivity extends AppCompatActivity {
 }
 ```
 
-AIDLService.java
+AIDLService.java     
+
+主要是创建一个 StudentManager.Stub 对象，通过 onBind 返回给客户端使用。      
 
 ```java
 public class AIDLService extends Service {
@@ -332,6 +415,7 @@ public class AIDLService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         Log.d(TAG, "called onBind");
+        // 把 StudentManager.Stub 返回给客户端
         return mStudentManager;
     }
 
@@ -377,11 +461,11 @@ public class AIDLService extends Service {
 
 ## 结果
 
-如图所示，Clent和Server是在两个不同的进程中的：
+如图所示，Clent和Server是在两个不同的进程中的：     
 
 ![效果图](/images/android-ipc-aidl/process.png)
 
-启动后分别点击添加和获取列表按钮，打印如下：
+启动后分别点击添加和获取列表按钮，打印如下：     
 ```
 06-08 19:30:10.047 10005 10005 D AIDLService: called onBind
 06-08 19:30:10.072 10005 10017 D AIDLService: call getStudents(), student list is :[name = John, age = 6, grade = 1]
@@ -401,8 +485,8 @@ public class AIDLService extends Service {
 
 ### Android进程间通信是异步的还是同步的？
 
-我们可以在程序中验证这个问题。
-我们在`AIDLService`类的`mStudentManager`实现的方法`addStudent()`中添加一个延时：
+我们可以在程序中验证这个问题。     
+我们在`AIDLService`类的`mStudentManager`实现的方法`addStudent()`中添加一个延时：     
 
 ```java
         @Override
@@ -420,7 +504,7 @@ public class AIDLService extends Service {
         }
 ```
 
-我们在客户端调用`addStudent()`方法的结尾添加打印，这样可以得到函数调用结束的信息：
+我们在客户端调用`addStudent()`方法的结尾添加打印，这样可以得到函数调用结束的信息：     
 
 ```java
     public void addStudent(View view){
@@ -442,9 +526,9 @@ public class AIDLService extends Service {
 06-08 19:42:30.506 20822 20833 D AIDLService: sleep end !
 06-08 19:42:30.506 20807 20807 D Client  : addStudent end
 ```
-看到客户端等服务端调用完毕才会往下走，因此我们可以得到这样的结论：
-**Android进程间通信默认是同步的**，这里为什么说默认呢？难道还有其他情况，是的，也可以是异步的，为什么呢？
-看 StudentManager.java 中的 `addStudent` 方法：
+看到客户端等服务端调用完毕才会往下走，因此我们可以得到这样的结论：     
+**Android进程间通信默认是同步的**，这里为什么说默认呢？难道还有其他情况，是的，也可以是异步的，为什么呢？     
+看 StudentManager.java 中的 `addStudent` 方法：     
 
 ```java
 @Override public void addStudent(com.android.hq.aidldemo.Student student) throws android.os.RemoteException
@@ -455,7 +539,7 @@ mRemote.transact(Stub.TRANSACTION_addStudent, _data, _reply, 0);
 }
 ```
 
-再来看一下 `IBinder` 中对这个方法的介绍：
+再来看一下 `IBinder` 中对这个方法的介绍：     
 
 ```java
     /**
@@ -475,15 +559,15 @@ mRemote.transact(Stub.TRANSACTION_addStudent, _data, _reply, 0);
     public boolean transact(int code, Parcel data, Parcel reply, int flags)
         throws RemoteException;
 ```
-`flags` 为0时是普通的RPC调用，为 `FLAG_ONEWAY` 时是 one-way RPC，是单向调用，执行后立即返回，无需等待Server端 `transact()` 返回。这个时候就是异步执行了。
-具体如何实现异步调用请参考我的下一篇博客。
+`flags` 为0时是普通的RPC调用，为 `FLAG_ONEWAY` 时是 one-way RPC，是单向调用，执行后立即返回，无需等待Server端 `transact()` 返回。这个时候就是异步执行了。     
+具体如何实现异步调用请参考我的下一篇博客。     
 
 ## 注意事项
 
 ### Server 端 AIDL 文件升级问题
 
-当我们把 AIDL 公开接口给外部第三方应用时，通常的做法是会将 AIDL 以及对应 Java 文件打包给第三方使用，这样做没有任何问题。但要注意的是在后续升级这个接口的时候，得保持接口中方法顺序不变，即只能在aidl的后面添加新方法，而不能在中间插入新方法。否则 Client 端后调用错乱导致调用不成功。
-为什么呢？因为编译器会给我们自动根据 AILD 文件生成对应的 Java 文件，在这个 Java 文件中的 `onTransact` 方法中，自动为我们分配好了每一个方法的 code，这个code 的分配顺序是按照 AIDL 文件中的声明顺序来进行的，详细请看下面的代码。通过分析 android 进程间通信 binder 机制可以知道，则是客户端最后是通过调用 transact 方法，并传递这个 code 给 server 端，来完成调用。如果中间插入新的接口，会导致这个 code 错乱，调用的不是我们想要的方法。
+当我们把 AIDL 公开接口给外部第三方应用时，通常的做法是会将 AIDL 以及对应 Java 文件打包给第三方使用，这样做没有任何问题。但要注意的是在后续升级这个接口的时候，得保持接口中方法顺序不变，即只能在aidl的后面添加新方法，而不能在中间插入新方法。否则 Client 端后调用错乱导致调用不成功。     
+为什么呢？因为编译器会给我们自动根据 AILD 文件生成对应的 Java 文件，在这个 Java 文件中的 `onTransact` 方法中，自动为我们分配好了每一个方法的 code，这个code 的分配顺序是按照 AIDL 文件中的声明顺序来进行的，详细请看下面的代码。通过分析 android 进程间通信 binder 机制可以知道，则是客户端最后是通过调用 transact 方法，并传递这个 code 给 server 端，来完成调用。如果中间插入新的接口，会导致这个 code 错乱，调用的不是我们想要的方法。     
 
 ```
 static final int TRANSACTION_testAIDL1 = (android.os.IBinder.FIRST_CALL_TRANSACTION + 0);
@@ -492,9 +576,9 @@ static final int TRANSACTION_testAIDL2 = (android.os.IBinder.FIRST_CALL_TRANSACT
 
 ### Client 和 Server AIDL 对应问题
 
-从上面的分析得到一个结论，Client 端和 Server 端的 AIDL 可以不一致，Client 端的 AIDL 文件的接口可以是 Server 端的AILD 接口的一个子集，但这个子集必须是前面所有连续的接口的一个子集，方法顺序不能变。
-另外，Client 端和 Server 端的 AIDL 的包名必须一致。
+从上面的分析得到一个结论，Client 端和 Server 端的 AIDL 可以不一致，Client 端的 AIDL 文件的接口可以是 Server 端的AILD 接口的一个子集，但这个子集必须是前面所有连续的接口的一个子集，方法顺序不能变。     
+另外，Client 端和 Server 端的 AIDL 的包名必须一致。     
 
 ### AIDL 接口不能重载
 
-从上面的代码中可以看到，接口 code 的分配是根据方法名来分配的，没有涉及到参数，因此是不能重载的，如果重载的话编译是会报错的。
+从上面的代码中可以看到，接口 code 的分配是根据方法名来分配的，没有涉及到参数，因此是不能重载的，如果重载的话编译是会报错的。     

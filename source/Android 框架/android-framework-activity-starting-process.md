@@ -356,6 +356,23 @@ ActivityClientController.activityPaused()
 
 接下来我们介绍创建 App 进程这一环节。这部分代码流程在上面已经有，这里不做过多介绍。这部分流程是和上面的 Launcher 的 pause 流程是同时进行的。     
 ProcessList.startProcessLocked() 中system_server 通过Socket进行跨进程通信通知 zygote 进程 fork 出一个新的 App 进程，来开启我们的目标App。    
+
+AMS  通过 Socket 请求 Zygote 创建新进程。     
+```
+ProcessList.startProcessLocked
+  ProcessList.handleProcessStart
+    ProcessList.startProcess
+      Process.start()
+        ZygoteProcess.start()
+          ZygoteProcess.startViaZygote
+            ZygoteProcess.openZygoteSocketIfNeeded
+              ZygoteProcess.attemptConnectionToPrimaryZygote
+                ZygoteState.connect
+            ZygoteProcess.zygoteSendArgsAndGetResult
+              ZygoteProcess.attemptZygoteSendArgsAndGetResult
+                
+              
+```
 在 App 进程中进程启动流程如下：    
 
 ```
@@ -368,8 +385,10 @@ ZygoteInit.main
 ```
 
 app 进程启动后，首先是实例化 ActivityThread，并执行其main()函数：创建 ApplicationThread，Looper，Handler 对象，并开启主线程消息循环Looper.loop()。    
+ActivityThread 是主线程（UI线程）的真正入口和管理者，它负责执行主线程的消息循环，调度和管理四大组件（Activity, Service, etc.）的生命周期。    
+ApplicationThread 是 ActivityThread 的一个内部类，并继承了 IApplicationThread.Stub。这意味着它是一个Binder对象，用于跨进程通信（IPC）。      
 
-接下来 App 进程会和 AMS 进程跨进程通信来绑定 Application。
+接下来 App 进程会和 AMS 进程跨进程通信来绑定 Application。     
 
 ### system_server 接收到新进程创建完毕的通知
 
@@ -408,6 +427,9 @@ Application.onCreate
 
 ```
 ActivityThread.handleBindApplication()
+    LoadedApk.makeApplicationInner
+        // 创建 Application 
+        Instrumentation.newApplication
     Instrumentation.callApplicationOnCreate()
         Application.onCreate()
 ```
@@ -427,6 +449,8 @@ ActivityThread.ApplicationThread.scheduleTransaction
                         LaunchActivityItem.execute()
                             ActivityThread.handleLaunchActivity()
                                 ActivityThread.performLaunchActivity()
+                                    // 创建 Activity
+                                    Instrumentation.newActivity()
                                     Instrumentation.callActivityOnCreate()
                                         Activity.performCreate()
                                             Activity.onCreate()

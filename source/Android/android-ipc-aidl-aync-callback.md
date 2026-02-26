@@ -1,5 +1,5 @@
 ---
-title: Android IPC 之 AIDL 异步调用
+title: Android IPC 之 AIDL 异步调用和双向通信实现
 categories: Android
 comments: true
 tags: [Android, IPC, AIDL]
@@ -9,10 +9,12 @@ date: 2015-2-5 10:00:00
 ## 概述
 
 上一篇博客 [Android IPC 之 AIDL ](http://www.heqiangfly.com/2015/02/01/android-ipc-aidl/) 中我们了解到 AIDL 是默认同步调用的，本文我们就探索如何实现 AIDL 的异步调用。
-异步调用可以有两种方法实现：
+异步调用可以有两种方法实现：      
 
- - 在 AILD 方法前添加 oneway 关键字
- - 使用 Callback 实现
+ - 在 AILD 方法前添加 oneway 关键字       
+ - 使用 Callback 实现      
+
+双向通信也是通过 Callback 实现的，只需要把 Client 端实现的 IBinder 对象（Callback）传递给 Server 端，那么 Server 就可以调用对应的方法和 Client 进行通信了。      
 
 ## oneway 关键字
 

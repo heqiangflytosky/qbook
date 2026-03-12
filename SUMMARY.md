@@ -152,6 +152,7 @@
     * [Android Hardware Layer 详解](source/Android 图形系统/android-graphic-system-view-layer-type.md)
     * [Android 图形系统基础知识和相关类](source/Android 图形系统/android-graphic-system-basic-class.md)
     * [Android SurfaceFlinger dump 信息分析](source/Android 图形系统/android-graphic-system-surfaceflinger-dump.md)
+    * [Android 基于的 Choreographer 渲染机制](source/Android 图形系统/android-graphic-system-choreographer.md)
     * [Android VSYNC 机制](source/Android 图形系统/android-graphic-system-vsync.md)
 * [Android 插件化]()
     * [Android 插件化框架Small解析--开始了解Small](source/Android 插件化/open-source-android-plugins-small-sample.md)

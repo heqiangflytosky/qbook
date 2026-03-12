@@ -10,6 +10,9 @@ date: 2015-2-1 10:00:00
 
 AIDL是Android Interface Definition Language的简称，也就是Android接口定义语言，通过它我们可以定义进程间的通信接口。     
 它也是通过 Binder 实现进程间通信的。     
+为什么要使用 AIDL：       
+AIDL只用简单定义通信的接口即可，编译时会自动使用aidl工具生成Java文件，省去了很多重复的固定代码，大大减轻了工作量。      
+
 App 可以通过两种方式实现 Binder 进程间通信：
  - 通过创建Service，通过bindService获取 IBinder。
  - 通过ServiceManager.getService() 方式来获取 IBinder。

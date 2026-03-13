@@ -251,7 +251,7 @@ Choreographer.doFrame
         Choreographer.postCallbackDelayed
           Choreographer.postCallbackDelayedInternal
             Choreographer.scheduleFrameLocked
-              // 这里不适用 Vsync，直接发起doFrame
+              // 这里不使用 Vsync，直接发起doFrame
               mHandler.obtainMessage(MSG_DO_FRAME)
 ```
 
@@ -282,5 +282,6 @@ Choreographer$FrameHandler.handleMessage
 [Android 基于 Choreographer 的渲染机制详解](https://www.androidperformance.com/2019/10/22/Android-Choreographer)        
 [Choreographer详解](https://github.com/zhpanvip/AndroidNote/wiki/Choreographer%E8%AF%A6%E8%A7%A3)        
 [深入分析UI 上层事件处理核心机制 Choreographer](https://blog.csdn.net/farmer_cc/article/details/18619429)        
-[Android图形渲染之Choreographer原理](https://hningoba.github.io/2019/11/28/Android%20Choreographer%E5%8E%9F%E7%90%86/)      
-[Android 图形渲染【2】ViewRootImpl 与 Choreographer ](https://juejin.cn/post/7475184869792284723)       
+[Android图形渲染之Choreographer原理](https://hningoba.github.io/2019/11/28/Android%20Choreographer%E5%8E%9F%E7%90%86/)        
+[Android 图形渲染【2】ViewRootImpl 与 Choreographer](https://juejin.cn/post/7475184869792284723)       
+

@@ -709,7 +709,11 @@ Input Manager Service (Java) State:
 
 ## 开发者选项输入相关
 
-打开 开发者选项 -> 触摸事件 开关，就可以额外获取一些触摸事件日志。对应的其实就是 `sys.inputlog.enabled` 系统属性，也可以通过命令来打开和关闭：`adb shell setprop sys.inputlog.enabled true`    
+打开 开发者选项 -> 触摸事件 开关，就可以额外获取一些触摸事件日志。对应的其实就是 `sys.inputlog.enabled` 系统属性，也可以通过命令来打开和关闭：      
+
+```
+adb shell setprop sys.inputlog.enabled true
+```
 
 InputTransport：    
 
@@ -731,7 +735,8 @@ void InputDispatcher::finishDispatchCycleLocked(nsecs_t currentTime,
     }
 ```
 
-DEBUG_DISPATCH_CYCLE 定义在 `frameworks/native/services/inputflinger/dispatcher/DebugConfig.h` 中：    
+DEBUG_DISPATCH_CYCLE 定义在 `frameworks/native/services/inputflinger/dispatcher/DebugConfig.h` 中。      
+类似有很多这种日志，可以通过类似 `adb shell setprop log.tag.InputDispatcherOutboundEvent DEBUG` 打开，然后重启 system_server 进程即可生效。       
 
 ```
 /**
@@ -759,8 +764,8 @@ const bool DEBUG_HOVER =
 
 ```
 
-类似有很多这种日志，可以通过类似 `adb shell setprop log.tag.InputDispatcherOutboundEvent DEBUG` 打开，然后重启 system_server 进程即可生效。
 
+还有像在InputFlinger和jni中的一些日志开关。      
 
 ```
 // frameworks/native/services/inputflinger/reader/Macros.cpp 
@@ -777,7 +782,8 @@ DEBUG_FOCUS
 DEBUG_INJECTION
 ```
 
-开启ViewRootImpl/View/ViewGroup中input event的处理过程的log开关。 去确认以下怀疑点：Input 事件传递到了哪个window？ 有没有被正确的view处理？有没有被drop?等等。    
+开启ViewRootImpl/View/ViewGroup中input event的处理过程的log开关。      
+方便去确认以下怀疑点：Input 事件传递到了哪个window？ 有没有被正确的view处理？有没有被drop?等等。     
 
 ```
 //frameworks/base/services/core/java/com/android/server/wm/WindowManagerDebugConfig.java  
@@ -819,7 +825,9 @@ crw-rw---- 1 root input 13,  71 1970-07-12 04:58 event7
 crw-rw---- 1 root input 13,  72 1970-07-12 04:58 event8
 ```
 
-## adb shell input
+## 一些调试命令
+
+### adb shell input
 
 模拟遥控器、键盘、鼠标的各种按键操作。    
 
@@ -833,7 +841,7 @@ crw-rw---- 1 root input 13,  72 1970-07-12 04:58 event8
     public static final int KEYCODE_0               = 7;
 ```
 
-## adb shell getevent 
+### adb shell getevent 
 
 可以用来查看屏幕报点情况     
 
@@ -909,7 +917,7 @@ add device 9: /dev/input/event0
 [2024-04-07 11:47:18.671]/dev/input/event7: EV_SYN       SYN_REPORT           00000000             rate 128
 ```
 
-## adb shell sendevent 
+### adb shell sendevent 
 
 模拟用户输入的功能，将原始事件写入到节点中。使用较为复杂，建议使用 input。    
 
@@ -923,29 +931,32 @@ Sends a Linux input event.
 
 ## Systrace上查看触控事件分发
 
-InputDispatcher进行事件分发是会有一些处理队列，源码都加了一些trace tag的的打印和计数，如InputReader读取到触控事件后唤醒InputDispatcher会放入“iq”队列中，然后进行事件分发时每个目标窗口都有对应的队列“oq”和等待目标窗口事件处理的“wq”队列，最后应用这边收到触控事件后还有对应的“aq”队列，从systrace上看如下图所示：    
-system_server进程的InputDispatcher和InputReader：    
+InputDispatcher进行事件分发是会有一些处理队列，源码都加了一些trace tag的的打印和计数，如InputReader读取到触控事件后唤醒InputDispatcher会放入“iq”队列中，然后进行事件分发时每个目标窗口都有对应的队列“oq”和等待目标窗口事件处理的“wq”队列，最后应用这边收到触控事件后还有对应的“aq”队列，从systrace上看如下图所示：      
+system_server进程的 InputReader 和 InputDispatcher：      
+
+<img src="/images/android-knowledge-event-transfer-process-debug-skill/input_reader_dispatcher.png" width="557" height="180"/>
+
+InputReader 从EventHub 中读取屏幕驱动上报的Input触控事件，并唤醒交给InputDispatcher线程进行分发。      
+InputDispatcher 被唤醒后，先对Input触控事件进行封装，然后寻找到当前前台焦点窗口，并将Input 事件发送到焦点窗口所属的应用。      
+当有input未及时处理而引发ANR时，InputDispatcher 会报 notifyWindowUnresponsive，下图图中的绿色方块。      
 
 <img src="/images/android-knowledge-event-transfer-process-debug-skill/system_server_input_dispatcher.jpg" width="633" height="119"/>
 
-InputReader 从EventHub 中读取屏幕驱动上报的Input触控事件，并唤醒交给InputDispatcher线程进行分发。    
-InputDispatcher 被唤醒后，先对Input触控事件进行封装，然后寻找到当前前台焦点窗口，并将Input 事件发送到焦点窗口所属的应用。    
-当有input未及时处理而引发ANR时，InputDispatcher 会报 notifyWindowUnresponsive，上图中的绿色方块。    
+system_server进程的 iq (InboundQueue)队列表示InputReader读取到了触控事件。      
+oq (OutboundQueue)对应着一个可见窗口的事件分发处理队列。存放的这些事件是即将要被派发给目标窗口 App，但是此时还未发送成功的事件。      
+wq (WaitQueue)表示触控事件在某个目标窗口中等待处理的耗时状态。这个队列里面记录的是已经派发给 App，但是 App 还在处理没有返回处理成功的事件。如果应用处理完成并反馈后就会从队列中移除。      
 
+<img src="/images/android-knowledge-event-transfer-process-debug-skill/iq_oq_wq.png" width="602" height="147"/>
 <img src="/images/android-knowledge-event-transfer-process-debug-skill/system_server_iq_oq_wq.png" width="721" height="351"/>
 
-system_server进程的    
-iq (InboundQueue)队列表示InputReader读取到了触控事件。    
-oq (OutboundQueue)对应着一个可见窗口的事件分发处理队列。存放的这些事件是即将要被派发给目标窗口 App，但是此时还未发送成功的事件。    
-wq (WaitQueue)表示触控事件在某个目标窗口中等待处理的耗时状态。这个队列里面记录的是已经派发给 App，但是 App 还在处理没有返回处理成功的事件。如果应用处理完成并反馈后就会从队列中移除。    
-
-目标窗口应用App进程：     
+目标窗口应用App进程：       
 
 <img src="/images/android-knowledge-event-transfer-process-debug-skill/app_deliver_input_event.png" width="721" height="153"/>
 
-deliverInputEvent 标识 App UI Thread 被 Input 事件唤醒。    
-aq (PendingInputEventQueue) 队列中记录的是应用需要处理的Input事件，这里可以看到input事件已经传递到了应用进程。
+deliverInputEvent 标识 App UI Thread 被 Input 事件唤醒。     
+aq (PendingInputEventQueue) 队列中记录的是应用需要处理的Input事件，这里可以看到input事件已经传递到了应用进程。      
 
 ## 参考文章
 
-https://juejin.cn/post/6956500920108580878
+[Android触控事件处理机制(基于Android 11) ](https://juejin.cn/post/6956500920108580878)          
+[Android Input 调试与优化](https://kernel.meizu.com/2023/10/27/Android-inputTuning-and-Optimizing/)      

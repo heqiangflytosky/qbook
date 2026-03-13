@@ -82,6 +82,7 @@
     * [SystemUI -- Dagger2 的应用](source/Android SystemUI/android-systemui-with-dagger.md)
 * [Android 框架]()
     * [Android Framework 文章汇总](source/Android 框架/android-framework-article-summary.md)
+    * [Android Binder](source/Android 框架/android-framework-binder.md)
     * [Android 系统启动流程](source/Android 框架/android-framework-system-start.md)
     * [Android AMS 之 ClientTransaction 生命周期管理机制](source/Android 框架/android-framework-clienttransaction.md)
     * [Android AMS 之 Activity 启动流程](source/Android 框架/android-framework-activity-starting-process.md)

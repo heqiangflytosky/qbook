@@ -50,6 +50,8 @@ date: 2015-3-7 10:00:00
  - `git stash show stash@{0}` 查看名为stash{0}缓存的文件列表
  - `git stash show -p stash@{0}`  查看名为stash{0}缓存的文件差异
  - `git stash drop stash@{0}` 丢弃名为stash{0}缓存
+ - `git stash -- <文件路径>` 只stash某个文件
+ - `git stash push -m "stash README only" -- README.md` 只stash某个文件git 
 
 ## git config
 
@@ -122,6 +124,44 @@ $ git rebase origin
  - `git push origin --delete <branch_name>`：删除远程分支
  - `git push origin <branch_name>`：将本地分支推到远程，然后再调用 `git branch --set-upstream-to=origin/V3.3 V3.3` 将本地分支和远程分支关联
  - `git push -o topic=systemui-migrate`:添加topic信息，可以把一些提交按照topic归类
+
+将某个仓库连同提交记录push到另外一个仓库：
+
+```
+// 本地克隆 GitHub 仓库
+git clone https://github.com/用户名/旧仓库.git
+cd 旧仓库
+
+//关联 GitLab 远程仓库
+git remote add gitlab https://gitlab.com/用户名/新仓库.git
+
+//选择性推送
+git push gitlab master        # 推送master主分支
+git push gitlab --all         # 推送所有分支
+git push gitlab --tags        # 推送所有标签
+```
+
+将本地main分支覆盖custom分支内容，直接推送到远程的 origin
+
+```
+git push origin main:custom --force
+```
+
+将本地main分支添加到custom分支，保留custom分支内容
+
+```
+# 1. 先拉取远程 custom 分支到本地
+git fetch gitlab custom
+
+# 2. 切换到本地的 main 分支（或基于 main 新建一个临时分支）
+git checkout main
+
+# 3. 将远程 custom 分支合并到 main
+git merge gitlab/custom
+
+# 4. 解决可能的冲突后，将合并后的 main 推送到远程 custom
+git push gitlab main:custom
+```
 
 ## patch
 `git format-patch -n`：为前面的n次提交生成一个patch

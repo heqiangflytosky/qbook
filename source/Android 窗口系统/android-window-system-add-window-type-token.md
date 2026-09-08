@@ -61,6 +61,7 @@ APPLICATION 类型窗口会显示在它的token的 ActivityRecord 的下面，�
 ```
 
 系统窗口类型（2000 - 2999）     
+展示在 DefaultTaskDisplayAera 的上面。       
 
 ```
         public static final int FIRST_SYSTEM_WINDOW     = 2000;

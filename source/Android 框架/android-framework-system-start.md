@@ -27,7 +27,9 @@ Init进程启动后，首先挂载文件系统、再挂载相应的分区，启�
 ## Zygote 启动
 
 在Android系统中，普通应用程序进程以及运行系统的服务 system_server 进程都是由 Zygote 进程来fork的。也叫做孵化器。它通过linux中的fork形式创建应用程序进程和 system_server 。由于zygote进程在启动的时候会创建java虚拟机环境，因此通过fork而创建的应用程序进程或者system_server进程可以在内部获得java虚拟机环境，不需要单独为每一个进程创建java虚拟机环境。      
-
+Zygote 带来的好处：      
+ - 加快启动速度：Zygote 进程启动时还会预加载一些公共的类和系统资源，这样带来的好处就是 fork 进程时不用再去创建 java虚拟机环境已经加载这些类和资源，加快了进程的启动速度。     
+ - 节约内存：另外所有应用进程共享 Zygote 进程预加载的只读部分（如 Framework 代码段、系统资源）。在物理内存中，这部分代码只有一份拷贝，无论有多少应用在运行。这样还会节约内存。      
 Zygote 进程是通过init 进程在 system/core/rootdir/init.zygote32.rc 启动的。     
 
 ```

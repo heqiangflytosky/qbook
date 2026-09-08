@@ -313,6 +313,8 @@ RemoteAnimationTarget 主要用来存放远程动画图层。
 详情可阅读后面的 WindowContainerTransaction 相关博客。      
 
 
+### WindowAnimator
 
+驱动窗口动画的执行，内部会调用 mChoreographer.postFrameCallback(mAnimationFrameCallback)，当vsync到来时执行 dc.prepareSurfaces()，驱动图层显示状态的更新。      
 
 

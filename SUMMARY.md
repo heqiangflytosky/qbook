@@ -2,6 +2,7 @@
 
 * [博客简介](README.md)
 * [AI]()
+    * [AI 文章汇总](source/AI/ai_article-summary.md)
     * [AI 开发工具](source/AI/ai_development_tool.md)
     * [Colab + Langchain 简单实现 RAG](source/AI/ai_rag_simple_implementation.md)
     * [Android Gemini介绍](source/AI/ai_gemini.md)
